@@ -99,6 +99,7 @@
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
 # include "MagickCore/nt-feature.h"
 #endif
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -954,7 +955,7 @@ MagickExport MagickBooleanType ListTypeInfo(FILE *file,ExceptionInfo *exception)
     number_fonts;
 
   if (file == (FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   number_fonts=0;
   type_info=GetTypeInfoList("*",&number_fonts,exception);
   if (type_info == (const TypeInfo **) NULL)

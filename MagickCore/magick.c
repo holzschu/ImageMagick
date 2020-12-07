@@ -100,6 +100,7 @@
 #  endif
 #  include <libxml/parser.h>
 #endif
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -1187,7 +1188,7 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
     j;
 
   if (file == (FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   magick_info=GetMagickInfoList("*",&number_formats,exception);
   if (magick_info == (const MagickInfo **) NULL)
     return(MagickFalse);

@@ -78,6 +78,8 @@
 #include "MagickCore/thread-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/vision.h"
+// iOS: 
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1502,15 +1504,15 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
             "connected-components:exclude-header");
           if (IsStringTrue(artifact) == MagickFalse)
             {
-              (void) fprintf(stdout,"Objects (");
+              (void) fprintf(thread_stdout,"Objects (");
               artifact=GetImageArtifact(image,
                 "connected-components:exclude-ids");
               if (IsStringTrue(artifact) == MagickFalse)
-                (void) fprintf(stdout,"id: ");
-              (void) fprintf(stdout,"bounding-box centroid area mean-color");
+                (void) fprintf(thread_stdout,"id: ");
+              (void) fprintf(thread_stdout,"bounding-box centroid area mean-color");
               for (j=0; j <= n; j++)
-                (void) fprintf(stdout," %s",metrics[j]);
-              (void) fprintf(stdout,"):\n");
+                (void) fprintf(thread_stdout," %s",metrics[j]);
+              (void) fprintf(thread_stdout,"):\n");
             }
           for (i=0; i < (ssize_t) component_image->colors; i++)
             if (object[i].census > 0.0)
@@ -1519,12 +1521,12 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
                   mean_color[MagickPathExtent];
 
                 GetColorTuple(&object[i].color,MagickFalse,mean_color);
-                (void) fprintf(stdout,"  ");
+                (void) fprintf(thread_stdout,"  ");
                 artifact=GetImageArtifact(image,
                   "connected-components:exclude-ids");
                 if (IsStringTrue(artifact) == MagickFalse)
-                  (void) fprintf(stdout,"%.20g: ",(double) object[i].id);
-                (void) fprintf(stdout,
+                  (void) fprintf(thread_stdout,"%.20g: ",(double) object[i].id);
+                (void) fprintf(thread_stdout,
                   "%.20gx%.20g%+.20g%+.20g %.1f,%.1f %.*g %s",(double)
                   object[i].bounding_box.width,(double)
                   object[i].bounding_box.height,(double)
@@ -1532,9 +1534,9 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
                   object[i].centroid.x,object[i].centroid.y,
                   GetMagickPrecision(),(double) object[i].area,mean_color);
                 for (j=0; j <= n; j++)
-                  (void) fprintf(stdout," %.*g",GetMagickPrecision(),
+                  (void) fprintf(thread_stdout," %.*g",GetMagickPrecision(),
                     object[i].metric[j]);
-                (void) fprintf(stdout,"\n");
+                (void) fprintf(thread_stdout,"\n");
               }
         }
     }

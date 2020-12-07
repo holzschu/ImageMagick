@@ -53,6 +53,7 @@
 #include "MagickCore/thread_.h"
 #include "MagickCore/thread-private.h"
 #include "MagickCore/utility-private.h"
+#include "ios_error.h"
 
 /*
   Struct declaractions.
@@ -298,8 +299,8 @@ MagickExport void LockSemaphoreInfo(SemaphoreInfo *semaphore_info)
   if ((semaphore_info->reference_count > 0) &&
       (IsMagickThreadEqual(semaphore_info->id) != MagickFalse))
     {
-      (void) FormatLocaleFile(stderr,"Warning: unexpected recursive lock!\n");
-      (void) fflush(stderr);
+      (void) FormatLocaleFile(thread_stderr,"Warning: unexpected recursive lock!\n");
+      (void) fflush(thread_stderr);
     }
 #endif
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -454,9 +455,9 @@ MagickExport void UnlockSemaphoreInfo(SemaphoreInfo *semaphore_info)
   assert(IsMagickThreadEqual(semaphore_info->id) != MagickFalse);
   if (semaphore_info->reference_count == 0)
     {
-      (void) FormatLocaleFile(stderr,
+      (void) FormatLocaleFile(thread_stderr,
         "Warning: semaphore lock already unlocked!\n");
-      (void) fflush(stderr);
+      (void) fflush(thread_stderr);
       return;
     }
   semaphore_info->reference_count--;

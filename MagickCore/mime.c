@@ -56,6 +56,7 @@
 #include "MagickCore/utility-private.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -707,7 +708,7 @@ MagickExport MagickBooleanType ListMimeInfo(FILE *file,ExceptionInfo *exception)
     j;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   mime_info=GetMimeInfoList("*",&number_aliases,exception);
   if (mime_info == (const MimeInfo **) NULL)
     return(MagickFalse);

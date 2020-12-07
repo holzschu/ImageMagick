@@ -71,6 +71,7 @@
 #include "MagickCore/utility-private.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -1889,7 +1890,7 @@ MagickExport MagickBooleanType ListColorInfo(FILE *file,
     List name and attributes of each color in the list.
   */
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   color_info=GetColorInfoList("*",&number_colors,exception);
   if (color_info == (const ColorInfo **) NULL)
     return(MagickFalse);

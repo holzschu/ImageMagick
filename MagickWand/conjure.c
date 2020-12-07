@@ -48,6 +48,8 @@
 #include "MagickWand/studio.h"
 #include "MagickWand/MagickWand.h"
 #include "MagickWand/mogrify-private.h"
+// iOS:
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,16 +105,16 @@ static MagickBooleanType ConjureUsage(void)
       "  -seed value          seed a new sequence of pseudo-random numbers\n"
       "  -verbose             print detailed information about the image";
 
-  ListMagickVersion(stdout);
-  (void) printf("Usage: %s [options ...] file [ [options ...] file ...]\n",
+  ListMagickVersion(thread_stdout);
+  (void) fprintf(thread_stdout, "Usage: %s [options ...] file [ [options ...] file ...]\n",
     GetClientName());
-  (void) printf("\nImage Settings:\n");
+  (void) fprintf(thread_stdout, "\nImage Settings:\n");
   (void) puts(settings);
-  (void) printf("\nMiscellaneous Options:\n");
+  (void) fprintf(thread_stdout, "\nMiscellaneous Options:\n");
   (void) puts(miscellaneous);
-  (void) printf("\nIn addition, define any key value pairs required by "
+  (void) fprintf(thread_stdout, "\nIn addition, define any key value pairs required by "
     "your script.  For\nexample,\n\n");
-  (void) printf("    conjure -size 100x100 -color blue -foo bar script.msl\n");
+  (void) fprintf(thread_stdout, "    conjure -size 100x100 -color blue -foo bar script.msl\n");
   return(MagickTrue);
 }
 
@@ -261,7 +263,7 @@ WandExport MagickBooleanType ConjureImageCommand(ImageInfo *image_info,
         if ((LocaleCompare("version",option+1) == 0) ||
             (LocaleCompare("-version",option+1) == 0))
           {
-            ListMagickVersion(stdout);
+            ListMagickVersion(thread_stdout);
             return(MagickTrue);
           }
         /*

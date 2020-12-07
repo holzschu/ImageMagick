@@ -65,6 +65,8 @@
 #include "MagickCore/version.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+// iOS
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -771,7 +773,7 @@ MagickExport MagickBooleanType ListLogInfo(FILE *file,ExceptionInfo *exception)
     j;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   log_info=GetLogInfoList("*",&number_aliases,exception);
   if (log_info == (const LogInfo **) NULL)
     return(MagickFalse);
@@ -1577,8 +1579,8 @@ MagickExport MagickBooleanType LogMagickEventList(const LogEventType type,
     }
   if ((log_info->handler_mask & ConsoleHandler) != 0)
     {
-      (void) FormatLocaleFile(stderr,"%s\n",text);
-      (void) fflush(stderr);
+      (void) FormatLocaleFile(thread_stderr,"%s\n",text);
+      (void) fflush(thread_stderr);
     }
   if ((log_info->handler_mask & DebugHandler) != 0)
     {
@@ -1643,13 +1645,13 @@ MagickExport MagickBooleanType LogMagickEventList(const LogEventType type,
     }
   if ((log_info->handler_mask & StdoutHandler) != 0)
     {
-      (void) FormatLocaleFile(stdout,"%s\n",text);
-      (void) fflush(stdout);
+      (void) FormatLocaleFile(thread_stdout,"%s\n",text);
+      (void) fflush(thread_stdout);
     }
   if ((log_info->handler_mask & StderrHandler) != 0)
     {
-      (void) FormatLocaleFile(stderr,"%s\n",text);
-      (void) fflush(stderr);
+      (void) FormatLocaleFile(thread_stderr,"%s\n",text);
+      (void) fflush(thread_stderr);
     }
   text=(char  *) RelinquishMagickMemory(text);
   (void) ContinueTimer((TimerInfo *) &log_info->timer);

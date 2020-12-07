@@ -51,6 +51,8 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
 #include "MagickCore/token.h"
+// iOS:
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -322,13 +324,13 @@ MagickExport MagickStatusType GetGeometry(const char *geometry,ssize_t *x,
     }
 #if 0
   /* Debugging Geometry */
-  (void) fprintf(stderr,"GetGeometry...\n");
-  (void) fprintf(stderr,"Input: %s\n",geometry);
-  (void) fprintf(stderr,"Flags: %c %c %s %s\n",
+  (void) fprintf(thread_stderr,"GetGeometry...\n");
+  (void) fprintf(thread_stderr,"Input: %s\n",geometry);
+  (void) fprintf(thread_stderr,"Flags: %c %c %s %s\n",
     (flags & WidthValue) ? 'W' : ' ',(flags & HeightValue) ? 'H' : ' ',
     (flags & XValue) ? ((flags & XNegative) ? "-X" : "+X") : "  ",
     (flags & YValue) ? ((flags & YNegative) ? "-Y" : "+Y") : "  ");
-  (void) fprintf(stderr,"Geometry: %ldx%ld%+ld%+ld\n",(long) *width,(long)
+  (void) fprintf(thread_stderr,"Geometry: %ldx%ld%+ld%+ld\n",(long) *width,(long)
     *height,(long) *x,(long) *y);
 #endif
   return(flags);
@@ -1185,13 +1187,13 @@ MagickExport MagickStatusType ParseGeometry(const char *geometry,
     }
 #if 0
   /* Debugging Geometry */
-  (void) fprintf(stderr,"ParseGeometry...\n");
-  (void) fprintf(stderr,"Flags: %c %c %s %s %s\n",
+  (void) fprintf(thread_stderr,"ParseGeometry...\n");
+  (void) fprintf(thread_stderr,"Flags: %c %c %s %s %s\n",
     (flags & RhoValue) ? 'W' : ' ',(flags & SigmaValue) ? 'H' : ' ',
     (flags & XiValue) ? ((flags & XiNegative) ? "-X" : "+X") : "  ",
     (flags & PsiValue) ? ((flags & PsiNegative) ? "-Y" : "+Y") : "  ",
     (flags & ChiValue) ? ((flags & ChiNegative) ? "-Z" : "+Z") : "  ");
-  (void) fprintf(stderr,"Geometry: %lg,%lg,%lg,%lg,%lg\n",geometry_info->rho,
+  (void) fprintf(thread_stderr,"Geometry: %lg,%lg,%lg,%lg,%lg\n",geometry_info->rho,
     geometry_info->sigma,geometry_info->xi,geometry_info->psi,
     geometry_info->chi);
 #endif

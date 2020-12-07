@@ -205,6 +205,7 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
 #include "MagickCore/thread-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -2704,7 +2705,7 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
       distortion+=kmeans_pixels[0][i].distortion;
     }
     if (verbose != MagickFalse)
-      (void) FormatLocaleFile(stderr,"distortion[%.20g]: %*g %*g\n",(double) n,
+      (void) FormatLocaleFile(thread_stderr,"distortion[%.20g]: %*g %*g\n",(double) n,
         GetMagickPrecision(),distortion,GetMagickPrecision(),
         fabs(distortion-previous_tolerance));
     if (fabs(distortion-previous_tolerance) <= tolerance)

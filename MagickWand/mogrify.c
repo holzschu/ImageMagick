@@ -65,6 +65,8 @@
 #if defined(MAGICKCORE_HAVE_UTIME_H)
 #include <utime.h>
 #endif
+// iOS:
+#include "ios_error.h"
 
 /*
   Constant declaration.
@@ -299,7 +301,7 @@ WandExport MagickBooleanType MagickCommandGenesis(ImageInfo *image_info,
     else
       e=((1.0/(1.0/((serial/(serial+parallel))+(1.0-(serial/(serial+parallel)))/
         (double) n)))-(1.0/(double) n))/(1.0-1.0/(double) n);
-    (void) FormatLocaleFile(stderr,
+    (void) FormatLocaleFile(thread_stderr,
       "  Performance[%.20g]: %.20gi %0.3fips %0.6fe %0.6fu %lu:%02lu.%03lu\n",
       (double) n,(double) iterations,(double) iterations/parallel,e,user_time,
       (unsigned long) (parallel/60.0),(unsigned long) floor(fmod(parallel,
@@ -440,16 +442,16 @@ static MagickBooleanType MonitorProgress(const char *text,
   if (locale_message == message)
     locale_message=tag;
   if (p == (char *) NULL)
-    (void) FormatLocaleFile(stderr,"%s: %ld of %lu, %02ld%% complete\r",
+    (void) FormatLocaleFile(thread_stderr,"%s: %ld of %lu, %02ld%% complete\r",
       locale_message,(long) offset,(unsigned long) extent,(long)
       (100L*offset/(extent-1)));
   else
-    (void) FormatLocaleFile(stderr,"%s[%s]: %ld of %lu, %02ld%% complete\r",
+    (void) FormatLocaleFile(thread_stderr,"%s[%s]: %ld of %lu, %02ld%% complete\r",
       locale_message,p+1,(long) offset,(unsigned long) extent,(long)
       (100L*offset/(extent-1)));
   if (offset == (MagickOffsetType) (extent-1))
-    (void) FormatLocaleFile(stderr,"\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr,"\n");
+  (void) fflush(thread_stderr);
   return(MagickTrue);
 }
 
@@ -1916,7 +1918,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             (void) SyncImageSettings(mogrify_info,*image,exception);
             if (format == (char *) NULL)
               {
-                (void) IdentifyImage(*image,stdout,mogrify_info->verbose,
+                (void) IdentifyImage(*image,thread_stdout,mogrify_info->verbose,
                   exception);
                 break;
               }
@@ -1924,7 +1926,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
               exception);
             if (text == (char *) NULL)
               break;
-            (void) fputs(text,stdout);
+            (void) fputs(text,thread_stdout);
             text=DestroyString(text);
             break;
           }
@@ -3855,30 +3857,30 @@ static MagickBooleanType MogrifyUsage(void)
       "  -reverse             reverse image sequence\n"
       "  -swap indexes        swap two images in the image sequence";
 
-  ListMagickVersion(stdout);
-  (void) printf("Usage: %s [options ...] file [ [options ...] file ...]\n",
+  ListMagickVersion(thread_stdout);
+  (void) fprintf(thread_stdout, "Usage: %s [options ...] file [ [options ...] file ...]\n",
     GetClientName());
-  (void) printf("\nImage Settings:\n");
+  (void) fprintf(thread_stdout, "\nImage Settings:\n");
   (void) puts(settings);
-  (void) printf("\nImage Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Operators:\n");
   (void) puts(operators);
-  (void) printf("\nImage Channel Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Channel Operators:\n");
   (void) puts(channel_operators);
-  (void) printf("\nImage Sequence Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Sequence Operators:\n");
   (void) puts(sequence_operators);
-  (void) printf("\nImage Stack Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Stack Operators:\n");
   (void) puts(stack_operators);
-  (void) printf("\nMiscellaneous Options:\n");
+  (void) fprintf(thread_stdout, "\nMiscellaneous Options:\n");
   (void) puts(miscellaneous);
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "\nBy default, the image format of 'file' is determined by its magic\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "number.  To specify a particular image format, precede the filename\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "with an image format name and a colon (i.e. ps:image) or specify the\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "image type as the filename suffix (i.e. image.ps).  Specify 'file' as\n");
-  (void) printf("'-' for standard input or output.\n");
+  (void) fprintf(thread_stdout, "'-' for standard input or output.\n");
   return(MagickTrue);
 }
 
@@ -3956,7 +3958,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
       if ((LocaleCompare("version",option+1) == 0) ||
           (LocaleCompare("-version",option+1) == 0))
         {
-          ListMagickVersion(stdout);
+          ListMagickVersion(thread_stdout);
           return(MagickTrue);
         }
     }
@@ -6568,7 +6570,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
         if ((LocaleCompare("version",option+1) == 0) ||
             (LocaleCompare("-version",option+1) == 0))
           {
-            ListMagickVersion(stdout);
+            ListMagickVersion(thread_stdout);
             break;
           }
         if (LocaleCompare("vignette",option+1) == 0)
@@ -8810,7 +8812,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
               exception);
             if (string == (char *) NULL)
               break;
-            (void) FormatLocaleFile(stdout,"%s",string);
+            (void) FormatLocaleFile(thread_stdout,"%s",string);
             string=DestroyString(string);
           }
         if (LocaleCompare("process",option+1) == 0)
@@ -9080,7 +9082,7 @@ WandExport MagickBooleanType MogrifyImages(ImageInfo *image_info,
     (void *) NULL);
   status=MagickTrue;
 #if 0
-  (void) FormatLocaleFile(stderr, "mogrify start %s %d (%s)\n",argv[0],argc,
+  (void) FormatLocaleFile(thread_stderr, "mogrify start %s %d (%s)\n",argv[0],argc,
     post?"post":"pre");
 #endif
   /*
@@ -9096,7 +9098,7 @@ WandExport MagickBooleanType MogrifyImages(ImageInfo *image_info,
   for ( ; ; )
   {
 #if 0
-  (void) FormatLocaleFile(stderr,"mogrify %ld of %ld\n",(long)
+  (void) FormatLocaleFile(thread_stderr,"mogrify %ld of %ld\n",(long)
     GetImageIndexInList(*images),(long)GetImageListLength(*images));
 #endif
     status&=MogrifyImage(image_info,argc,argv,images,exception);
@@ -9110,7 +9112,7 @@ WandExport MagickBooleanType MogrifyImages(ImageInfo *image_info,
   }
   assert( *images != (Image *) NULL );
 #if 0
-  (void) FormatLocaleFile(stderr,"mogrify end %ld of %ld\n",(long)
+  (void) FormatLocaleFile(thread_stderr,"mogrify end %ld of %ld\n",(long)
     GetImageIndexInList(*images),(long)GetImageListLength(*images));
 #endif
   /*

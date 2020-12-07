@@ -66,6 +66,7 @@
 #include "MagickCore/utility-private.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -710,7 +711,7 @@ MagickExport MagickBooleanType ListPolicyInfo(FILE *file,
     List name and attributes of each policy in the list.
   */
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   policy_info=GetPolicyInfoList("*",&number_policies,exception);
   if (policy_info == (const PolicyInfo **) NULL)
     return(MagickFalse);

@@ -29590,8 +29590,8 @@ if test "$with_freetype" != 'yes'; then
 fi
 
 have_freetype='no'
-FREETYPE_CFLAGS=""
-FREETYPE_LIBS=""
+# FREETYPE_CFLAGS=""
+# FREETYPE_LIBS=""
 FREETYPE_PKG=""
 if test "x$with_freetype" = "xyes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: -------------------------------------------------------------" >&5
@@ -31467,9 +31467,9 @@ if test "$with_png" != 'yes'; then
     DISTCHECK_CONFIG_FLAGS="${DISTCHECK_CONFIG_FLAGS} --with-png=$with_png "
 fi
 
-have_png='no'
-PNG_CFLAGS=""
-PNG_LIBS=""
+# have_png='no'
+# PNG_CFLAGS=""
+# PNG_LIBS=""
 PNG_PKG=""
 if test "x$with_png" = "xyes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: -------------------------------------------------------------" >&5

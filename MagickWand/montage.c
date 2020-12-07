@@ -46,6 +46,8 @@
 #include "MagickWand/MagickWand.h"
 #include "MagickWand/mogrify-private.h"
 #include "MagickCore/string-private.h"
+// iOS:
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -208,34 +210,34 @@ static MagickBooleanType MontageUsage(void)
       "  -reverse             reverse image sequence\n"
       "  -swap indexes        swap two images in the image sequence";
 
-  ListMagickVersion(stdout);
-  (void) printf("Usage: %s [options ...] file [ [options ...] file ...] file\n",
+  ListMagickVersion(thread_stdout);
+  (void) fprintf(thread_stdout, "Usage: %s [options ...] file [ [options ...] file ...] file\n",
     GetClientName());
-  (void) printf("\nImage Settings:\n");
+  (void) fprintf(thread_stdout, "\nImage Settings:\n");
   (void) puts(settings);
-  (void) printf("\nImage Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Operators:\n");
   (void) puts(operators);
-  (void) printf("\nImage Sequence Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Sequence Operators:\n");
   (void) puts(sequence_operators);
-  (void) printf("\nImage Stack Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Stack Operators:\n");
   (void) puts(stack_operators);
-  (void) printf("\nMiscellaneous Options:\n");
+  (void) fprintf(thread_stdout, "\nMiscellaneous Options:\n");
   (void) puts(miscellaneous);
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "\nIn addition to those listed above, you can specify these standard X\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "resources as command line options:  -background, -bordercolor,\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "-mattecolor, -borderwidth, -font, or -title\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "\nBy default, the image format of 'file' is determined by its magic\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "number.  To specify a particular image format, precede the filename\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "with an image format name and a colon (i.e. ps:image) or specify the\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "image type as the filename suffix (i.e. image.ps).  Specify 'file' as\n");
-  (void) printf("'-' for standard input or output.\n");
+  (void) fprintf(thread_stdout, "'-' for standard input or output.\n");
   return(MagickTrue);
 }
 
@@ -319,7 +321,7 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
       if ((LocaleCompare("version",option+1) == 0) ||
           (LocaleCompare("-version",option+1) == 0))
         {
-          ListMagickVersion(stdout);
+          ListMagickVersion(thread_stdout);
           return(MagickTrue);
         }
     }
@@ -1731,7 +1733,7 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
         if ((LocaleCompare("version",option+1) == 0) ||
             (LocaleCompare("-version",option+1) == 0))
           {
-            ListMagickVersion(stdout);
+            ListMagickVersion(thread_stdout);
             break;
           }
         if (LocaleCompare("virtual-pixel",option+1) == 0)

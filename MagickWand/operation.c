@@ -66,6 +66,7 @@
 #include "MagickCore/string-private.h"
 #include "MagickCore/thread-private.h"
 #include "MagickCore/timer-private.h"
+#include "ios_error.h"
 
 /*
   Constant declaration.
@@ -87,7 +88,7 @@ static const char
 
 /* For Debugging Geometry Input */
 #define ReportGeometry(flags,info) \
-  (void) FormatLocaleFile(stderr, "Geometry = 0x%04X : %lg x %lg %+lg %+lg\n", \
+  (void) FormatLocaleFile(thread_stderr, "Geometry = 0x%04X : %lg x %lg %+lg %+lg\n", \
        flags, info.rho, info.sigma, info.xi, info.psi )
 
 /*
@@ -122,16 +123,16 @@ static MagickBooleanType MonitorProgress(const char *text,
   if (locale_message == message)
     locale_message=tag;
   if (p == (char *) NULL)
-    (void) FormatLocaleFile(stderr,"%s: %ld of %lu, %02ld%% complete\r",
+    (void) FormatLocaleFile(thread_stderr,"%s: %ld of %lu, %02ld%% complete\r",
       locale_message,(long) offset,(unsigned long) extent,(long)
       (100L*offset/(extent-1)));
   else
-    (void) FormatLocaleFile(stderr,"%s[%s]: %ld of %lu, %02ld%% complete\r",
+    (void) FormatLocaleFile(thread_stderr,"%s[%s]: %ld of %lu, %02ld%% complete\r",
       locale_message,p+1,(long) offset,(unsigned long) extent,(long)
       (100L*offset/(extent-1)));
   if (offset == (MagickOffsetType) (extent-1))
-    (void) FormatLocaleFile(stderr,"\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr,"\n");
+  (void) fflush(thread_stderr);
   return(MagickTrue);
 }
 
@@ -1722,7 +1723,7 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
 #undef _option_type
 
 #if 0
-  (void) FormatLocaleFile(stderr,
+  (void) FormatLocaleFile(thread_stderr,
     "CLISimpleOperatorImage: \"%s\" \"%s\" \"%s\"\n",option,arg1,arg2);
 #endif
 
@@ -2561,7 +2562,7 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
           format=GetImageOption(_image_info,"format");
           if (format == (char *) NULL)
             {
-              (void) IdentifyImage(_image,stdout,_image_info->verbose,
+              (void) IdentifyImage(_image,thread_stdout,_image_info->verbose,
                 _exception);
               break;
             }
@@ -2569,7 +2570,7 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
           if (text == (char *) NULL)
             CLIWandExceptionBreak(OptionWarning,"InterpretPropertyFailure",
               option);
-          (void) fputs(text,stdout);
+          (void) fputs(text,thread_stdout);
           text=DestroyString((char *)text);
           break;
         }
@@ -5012,7 +5013,7 @@ WandPrivate void CLINoImageOperator(MagickCLI *cli_wand,
     }
       if (LocaleCompare("print",option+1) == 0)
         {
-          (void) FormatLocaleFile(stdout,"%s",arg1);
+          (void) FormatLocaleFile(thread_stdout,"%s",arg1);
           break;
         }
     if (LocaleCompare("set",option+1) == 0)
@@ -5127,7 +5128,7 @@ WandPrivate void CLINoImageOperator(MagickCLI *cli_wand,
     */
     if (LocaleCompare("version",option+1) == 0)
       {
-        ListMagickVersion(stdout);
+        ListMagickVersion(thread_stdout);
         break;
       }
     if (LocaleCompare("list",option+1) == 0) {
@@ -5287,7 +5288,7 @@ WandExport void CLIOption(MagickCLI *cli_wand,const char *option,...)
     if ( cli_wand->command == (const OptionInfo *) NULL )
       cli_wand->command = GetCommandOptionInfo(option);
 #if 0
-      (void) FormatLocaleFile(stderr, "CLIOption \"%s\" matched \"%s\"\n",
+      (void) FormatLocaleFile(thread_stderr, "CLIOption \"%s\" matched \"%s\"\n",
             option, cli_wand->command->mnemonic );
 #endif
     option_type=(CommandOptionFlags) cli_wand->command->flags;
@@ -5325,7 +5326,7 @@ WandExport void CLIOption(MagickCLI *cli_wand,const char *option,...)
 
       va_end(operands);
 #if 0
-      (void) FormatLocaleFile(stderr,
+      (void) FormatLocaleFile(thread_stderr,
         "CLIOption: \"%s\"  Count: %ld  Flags: %04x  Args: \"%s\" \"%s\"\n",
             option,(long) count,option_type,arg1,arg2);
 #endif

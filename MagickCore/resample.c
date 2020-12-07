@@ -67,6 +67,8 @@
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
 #include "MagickCore/option.h"
+// iOS:
+#include "ios_error.h"
 /*
   EWA Resampling Options
 */
@@ -337,7 +339,7 @@ MagickExport MagickBooleanType ResamplePixelColor(
   }
 
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "u0=%lf; v0=%lf;\n", u0, v0);
+  (void) FormatLocaleFile(thread_stderr, "u0=%lf; v0=%lf;\n", u0, v0);
 #endif
 
   /*
@@ -559,8 +561,8 @@ MagickExport MagickBooleanType ResamplePixelColor(
   uw = (ssize_t)(2.0*resample_filter->Uwidth)+1;
 
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "v1=%ld; v2=%ld\n", (long)v1, (long)v2);
-  (void) FormatLocaleFile(stderr, "u1=%ld; uw=%ld\n", (long)u1, (long)uw);
+  (void) FormatLocaleFile(thread_stderr, "v1=%ld; v2=%ld\n", (long)v1, (long)v2);
+  (void) FormatLocaleFile(thread_stderr, "u1=%ld; uw=%ld\n", (long)u1, (long)uw);
 #else
 # define DEBUG_HIT_MISS 0 /* only valid if DEBUG_ELLIPSE is enabled */
 #endif
@@ -573,7 +575,7 @@ MagickExport MagickBooleanType ResamplePixelColor(
   for( v=v1; v<=v2;  v++ ) {
 #if DEBUG_HIT_MISS
     long uu = ceil(u1);   /* actual pixel location (for debug only) */
-    (void) FormatLocaleFile(stderr, "# scan line from pixel %ld, %ld\n", (long)uu, (long)v);
+    (void) FormatLocaleFile(thread_stderr, "# scan line from pixel %ld, %ld\n", (long)uu, (long)v);
 #endif
     u = (ssize_t)ceil(u1);        /* first pixel in scanline */
     u1 += resample_filter->slope; /* start of next scan line */
@@ -621,14 +623,14 @@ MagickExport MagickBooleanType ResamplePixelColor(
         hit++;
 #if DEBUG_HIT_MISS
         /* mark the pixel according to hit/miss of the ellipse */
-        (void) FormatLocaleFile(stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 3\n",
+        (void) FormatLocaleFile(thread_stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 3\n",
                      (long)uu-.1,(double)v-.1,(long)uu+.1,(long)v+.1);
-        (void) FormatLocaleFile(stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 3\n",
+        (void) FormatLocaleFile(thread_stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 3\n",
                      (long)uu+.1,(double)v-.1,(long)uu-.1,(long)v+.1);
       } else {
-        (void) FormatLocaleFile(stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 1\n",
+        (void) FormatLocaleFile(thread_stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 1\n",
                      (long)uu-.1,(double)v-.1,(long)uu+.1,(long)v+.1);
-        (void) FormatLocaleFile(stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 1\n",
+        (void) FormatLocaleFile(thread_stderr, "set arrow from %lf,%lf to %lf,%lf nohead ls 1\n",
                      (long)uu+.1,(double)v-.1,(long)uu-.1,(long)v+.1);
       }
       uu++;
@@ -641,7 +643,7 @@ MagickExport MagickBooleanType ResamplePixelColor(
     }
   }
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "Hit=%ld;  Total=%ld;\n", (long)hit, (long)uw*(v2-v1) );
+  (void) FormatLocaleFile(thread_stderr, "Hit=%ld;  Total=%ld;\n", (long)hit, (long)uw*(v2-v1) );
 #endif
 
   /*
@@ -1050,8 +1052,8 @@ MagickExport void ScaleResampleFilter(ResampleFilter *resample_filter,
     return; /* EWA turned off - nothing to do */
 
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "# -----\n" );
-  (void) FormatLocaleFile(stderr, "dux=%lf; dvx=%lf;   duy=%lf; dvy=%lf;\n",
+  (void) FormatLocaleFile(thread_stderr, "# -----\n" );
+  (void) FormatLocaleFile(thread_stderr, "dux=%lf; dvx=%lf;   duy=%lf; dvy=%lf;\n",
        dux, dvx, duy, dvy);
 #endif
 
@@ -1081,7 +1083,7 @@ MagickExport void ScaleResampleFilter(ResampleFilter *resample_filter,
   major_x *= major_mag;  major_y *= major_mag;
   minor_x *= minor_mag;  minor_y *= minor_mag;
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "major_x=%lf; major_y=%lf;  minor_x=%lf; minor_y=%lf;\n",
+  (void) FormatLocaleFile(thread_stderr, "major_x=%lf; major_y=%lf;  minor_x=%lf; minor_y=%lf;\n",
         major_x, major_y, minor_x, minor_y);
 #endif
   A = major_y*major_y+minor_y*minor_y;
@@ -1120,7 +1122,7 @@ MagickExport void ScaleResampleFilter(ResampleFilter *resample_filter,
 #endif
 
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "A=%lf; B=%lf; C=%lf; F=%lf\n", A,B,C,F);
+  (void) FormatLocaleFile(thread_stderr, "A=%lf; B=%lf; C=%lf; F=%lf\n", A,B,C,F);
 
   /* Figure out the various information directly about the ellipse.
      This information currently not needed at this time, but may be
@@ -1141,14 +1143,14 @@ MagickExport void ScaleResampleFilter(ResampleFilter *resample_filter,
       Major=sqrt(2*F/(alpha - gamma));
     Minor = sqrt(2*F/(alpha + gamma));
 
-    (void) FormatLocaleFile(stderr, "# Major=%lf; Minor=%lf\n", Major, Minor );
+    (void) FormatLocaleFile(thread_stderr, "# Major=%lf; Minor=%lf\n", Major, Minor );
 
     /* other information about ellipse include... */
     Eccentricity = Major/Minor;
     Ellipse_Area = MagickPI*Major*Minor;
     Ellipse_Angle = atan2(B, A-C);
 
-    (void) FormatLocaleFile(stderr, "# Angle=%lf   Area=%lf\n",
+    (void) FormatLocaleFile(thread_stderr, "# Angle=%lf   Area=%lf\n",
          (double) RadiansToDegrees(Ellipse_Angle), Ellipse_Area);
   }
 #endif
@@ -1181,7 +1183,7 @@ MagickExport void ScaleResampleFilter(ResampleFilter *resample_filter,
   resample_filter->slope = -B/(2.0*A); /* Reciprocal slope of the parallelogram */
 
 #if DEBUG_ELLIPSE
-  (void) FormatLocaleFile(stderr, "Ulimit=%lf; Vlimit=%lf; UWidth=%lf; Slope=%lf;\n",
+  (void) FormatLocaleFile(thread_stderr, "Ulimit=%lf; Vlimit=%lf; UWidth=%lf; Slope=%lf;\n",
            resample_filter->Ulimit, resample_filter->Vlimit,
            resample_filter->Uwidth, resample_filter->slope );
 #endif
@@ -1346,26 +1348,26 @@ MagickExport void SetResampleFilter(ResampleFilter *resample_filter,
             plot [0:2][-.2:1] "lut.dat" with lines
           The filter values should be normalized for comparision
         */
-        printf("#\n");
-        printf("# Resampling Filter LUT (%d values) for '%s' filter\n",
+        fprintf(thread_stdout, "#\n");
+        fprintf(thread_stdout, "# Resampling Filter LUT (%d values) for '%s' filter\n",
                    WLUT_WIDTH, CommandOptionToMnemonic(MagickFilterOptions,
                    resample_filter->filter) );
-        printf("#\n");
-        printf("# Note: values in table are using a squared radius lookup.\n");
-        printf("# As such its distribution is not uniform.\n");
-        printf("#\n");
-        printf("# The X value is the support distance for the Y weight\n");
-        printf("# so you can use gnuplot to plot this cylindrical filter\n");
-        printf("#    plot [0:2][-.2:1] \"lut.dat\" with lines\n");
-        printf("#\n");
+        fprintf(thread_stdout, "#\n");
+        fprintf(thread_stdout, "# Note: values in table are using a squared radius lookup.\n");
+        fprintf(thread_stdout, "# As such its distribution is not uniform.\n");
+        fprintf(thread_stdout, "#\n");
+        fprintf(thread_stdout, "# The X value is the support distance for the Y weight\n");
+        fprintf(thread_stdout, "# so you can use gnuplot to plot this cylindrical filter\n");
+        fprintf(thread_stdout, "#    plot [0:2][-.2:1] \"lut.dat\" with lines\n");
+        fprintf(thread_stdout, "#\n");
 
         /* Scale radius so the filter LUT covers the full support range */
         r_scale = resample_filter->support*sqrt(1.0/(double)WLUT_WIDTH);
         for(Q=0; Q<WLUT_WIDTH; Q++)
-          printf("%8.*g %.*g\n",
+          fprintf(thread_stdout, "%8.*g %.*g\n",
               GetMagickPrecision(),sqrt((double)Q)*r_scale,
               GetMagickPrecision(),resample_filter->filter_lut[Q] );
-        printf("\n\n"); /* generate a 'break' in gnuplot if multiple outputs */
+        fprintf(thread_stdout, "\n\n"); /* generate a 'break' in gnuplot if multiple outputs */
       }
     /* Output the above once only for each image, and each setting
     (void) DeleteImageArtifact(resample_filter->image,"resample:verbose");

@@ -80,6 +80,7 @@
 #include "MagickCore/transform.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -285,7 +286,7 @@ MagickExport Image *PingImage(const ImageInfo *image_info,
     {
       ResetTimer(&image->timer);
       if (ping_info->verbose != MagickFalse)
-        (void) IdentifyImage(image,stdout,MagickFalse,exception);
+        (void) IdentifyImage(image,thread_stdout,MagickFalse,exception);
     }
   ping_info=DestroyImageInfo(ping_info);
   return(image);
@@ -850,7 +851,7 @@ MagickExport Image *ReadImage(const ImageInfo *image_info,
           next->dispose=(DisposeType) option_type;
       }
     if (read_info->verbose != MagickFalse)
-      (void) IdentifyImage(next,stderr,MagickFalse,exception);
+      (void) IdentifyImage(next,thread_stderr,MagickFalse,exception);
     image=next;
   }
   read_info=DestroyImageInfo(read_info);
@@ -1287,7 +1288,7 @@ MagickExport MagickBooleanType WriteImage(const ImageInfo *image_info,
     }
   if ((LocaleCompare(write_info->magick,"info") != 0) &&
       (write_info->verbose != MagickFalse))
-    (void) IdentifyImage(image,stdout,MagickFalse,exception);
+    (void) IdentifyImage(image,thread_stdout,MagickFalse,exception);
   write_info=DestroyImageInfo(write_info);
   if (GetBlobError(image) != MagickFalse)
     ThrowWriterException(FileOpenError,"UnableToWriteFile");

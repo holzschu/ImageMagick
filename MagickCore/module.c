@@ -72,6 +72,7 @@ typedef lt_dlhandle ModuleHandle;
 #else
 typedef void *ModuleHandle;
 #endif
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -803,10 +804,10 @@ static MagickBooleanType GetMagickModulePath(const char *filename,
     if (home != (char *) NULL)
       {
         /*
-          Search $HOME/.config/ImageMagick.
+          Search $HOME/Documents/.config/ImageMagick.
         */
         (void) FormatLocaleString(path,MagickPathExtent,
-          "%s%s.config%sImageMagick%s%s",home,DirectorySeparator,
+          "%s%sDocuments%s.config%sImageMagick%s%s",home,DirectorySeparator,DirectorySeparator,
           DirectorySeparator,DirectorySeparator,filename);
         home=DestroyString(home);
         if (IsPathAccessible(path) != MagickFalse)
@@ -1080,7 +1081,7 @@ MagickExport MagickBooleanType ListModuleInfo(FILE *file,
     number_modules;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   /*
     List image coders.
   */

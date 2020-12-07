@@ -57,6 +57,8 @@
 #include "MagickCore/utility-private.h"
 #include "MagickCore/exception-private.h"
 #include "MagickCore/version.h"
+// iOS:
+#include "ios_error.h"
 
 /* verbose debugging,
       0 - no debug lines
@@ -173,7 +175,7 @@ RestoreMSCWarning
       count=cli_wand->command->type;
       option_type=(CommandOptionFlags) cli_wand->command->flags;
 #if 0
-      (void) FormatLocaleFile(stderr, "Script: %u,%u: \"%s\" matched \"%s\"\n",
+      (void) FormatLocaleFile(thread_stderr, "Script: %u,%u: \"%s\" matched \"%s\"\n",
           cli_wand->line, cli_wand->line, option, cli_wand->command->mnemonic );
 #endif
 
@@ -181,7 +183,7 @@ RestoreMSCWarning
       if ( option_type == UndefinedOptionFlag ||
            (option_type & NonMagickOptionFlag) != 0 ) {
 #if MagickCommandDebug >= 3
-        (void) FormatLocaleFile(stderr, "Script %u,%u Non-Option: \"%s\"\n",
+        (void) FormatLocaleFile(thread_stderr, "Script %u,%u Non-Option: \"%s\"\n",
                     cli_wand->line, cli_wand->line, option);
 #endif
         if (IsCommandOption(option) == MagickFalse) {
@@ -214,7 +216,7 @@ RestoreMSCWarning
         Process Options
       */
 #if MagickCommandDebug >= 3
-      (void) FormatLocaleFile(stderr,
+      (void) FormatLocaleFile(thread_stderr,
         "Script %u,%u Option: \"%s\"  Count: %d  Flags: %04x  Args: \"%s\" \"%s\"\n",
             cli_wand->line,cli_wand->line,option,count,option_type,arg1,arg2);
 #endif
@@ -248,15 +250,15 @@ RestoreMSCWarning
 
       /* Process non-specific Option */
       CLIOption(cli_wand, option, arg1, arg2);
-      (void) fflush(stdout);
-      (void) fflush(stderr);
+      (void) fflush(thread_stdout);
+      (void) fflush(thread_stderr);
 
 DisableMSCWarning(4127)
     } while (0); /* break block to next option */
 RestoreMSCWarning
 
 #if MagickCommandDebug >= 5
-    fprintf(stderr, "Script Image Count = %ld\n",
+    fprintf(thread_stderr, "Script Image Count = %ld\n",
          GetImageListLength(cli_wand->wand.images) );
 #endif
     if (CLICatchException(cli_wand, MagickFalse) != MagickFalse)
@@ -268,7 +270,7 @@ RestoreMSCWarning
   */
 loop_exit:
 #if MagickCommandDebug >= 3
-  (void) FormatLocaleFile(stderr, "Script End: %d\n", token_info->status);
+  (void) FormatLocaleFile(thread_stderr, "Script End: %d\n", token_info->status);
 #endif
   switch( token_info->status ) {
     case TokenStatusOK:
@@ -296,8 +298,8 @@ loop_exit:
       CLIWandException(OptionFatalError,"ScriptIsBinary","");
       break;
   }
-  (void) fflush(stdout);
-  (void) fflush(stderr);
+  (void) fflush(thread_stdout);
+  (void) fflush(thread_stderr);
   if (cli_wand->wand.debug != MagickFalse)
     (void) LogMagickEvent(CommandEvent,GetMagickModule(),
          "Script End \"%s\"", filename);
@@ -407,14 +409,14 @@ WandExport int ProcessCommandOptions(MagickCLI *cli_wand,int argc,char **argv,
       count=cli_wand->command->type;
       option_type=(CommandOptionFlags) cli_wand->command->flags;
 #if 0
-      (void) FormatLocaleFile(stderr, "CLI %d: \"%s\" matched \"%s\"\n",
+      (void) FormatLocaleFile(thread_stderr, "CLI %d: \"%s\" matched \"%s\"\n",
             i, argv[i], cli_wand->command->mnemonic );
 #endif
 
       if ( option_type == UndefinedOptionFlag ||
            (option_type & NonMagickOptionFlag) != 0 ) {
 #if MagickCommandDebug >= 3
-        (void) FormatLocaleFile(stderr, "CLI arg %d Non-Option: \"%s\"\n",
+        (void) FormatLocaleFile(thread_stderr, "CLI arg %d Non-Option: \"%s\"\n",
              i, option);
 #endif
         if (IsCommandOption(option) == MagickFalse) {
@@ -457,7 +459,7 @@ WandExport int ProcessCommandOptions(MagickCLI *cli_wand,int argc,char **argv,
         Process Known Options
       */
 #if MagickCommandDebug >= 3
-      (void) FormatLocaleFile(stderr,
+      (void) FormatLocaleFile(thread_stderr,
         "CLI arg %u Option: \"%s\"  Count: %d  Flags: %04x  Args: \"%s\" \"%s\"\n",
             i,option,count,option_type,arg1,arg2);
 #endif
@@ -481,7 +483,7 @@ DisableMSCWarning(4127)
 RestoreMSCWarning
 
 #if MagickCommandDebug >= 5
-    (void) FormatLocaleFile(stderr, "CLI-post Image Count = %ld\n",
+    (void) FormatLocaleFile(thread_stderr, "CLI-post Image Count = %ld\n",
          (long) GetImageListLength(cli_wand->wand.images) );
 #endif
     if ( CLICatchException(cli_wand, MagickFalse) != MagickFalse )
@@ -509,7 +511,7 @@ RestoreMSCWarning
     return(argc);
 
 #if MagickCommandDebug >= 3
-  (void) FormatLocaleFile(stderr,"CLI arg %d Write File: \"%s\"\n",i,option);
+  (void) FormatLocaleFile(thread_stderr,"CLI arg %d Write File: \"%s\"\n",i,option);
 #endif
 
   /* Valid 'do no write' replacement option (instead of "null:") */
@@ -582,34 +584,34 @@ static void MagickUsage(MagickBooleanType verbose)
 
   if (len>=7 && LocaleCompare("convert",name+len-7) == 0) {
     /* convert usage */
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
        "Usage: %s [ {option} | {image} ... ] {output_image}\n",name);
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
        "       %s -help | -version | -usage | -list {option}\n\n",name);
     return;
   }
   else if (len>=6 && LocaleCompare("script",name+len-6) == 0) {
     /* magick-script usage */
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
       "Usage: %s {filename} [ {script_args} ... ]\n",name);
   }
   else {
     /* magick usage */
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
        "Usage: %s tool [ {option} | {image} ... ] {output_image}\n",name);
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
        "Usage: %s [ {option} | {image} ... ] {output_image}\n",name);
-    (void) FormatLocaleFile(stdout,
+    (void) FormatLocaleFile(thread_stdout,
        "       %s [ {option} | {image} ... ] -script {filename} [ {script_args} ...]\n",
        name);
   }
-  (void) FormatLocaleFile(stdout,
+  (void) FormatLocaleFile(thread_stdout,
     "       %s -help | -version | -usage | -list {option}\n\n",name);
 
   if (verbose == MagickFalse)
     return;
 
-  (void) FormatLocaleFile(stdout,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+  (void) FormatLocaleFile(thread_stdout,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
     "All options are performed in a strict 'as you see them' order\n",
     "You must read-in images before you can operate on them.\n",
     "\n",
@@ -719,7 +721,7 @@ WandExport MagickBooleanType MagickImageCommand(ImageInfo *image_info,int argc,
   /* "convert" command - give a "deprecated" warning" */
   if (len>=7 && LocaleCompare("convert",argv[0]+len-7) == 0) {
     cli_wand->process_flags = ConvertCommandOptionFlags;
-    (void) FormatLocaleFile(stderr,"WARNING: %s\n",
+    (void) FormatLocaleFile(thread_stderr,"WARNING: %s\n",
          "The convert command is deprecated in IMv7, use \"magick\"\n");
   }
 
@@ -759,7 +761,7 @@ WandExport MagickBooleanType MagickImageCommand(ImageInfo *image_info,int argc,
 
   /* not enough arguments -- including -help */
   if (argc < 3) {
-    (void) FormatLocaleFile(stderr,
+    (void) FormatLocaleFile(thread_stderr,
        "Error: Invalid argument or not enough arguments\n\n");
     MagickUsage(MagickFalse);
     goto Magick_Command_Exit;

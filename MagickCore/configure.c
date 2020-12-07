@@ -58,6 +58,7 @@
 #include "MagickCore/version.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -900,10 +901,10 @@ MagickExport LinkedListInfo *GetConfigurePaths(const char *filename,
     if (home != (char *) NULL)
       {
         /*
-          Search $HOME/.config/ImageMagick.
+          Search $HOME/Documents/.config/ImageMagick.
         */
         (void) FormatLocaleString(path,MagickPathExtent,
-          "%s%s.config%sImageMagick%s",home,DirectorySeparator,
+          "%s%sDocuments%s.config%sImageMagick%s",home,DirectorySeparator,DirectorySeparator,
           DirectorySeparator,DirectorySeparator);
         (void) AppendValueToLinkedList(paths,ConstantString(path));
         home=DestroyString(home);
@@ -1063,7 +1064,7 @@ MagickExport MagickBooleanType ListConfigureInfo(FILE *file,
     j;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   configure_info=GetConfigureInfoList("*",&number_options,exception);
   if (configure_info == (const ConfigureInfo **) NULL)
     return(MagickFalse);

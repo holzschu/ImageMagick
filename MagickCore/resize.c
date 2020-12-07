@@ -82,6 +82,7 @@
 #if defined(MAGICKCORE_LQR_DELEGATE)
 #include <lqr.h>
 #endif
+#include "ios_error.h"
 
 /*
   Typedef declarations.
@@ -1208,41 +1209,41 @@ MagickPrivate ResizeFilter *AcquireResizeFilter(const Image *image,
           Report Filter Details.
         */
         support=GetResizeFilterSupport(resize_filter);  /* practical_support */
-        (void) FormatLocaleFile(stdout,
+        (void) FormatLocaleFile(thread_stdout,
           "# Resampling Filter (for graphing)\n#\n");
-        (void) FormatLocaleFile(stdout,"# filter = %s\n",
+        (void) FormatLocaleFile(thread_stdout,"# filter = %s\n",
           CommandOptionToMnemonic(MagickFilterOptions,filter_type));
-        (void) FormatLocaleFile(stdout,"# window = %s\n",
+        (void) FormatLocaleFile(thread_stdout,"# window = %s\n",
           CommandOptionToMnemonic(MagickFilterOptions,window_type));
-        (void) FormatLocaleFile(stdout,"# support = %.*g\n",
+        (void) FormatLocaleFile(thread_stdout,"# support = %.*g\n",
           GetMagickPrecision(),(double) resize_filter->support);
-        (void) FormatLocaleFile(stdout,"# window-support = %.*g\n",
+        (void) FormatLocaleFile(thread_stdout,"# window-support = %.*g\n",
           GetMagickPrecision(),(double) resize_filter->window_support);
-        (void) FormatLocaleFile(stdout,"# scale-blur = %.*g\n",
+        (void) FormatLocaleFile(thread_stdout,"# scale-blur = %.*g\n",
           GetMagickPrecision(),(double) resize_filter->blur);
         if ((filter_type == GaussianFilter) || (window_type == GaussianFilter))
-          (void) FormatLocaleFile(stdout,"# gaussian-sigma = %.*g\n",
+          (void) FormatLocaleFile(thread_stdout,"# gaussian-sigma = %.*g\n",
             GetMagickPrecision(),(double) resize_filter->coefficient[0]);
         if ( filter_type == KaiserFilter || window_type == KaiserFilter )
-          (void) FormatLocaleFile(stdout,"# kaiser-beta = %.*g\n",
+          (void) FormatLocaleFile(thread_stdout,"# kaiser-beta = %.*g\n",
             GetMagickPrecision(),(double) resize_filter->coefficient[0]);
-        (void) FormatLocaleFile(stdout,"# practical-support = %.*g\n",
+        (void) FormatLocaleFile(thread_stdout,"# practical-support = %.*g\n",
           GetMagickPrecision(), (double) support);
         if ((filter_type == CubicFilter) || (window_type == CubicFilter))
-          (void) FormatLocaleFile(stdout,"# B,C = %.*g,%.*g\n",
+          (void) FormatLocaleFile(thread_stdout,"# B,C = %.*g,%.*g\n",
             GetMagickPrecision(),(double) B,GetMagickPrecision(),(double) C);
-        (void) FormatLocaleFile(stdout,"\n");
+        (void) FormatLocaleFile(thread_stdout,"\n");
         /*
           Output values of resulting filter graph -- for graphing filter result.
         */
         for (x=0.0; x <= support; x+=0.01f)
-          (void) FormatLocaleFile(stdout,"%5.2lf\t%.*g\n",x,
+          (void) FormatLocaleFile(thread_stdout,"%5.2lf\t%.*g\n",x,
             GetMagickPrecision(),(double)
             GetResizeFilterWeight(resize_filter,x));
         /*
           A final value so gnuplot can graph the 'stop' properly.
         */
-        (void) FormatLocaleFile(stdout,"%5.2lf\t%.*g\n",support,
+        (void) FormatLocaleFile(thread_stdout,"%5.2lf\t%.*g\n",support,
           GetMagickPrecision(),0.0);
       }
       /* Output the above once only for each image - remove setting */

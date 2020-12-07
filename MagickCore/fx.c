@@ -96,6 +96,7 @@
 #include "MagickCore/transform.h"
 #include "MagickCore/transform-private.h"
 #include "MagickCore/utility.h"
+#include "ios_error.h"
 
 /*
   Typedef declarations.
@@ -213,7 +214,7 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
   }
   fx_info->random_info=AcquireRandomInfo();
   fx_info->expression=ConstantString(expression);
-  fx_info->file=stderr;
+  fx_info->file=thread_stderr;
   /*
     Convert compound to simple operators.
   */

@@ -45,6 +45,8 @@
 #include "MagickWand/mogrify-private.h"
 #include "MagickCore/composite-private.h"
 #include "MagickCore/string-private.h"
+// iOS:
+#include "ios_error.h"
 
 /*
   Typedef declarations.
@@ -359,27 +361,27 @@ static MagickBooleanType CompositeUsage(void)
     stack_operators[] =
       "  -swap indexes        swap two images in the image sequence";
 
-  ListMagickVersion(stdout);
-  (void) printf("Usage: %s [options ...] image [options ...] composite\n"
+  ListMagickVersion(thread_stdout);
+  (void) fprintf(thread_stdout, "Usage: %s [options ...] image [options ...] composite\n"
     "  [ [options ...] mask ] [options ...] composite\n",
     GetClientName());
-  (void) printf("\nImage Settings:\n");
+  (void) fprintf(thread_stdout, "\nImage Settings:\n");
   (void) puts(settings);
-  (void) printf("\nImage Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Operators:\n");
   (void) puts(operators);
-  (void) printf("\nImage Stack Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Stack Operators:\n");
   (void) puts(stack_operators);
-  (void) printf("\nMiscellaneous Options:\n");
+  (void) fprintf(thread_stdout, "\nMiscellaneous Options:\n");
   (void) puts(miscellaneous);
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "\nBy default, the image format of 'file' is determined by its magic\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "number.  To specify a particular image format, precede the filename\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "with an image format name and a colon (i.e. ps:image) or specify the\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "image type as the filename suffix (i.e. image.ps).  Specify 'file' as\n");
-  (void) printf("'-' for standard input or output.\n");
+  (void) fprintf(thread_stdout, "'-' for standard input or output.\n");
   return(MagickTrue);
 }
 
@@ -477,7 +479,7 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
       if ((LocaleCompare("version",option+1) == 0) ||
           (LocaleCompare("-version",option+1) == 0))
         {
-          ListMagickVersion(stdout);
+          ListMagickVersion(thread_stdout);
           return(MagickTrue);
         }
     }
@@ -1556,7 +1558,7 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
         if ((LocaleCompare("version",option+1) == 0) ||
             (LocaleCompare("-version",option+1) == 0))
           {
-            ListMagickVersion(stdout);
+            ListMagickVersion(thread_stdout);
             break;
           }
         if (LocaleCompare("virtual-pixel",option+1) == 0)

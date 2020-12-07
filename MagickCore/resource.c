@@ -66,6 +66,7 @@
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -890,7 +891,7 @@ MagickExport MagickBooleanType ListMagickResourceInfo(FILE *file,
   magick_unreferenced(exception);
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   if (resource_semaphore[FileResource] == (SemaphoreInfo *) NULL)
     ActivateSemaphoreInfo(&resource_semaphore[FileResource]);
   LockSemaphoreInfo(resource_semaphore[FileResource]);

@@ -59,6 +59,7 @@
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
 #include "coders/coders.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -530,7 +531,7 @@ MagickExport MagickBooleanType ListCoderInfo(FILE *file,
     j;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   coder_info=GetCoderInfoList("*",&number_coders,exception);
   if (coder_info == (const CoderInfo **) NULL)
     return(MagickFalse);

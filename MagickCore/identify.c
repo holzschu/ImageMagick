@@ -95,6 +95,7 @@
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
 #include "MagickCore/version.h"
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -532,7 +533,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (file == (FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   colorspace=image->colorspace;
   locate=GetImageArtifact(image,"identify:locate");
   if (locate != (const char *) NULL)

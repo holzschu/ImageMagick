@@ -78,6 +78,7 @@
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/visual-effects.h"
+#include "ios_error.h"
 
 /*
   ImageMagick options.
@@ -2829,7 +2830,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
 
   magick_unreferenced(exception);
   if (file == (FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   option_info=GetOptionInfo(option);
   if (option_info == (const OptionInfo *) NULL)
     return(MagickFalse);

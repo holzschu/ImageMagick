@@ -90,6 +90,7 @@
 #include "MagickCore/transform.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -759,7 +760,7 @@ MagickExport MagickBooleanType AutoThresholdImage(Image *image,
   (void) FormatLocaleString(property,MagickPathExtent,"%g%%",threshold);
   (void) SetImageProperty(image,"auto-threshold:threshold",property,exception);
   if (IsStringTrue(GetImageArtifact(image,"auto-threshold:verbose")) != MagickFalse)
-    (void) FormatLocaleFile(stdout,"%.*g%%\n",GetMagickPrecision(),threshold);
+    (void) FormatLocaleFile(thread_stdout,"%.*g%%\n",GetMagickPrecision(),threshold);
   return(BilevelImage(image,QuantumRange*threshold/100.0,exception));
 }
 
@@ -1810,7 +1811,7 @@ MagickExport MagickBooleanType ListThresholdMaps(FILE *file,
 
   status=MagickTrue;
   if (file == (FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   options=GetConfigureOptions(ThresholdsFilename,exception);
   (void) FormatLocaleFile(file,
     "\n   Threshold Maps for Ordered Dither Operations\n");

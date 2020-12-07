@@ -106,7 +106,7 @@
 /* PNG_PTR_NORETURN does not work on some platforms, in libpng-1.5.x */
 #define PNG_PTR_NORETURN
 
-#include <png.h>
+#include <libpng/png.h>
 #include <zlib.h>
 
 /* ImageMagick differences */

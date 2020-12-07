@@ -78,6 +78,7 @@
 #if defined(MAGICKCORE_BZLIB_DELEGATE)
 #include "bzlib.h"
 #endif
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -1429,7 +1430,7 @@ MagickExport void *FileToBlob(const char *filename,const size_t extent,
         "NotAuthorized","`%s'",filename);
       return(NULL);
     }
-  file=fileno(stdin);
+  file=fileno(thread_stdin);
   if (LocaleCompare(filename,"-") != 0)
     {
       status=GetPathAttributes(filename,&attributes);
@@ -1447,7 +1448,7 @@ MagickExport void *FileToBlob(const char *filename,const size_t extent,
     }
   offset=(MagickOffsetType) lseek(file,0,SEEK_END);
   count=0;
-  if ((file == fileno(stdin)) || (offset < 0) ||
+  if ((file == fileno(thread_stdin)) || (offset < 0) ||
       (offset != (MagickOffsetType) ((ssize_t) offset)))
     {
       size_t
@@ -1645,7 +1646,7 @@ MagickExport MagickBooleanType FileToImage(Image *image,const char *filename,
         "NotAuthorized","`%s'",filename);
       return(MagickFalse);
     }
-  file=fileno(stdin);
+  file=fileno(thread_stdin);
   if (LocaleCompare(filename,"-") != 0)
     file=open_utf8(filename,O_RDONLY | O_BINARY,0);
   if (file == -1)
@@ -2332,7 +2333,7 @@ MagickExport MagickBooleanType ImageToFile(Image *image,char *filename,
     file=AcquireUniqueFileResource(filename);
   else
     if (LocaleCompare(filename,"-") == 0)
-      file=fileno(stdout);
+      file=fileno(thread_stdout);
     else
       file=open_utf8(filename,O_RDWR | O_CREAT | O_EXCL | O_BINARY,S_MODE);
   if (file == -1)
@@ -3293,7 +3294,7 @@ MagickExport MagickBooleanType OpenBlob(const ImageInfo *image_info,
   if ((LocaleCompare(filename,"-") == 0) ||
       ((*filename == '\0') && (image_info->file == (FILE *) NULL)))
     {
-      blob_info->file_info.file=(*type == 'r') ? stdin : stdout;
+      blob_info->file_info.file=(*type == 'r') ? thread_stdin : thread_stdout;
 #if defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__OS2__)
       if (strchr(type,'b') != (char *) NULL)
         setmode(fileno(blob_info->file_info.file),_O_BINARY);

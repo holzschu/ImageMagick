@@ -77,6 +77,8 @@
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
 
+
+#include "ios_error.h"
 /*
   Define declarations.
 */
@@ -384,8 +386,8 @@ MagickExport int ExternalDelegateCommand(const MagickBooleanType asynchronous,
     }
   if (verbose != MagickFalse)
     {
-      (void) FormatLocaleFile(stderr,"%s\n",command);
-      (void) fflush(stderr);
+      (void) FormatLocaleFile(thread_stderr,"%s\n",command);
+      (void) fflush(thread_stderr);
     }
   sanitize_command=SanitizeString(command);
   if (asynchronous != MagickFalse)
@@ -1962,7 +1964,7 @@ MagickExport MagickBooleanType ListDelegateInfo(FILE *file,
     j;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   delegate_info=GetDelegateInfoList("*",&number_delegates,exception);
   if (delegate_info == (const DelegateInfo **) NULL)
     return(MagickFalse);

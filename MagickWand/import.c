@@ -47,6 +47,8 @@
 #include "MagickCore/string-private.h"
 #include "MagickCore/image-private.h"
 #include "MagickCore/xwindow-private.h"
+// iOS:
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -176,24 +178,24 @@ static MagickBooleanType ImportUsage(void)
       "  -window id           select window with this id or name\n"
       "                       root selects whole screen";
 
-  ListMagickVersion(stdout);
-  (void) printf("Usage: %s [options ...] [ file ]\n",
+  ListMagickVersion(thread_stdout);
+  (void) fprintf(thread_stdout, "Usage: %s [options ...] [ file ]\n",
     GetClientName());
-  (void) printf("\nImage Settings:\n");
+  (void) fprintf(thread_stdout, "\nImage Settings:\n");
   (void) puts(settings);
-  (void) printf("\nImage Operators:\n");
+  (void) fprintf(thread_stdout, "\nImage Operators:\n");
   (void) puts(operators);
-  (void) printf("\nMiscellaneous Options:\n");
+  (void) fprintf(thread_stdout, "\nMiscellaneous Options:\n");
   (void) puts(miscellaneous);
-  (void) printf(
+  (void) fprintf(thread_stdout, 
   "\nBy default, 'file' is written in the MIFF image format.  To\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "specify a particular image format, precede the filename with an image\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "format name and a colon (i.e. ps:image) or specify the image type as\n");
-  (void) printf(
+  (void) fprintf(thread_stdout, 
     "the filename suffix (i.e. image.ps).  Specify 'file' as '-' for\n");
-  (void) printf("standard input or output.\n");
+  (void) fprintf(thread_stdout, "standard input or output.\n");
   return(MagickTrue);
 }
 
@@ -289,7 +291,7 @@ WandExport MagickBooleanType ImportImageCommand(ImageInfo *image_info,
       if ((LocaleCompare("version",option+1) == 0) ||
           (LocaleCompare("-version",option+1) == 0))
         {
-          ListMagickVersion(stdout);
+          ListMagickVersion(thread_stdout);
           return(MagickTrue);
         }
     }
@@ -1265,7 +1267,7 @@ WandExport MagickBooleanType ImportImageCommand(ImageInfo *image_info,
         if ((LocaleCompare("version",option+1) == 0) ||
             (LocaleCompare("-version",option+1) == 0))
           {
-            ListMagickVersion(stdout);
+            ListMagickVersion(thread_stdout);
             break;
           }
         ThrowImportException(OptionError,"UnrecognizedOption",option);

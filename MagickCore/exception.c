@@ -54,6 +54,7 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -302,11 +303,11 @@ static void DefaultErrorHandler(const ExceptionType magick_unused(severity),
 
   if (reason == (char *) NULL)
     return;
-  (void) FormatLocaleFile(stderr,"%s: %s",GetClientName(),reason);
+  (void) FormatLocaleFile(thread_stderr,"%s: %s",GetClientName(),reason);
   if (description != (char *) NULL)
-    (void) FormatLocaleFile(stderr," (%s)",description);
-  (void) FormatLocaleFile(stderr,".\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr," (%s)",description);
+  (void) FormatLocaleFile(thread_stderr,".\n");
+  (void) fflush(thread_stderr);
 }
 
 /*
@@ -342,11 +343,11 @@ static void DefaultFatalErrorHandler(const ExceptionType severity,
 {
   if (reason == (char *) NULL)
     return;
-  (void) FormatLocaleFile(stderr,"%s: %s",GetClientName(),reason);
+  (void) FormatLocaleFile(thread_stderr,"%s: %s",GetClientName(),reason);
   if (description != (char *) NULL)
-    (void) FormatLocaleFile(stderr," (%s)",description);
-  (void) FormatLocaleFile(stderr,".\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr," (%s)",description);
+  (void) FormatLocaleFile(thread_stderr,".\n");
+  (void) fflush(thread_stderr);
   MagickCoreTerminus();
   exit((int) (severity-FatalErrorException)+1);
 }
@@ -386,11 +387,11 @@ static void DefaultWarningHandler(const ExceptionType magick_unused(severity),
 
   if (reason == (char *) NULL)
     return;
-  (void) FormatLocaleFile(stderr,"%s: %s",GetClientName(),reason);
+  (void) FormatLocaleFile(thread_stderr,"%s: %s",GetClientName(),reason);
   if (description != (char *) NULL)
-    (void) FormatLocaleFile(stderr," (%s)",description);
-  (void) FormatLocaleFile(stderr,".\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr," (%s)",description);
+  (void) FormatLocaleFile(thread_stderr,".\n");
+  (void) fflush(thread_stderr);
 }
 
 /*

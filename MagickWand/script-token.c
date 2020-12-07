@@ -178,6 +178,7 @@
 #  include "MagickCore/string-private.h"
 #  include "MagickCore/utility-private.h"
 #endif
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -214,7 +215,7 @@ WandExport ScriptTokenInfo *AcquireScriptTokenInfo(const char *filename)
 
   token_info->opened=MagickFalse;
   if ( LocaleCompare(filename,"-") == 0 ) {
-    token_info->stream=stdin;
+    token_info->stream=thread_stdin;
     token_info->opened=MagickFalse;
   }
   else if ( LocaleNCompare(filename,"fd:",3) == 0 ) {

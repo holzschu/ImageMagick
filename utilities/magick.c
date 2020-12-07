@@ -43,6 +43,7 @@
 */
 #include "MagickWand/studio.h"
 #include "MagickWand/MagickWand.h"
+#include "ios_error.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -150,7 +151,7 @@ static int MagickMain(int argc,char **argv)
     MagickCommands[i].use_metadata ? &metadata : (char **) NULL,exception);
   if (metadata != (char *) NULL)
     {
-      (void) fputs(metadata,stdout);
+      (void) fputs(metadata,thread_stdout);
       metadata=DestroyString(metadata);
     }
   if (MagickCommands[i].command != CompareImagesCommand)

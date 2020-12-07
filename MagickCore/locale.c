@@ -62,6 +62,7 @@
 #include "MagickCore/utility-private.h"
 #include "MagickCore/xml-tree.h"
 #include "MagickCore/xml-tree-private.h"
+#include "ios_error.h"
 
 /*
   Define declarations.
@@ -1039,7 +1040,7 @@ MagickExport MagickBooleanType ListLocaleInfo(FILE *file,
     number_messages;
 
   if (file == (const FILE *) NULL)
-    file=stdout;
+    file=thread_stdout;
   number_messages=0;
   locale_info=GetLocaleInfoList("*",&number_messages,exception);
   if (locale_info == (const LocaleInfo **) NULL)
@@ -1133,11 +1134,11 @@ static void LocaleFatalErrorHandler(
 
   if (reason == (char *) NULL)
     return;
-  (void) FormatLocaleFile(stderr,"%s: %s",GetClientName(),reason);
+  (void) FormatLocaleFile(thread_stderr,"%s: %s",GetClientName(),reason);
   if (description != (char *) NULL)
-    (void) FormatLocaleFile(stderr," (%s)",description);
-  (void) FormatLocaleFile(stderr,".\n");
-  (void) fflush(stderr);
+    (void) FormatLocaleFile(thread_stderr," (%s)",description);
+  (void) FormatLocaleFile(thread_stderr,".\n");
+  (void) fflush(thread_stderr);
   exit(1);
 }
 
