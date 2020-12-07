@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Python-aux",
+    name: "ImageMagick",
     products: [
         .library(name: "ImageMagick", targets: ["magick"])
     ],
