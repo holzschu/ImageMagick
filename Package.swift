@@ -13,7 +13,7 @@ let package = Package(
         .binaryTarget(
             name: "magick",
             url: "https://github.com/holzschu/ImageMagick/releases/download/1.0/magick.xcframework.zip",
-            checksum: "35d8c6e7ac0cdfb0ed43be528fd065b003c8491453d6da0169f87569d83bc822"
+            checksum: "a50256d6f016d3bf2b564022fa44a105072c9858d4fdeec02b930471cb22fb63"
         )
     ]
 )
