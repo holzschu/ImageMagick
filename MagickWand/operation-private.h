@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 2011 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -21,15 +21,6 @@
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
-
-/* These actually private */
-extern WandPrivate MagickBooleanType
-  CLIListOperatorImages(MagickCLI *, const char *,const char *,const char *);
-
-extern WandPrivate void
-  CLISettingOptionInfo(MagickCLI *,const char *,const char *, const char *),
-  CLISimpleOperatorImages(MagickCLI *,const char *,const char *,const char *),
-  CLINoImageOperator(MagickCLI *, const char *,const char *,const char *);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

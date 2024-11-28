@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -105,10 +105,10 @@ static Image *ReadMONOImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
   size_t
@@ -123,11 +123,11 @@ static Image *ReadMONOImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   if ((image->columns == 0) || (image->rows == 0))
     ThrowReaderException(OptionError,"MustSpecifyImageSize");
@@ -137,7 +137,7 @@ static Image *ReadMONOImage(const ImageInfo *image_info,
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
-  if (DiscardBlobBytes(image,image->offset) == MagickFalse)
+  if (DiscardBlobBytes(image,(MagickSizeType) image->offset) == MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
   /*
@@ -176,7 +176,7 @@ static Image *ReadMONOImage(const ImageInfo *image_info,
       if (bit == 8)
         bit=0;
       byte>>=1;
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -189,7 +189,10 @@ static Image *ReadMONOImage(const ImageInfo *image_info,
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -288,10 +291,10 @@ static MagickBooleanType WriteMONOImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   size_t
@@ -308,14 +311,15 @@ static MagickBooleanType WriteMONOImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   /*
     Convert image to a bi-level image.
   */
@@ -332,11 +336,11 @@ static MagickBooleanType WriteMONOImage(const ImageInfo *image_info,
       byte>>=1;
       if (image->endian == LSBEndian)
         {
-          if (GetPixelLuma(image,p) < (QuantumRange/2.0))
+          if (GetPixelLuma(image,p) < ((double) QuantumRange/2.0))
             byte|=0x80;
         }
       else
-        if (GetPixelLuma(image,p) >= (QuantumRange/2.0))
+        if (GetPixelLuma(image,p) >= ((double) QuantumRange/2.0))
           byte|=0x80;
       bit++;
       if (bit == 8)
@@ -345,7 +349,7 @@ static MagickBooleanType WriteMONOImage(const ImageInfo *image_info,
           bit=0;
           byte=0;
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (bit != 0)
       (void) WriteBlobByte(image,(unsigned char) (byte >> (8-bit)));
@@ -354,6 +358,7 @@ static MagickBooleanType WriteMONOImage(const ImageInfo *image_info,
     if (status == MagickFalse)
       break;
   }
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

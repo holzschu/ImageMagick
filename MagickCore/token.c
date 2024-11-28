@@ -17,7 +17,7 @@
 %                              January 1993                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -45,6 +45,7 @@
 #include "MagickCore/exception-private.h"
 #include "MagickCore/image.h"
 #include "MagickCore/image-private.h"
+#include "MagickCore/locale-private.h"
 #include "MagickCore/memory_.h"
 #include "MagickCore/memory-private.h"
 #include "MagickCore/string_.h"
@@ -55,7 +56,7 @@
 #include "MagickCore/utility-private.h"
 
 /*
-  Typedef declaractions.
+  Typedef declarations.
 */
 struct _TokenInfo
 {
@@ -128,9 +129,10 @@ MagickExport TokenInfo *AcquireTokenInfo(void)
 */
 MagickExport TokenInfo *DestroyTokenInfo(TokenInfo *token_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(token_info != (TokenInfo *) NULL);
   assert(token_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   token_info->signature=(~MagickCoreSignature);
   token_info=(TokenInfo *) RelinquishMagickMemory(token_info);
   return(token_info);
@@ -175,16 +177,16 @@ MagickExport magick_hot_spot size_t GetNextToken(
   const char *magick_restrict start,const char **magick_restrict end,
   const size_t extent,char *magick_restrict token)
 {
+  char
+    *magick_restrict q;
+
+  const char
+    *magick_restrict p;
+
   double
     value;
 
-  register char
-    *magick_restrict q;
-
-  register const char
-    *magick_restrict p;
-
-  register ssize_t
+  ssize_t
     i;
 
   assert(start != (const char *) NULL);
@@ -202,7 +204,7 @@ MagickExport magick_hot_spot size_t GetNextToken(
     case '`':
     case '{':
     {
-      register char
+      char
         escape;
 
       switch (*p)
@@ -245,9 +247,6 @@ MagickExport magick_hot_spot size_t GetNextToken(
     }
     default:
     {
-      char
-        *q;
-
       value=StringToDouble(p,&q);
       (void) value;
       if ((p != q) && (*p != ','))
@@ -320,7 +319,7 @@ MagickExport magick_hot_spot size_t GetNextToken(
     p++;
   if (end != (const char **) NULL)
     *end=(const char *) p;
-  return(p-start+1);
+  return((size_t) (p-start+1));
 }
 
 /*
@@ -356,12 +355,12 @@ MagickExport MagickBooleanType GlobExpression(
   const char *magick_restrict expression,const char *magick_restrict pattern,
   const MagickBooleanType case_insensitive)
 {
+  char
+    path[MagickPathExtent];
+
   MagickBooleanType
     done,
     match;
-
-  register const char
-    *magick_restrict p;
 
   /*
     Return on empty pattern or '*'.
@@ -372,30 +371,9 @@ MagickExport MagickBooleanType GlobExpression(
     return(MagickTrue);
   if (LocaleCompare(pattern,"*") == 0)
     return(MagickTrue);
-  p=pattern+strlen(pattern)-1;
-  if ((GetUTFCode(p) == ']') && (strchr(pattern,'[') != (char *) NULL))
-    {
-      ExceptionInfo
-        *exception;
-
-      ImageInfo
-        *image_info;
-
-      /*
-        Determine if pattern is a scene, i.e. img0001.pcd[2].
-      */
-      image_info=AcquireImageInfo();
-      (void) CopyMagickString(image_info->filename,pattern,MagickPathExtent);
-      exception=AcquireExceptionInfo();
-      (void) SetImageInfo(image_info,0,exception);
-      exception=DestroyExceptionInfo(exception);
-      if (LocaleCompare(image_info->filename,pattern) != 0)
-        {
-          image_info=DestroyImageInfo(image_info);
-          return(MagickFalse);
-        }
-      image_info=DestroyImageInfo(image_info);
-    }
+  GetPathComponent(pattern,SubimagePath,path);
+  if (*path != '\0')
+    return(MagickFalse);
   /*
     Evaluate glob expression.
   */
@@ -511,7 +489,7 @@ MagickExport MagickBooleanType GlobExpression(
         char
           *target;
 
-        register char
+        char
           *p;
 
         target=AcquireString(pattern);
@@ -545,12 +523,13 @@ MagickExport MagickBooleanType GlobExpression(
         pattern+=GetUTFOctets(pattern);
         if (GetUTFCode(pattern) == 0)
           break;
+        magick_fallthrough;
       }
       default:
       {
         if (case_insensitive != MagickFalse)
           {
-            if (LocaleLowercase((int) GetUTFCode(expression)) != LocaleLowercase((int) GetUTFCode(pattern)))
+            if (LocaleToLowercase((int) GetUTFCode(expression)) != LocaleToLowercase((int) GetUTFCode(pattern)))
               {
                 done=MagickTrue;
                 break;
@@ -602,7 +581,7 @@ MagickPrivate MagickBooleanType IsGlob(const char *path)
   MagickBooleanType
     status = MagickFalse;
 
-  register const char
+  const char
     *p;
 
   if (IsPathAccessible(path) != MagickFalse)
@@ -797,7 +776,7 @@ MagickPrivate MagickBooleanType IsGlob(const char *path)
 
 static ssize_t sindex(int c,const char *string)
 {
-  register const char
+  const char
     *p;
 
   for (p=string; *p != '\0'; p++)
@@ -809,7 +788,7 @@ static ssize_t sindex(int c,const char *string)
 static void StoreToken(TokenInfo *token_info,char *string,
   size_t max_token_length,int c)
 {
-  register ssize_t
+  ssize_t
     i;
 
   if ((token_info->offset < 0) ||
@@ -823,12 +802,12 @@ static void StoreToken(TokenInfo *token_info,char *string,
   {
     case 1:
     {
-      string[i]=(char) LocaleUppercase(c);
+      string[i]=(char) LocaleToUppercase(c);
       break;
     }
     case 2:
     {
-      string[i]=(char) LocaleLowercase(c);
+      string[i]=(char) LocaleToLowercase(c);
       break;
     }
     default:
@@ -844,7 +823,7 @@ MagickExport int Tokenizer(TokenInfo *token_info,const unsigned flag,
   int
     c;
 
-  register ssize_t
+  ssize_t
     i;
 
   *breaker='\0';

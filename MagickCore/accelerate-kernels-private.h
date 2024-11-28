@@ -1,12 +1,12 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
-  
+
   You may not use this file except in compliance with the License.  You may
   obtain a copy of the License at
-  
+
     https://imagemagick.org/script/license.php
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,6 +50,7 @@ const char *accelerateKernels =
   OPENCL_DEFINE(TauGaussian, (attenuate*0.078125f))
   OPENCL_DEFINE(MagickMax(x,y), (((x) > (y)) ? (x) : (y)))
   OPENCL_DEFINE(MagickMin(x,y), (((x) < (y)) ? (x) : (y)))
+  OPENCL_DEFINE(QuantumScale, (1.0/QuantumRange))
 
 /*
   Typedef declarations.
@@ -254,7 +255,7 @@ const char *accelerateKernels =
       WriteMaskChannel = 0x0080,         /* Pixel is Write Protected? */
       MetaChannel = 0x0100,              /* ???? */
       CompositeChannels = 0x001F,
-      AllChannels = 0x7ffffff,
+      AllChannels = 0x7ffffff, /* 0x7FFFFFFFFFFFFFFF for 64-bit channel masks */
       /*
         Special purpose channel types.
         FUTURE: are these needed any more - they are more like hacks
@@ -624,7 +625,7 @@ OPENCL_ENDIF()
 
   // Pre: a<M,b<M
   // Post: r=(a*b) mod M
-  // This could be done more efficently, but it is portable, and should
+  // This could be done more efficiently, but it is portable, and should
   // be easy to understand. It can be replaced with any of the better
   // modular multiplication algorithms (for example if you know you have
   // double precision available or something).
@@ -809,7 +810,7 @@ OPENCL_ENDIF()
           beta=mwcReadPseudoRandomValue(r);
           alpha*=beta;
         }
-        noise=(QuantumRange*i/SigmaPoisson);
+        noise=(QuantumRange*i*PerceptibleReciprocal(SigmaPoisson));
         break;
       }
       case RandomNoise:
@@ -819,60 +820,6 @@ OPENCL_ENDIF()
       }
     }
     return noise;
-  }
-
-  __kernel
-  void AddNoise(const __global CLQuantum *image,
-    const unsigned int number_channels,const ChannelType channel,
-    const unsigned int length,const unsigned int pixelsPerWorkItem,
-    const NoiseType noise_type,const float attenuate,const unsigned int seed0,
-    const unsigned int seed1,const unsigned int numRandomNumbersPerPixel,
-    __global CLQuantum *filteredImage)
-  {
-    mwc64x_state_t rng;
-    rng.seed0 = seed0;
-    rng.seed1 = seed1;
-
-    uint span = pixelsPerWorkItem * numRandomNumbersPerPixel; // length of RNG substream each workitem will use
-    uint offset = span * get_local_size(0) * get_group_id(0); // offset of this workgroup's RNG substream (in master stream);
-    MWC64X_SeedStreams(&rng, offset, span); // Seed the RNG streams
-
-    uint pos = get_group_id(0) * get_local_size(0) * pixelsPerWorkItem * number_channels + (get_local_id(0) * number_channels);
-    uint count = pixelsPerWorkItem;
-
-    while (count > 0 && pos < length)
-    {
-      const __global CLQuantum *p = image + pos;
-      __global CLQuantum *q = filteredImage + pos;
-
-      float red;
-      float green;
-      float blue;
-      float alpha;
-
-      ReadChannels(p, number_channels, channel, &red, &green, &blue, &alpha);
-
-      if ((channel & RedChannel) != 0)
-        red=mwcGenerateDifferentialNoise(&rng,red,noise_type,attenuate);
-
-      if (number_channels > 2)
-      {
-        if ((channel & GreenChannel) != 0)
-          green=mwcGenerateDifferentialNoise(&rng,green,noise_type,attenuate);
-
-        if ((channel & BlueChannel) != 0)
-          blue=mwcGenerateDifferentialNoise(&rng,blue,noise_type,attenuate);
-      }
-
-      if (((number_channels == 4) || (number_channels == 2)) &&
-          ((channel & AlphaChannel) != 0))
-        alpha=mwcGenerateDifferentialNoise(&rng,alpha,noise_type,attenuate);
-
-      WriteChannels(q, number_channels, channel, red, green, blue, alpha);
-
-      pos += (get_local_size(0) * number_channels);
-      count--;
-    }
   }
   )
 
@@ -1230,231 +1177,6 @@ OPENCL_ENDIF()
 
       }
     )
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%    C o n v o l v e                                                          %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-*/
-
-  STRINGIFY(
-    __kernel 
-    void ConvolveOptimized(const __global CLPixelType *input, __global CLPixelType *output,
-    const unsigned int imageWidth, const unsigned int imageHeight,
-    __constant float *filter, const unsigned int filterWidth, const unsigned int filterHeight,
-    const uint matte, const ChannelType channel, __local CLPixelType *pixelLocalCache, __local float* filterCache) {
-
-      int2 blockID;
-      blockID.x = get_global_id(0) / get_local_size(0);
-      blockID.y = get_global_id(1) / get_local_size(1);
-
-      // image area processed by this workgroup
-      int2 imageAreaOrg;
-      imageAreaOrg.x = blockID.x * get_local_size(0);
-      imageAreaOrg.y = blockID.y * get_local_size(1);
-
-      int2 midFilterDimen;
-      midFilterDimen.x = (filterWidth-1)/2;
-      midFilterDimen.y = (filterHeight-1)/2;
-
-      int2 cachedAreaOrg = imageAreaOrg - midFilterDimen;
-
-      // dimension of the local cache
-      int2 cachedAreaDimen;
-      cachedAreaDimen.x = get_local_size(0) + filterWidth - 1;
-      cachedAreaDimen.y = get_local_size(1) + filterHeight - 1;
-
-      // cache the pixels accessed by this workgroup in local memory
-      int localID = get_local_id(1)*get_local_size(0)+get_local_id(0);
-      int cachedAreaNumPixels = cachedAreaDimen.x * cachedAreaDimen.y;
-      int groupSize = get_local_size(0) * get_local_size(1);
-      for (int i = localID; i < cachedAreaNumPixels; i+=groupSize) {
-
-        int2 cachedAreaIndex;
-        cachedAreaIndex.x = i % cachedAreaDimen.x;
-        cachedAreaIndex.y = i / cachedAreaDimen.x;
-
-        int2 imagePixelIndex;
-        imagePixelIndex = cachedAreaOrg + cachedAreaIndex;
-
-        // only support EdgeVirtualPixelMethod through ClampToCanvas
-        // TODO: implement other virtual pixel method
-        imagePixelIndex.x = ClampToCanvas(imagePixelIndex.x, imageWidth);
-        imagePixelIndex.y = ClampToCanvas(imagePixelIndex.y, imageHeight);
-
-        pixelLocalCache[i] = input[imagePixelIndex.y * imageWidth + imagePixelIndex.x];
-      }
-
-      // cache the filter
-      for (int i = localID; i < filterHeight*filterWidth; i+=groupSize) {
-        filterCache[i] = filter[i];
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-
-      int2 imageIndex;
-      imageIndex.x = imageAreaOrg.x + get_local_id(0);
-      imageIndex.y = imageAreaOrg.y + get_local_id(1);
-
-      // if out-of-range, stops here and quit
-      if (imageIndex.x >= imageWidth
-        || imageIndex.y >= imageHeight) {
-          return;
-      }
-
-      int filterIndex = 0;
-      float4 sum = (float4)0.0f;
-      float gamma = 0.0f;
-      if (((channel & AlphaChannel) == 0) || (matte == 0)) {
-        int cacheIndexY = get_local_id(1);
-        for (int j = 0; j < filterHeight; j++) {
-          int cacheIndexX = get_local_id(0);
-          for (int i = 0; i < filterWidth; i++) {
-            CLPixelType p = pixelLocalCache[cacheIndexY*cachedAreaDimen.x + cacheIndexX];
-            float f = filterCache[filterIndex];
-
-            sum.x += f * p.x;
-            sum.y += f * p.y;
-            sum.z += f * p.z; 
-            sum.w += f * p.w;
-
-            gamma += f;
-            filterIndex++;
-            cacheIndexX++;
-          }
-          cacheIndexY++;
-        }
-      }
-      else {
-        int cacheIndexY = get_local_id(1);
-        for (int j = 0; j < filterHeight; j++) {
-          int cacheIndexX = get_local_id(0);
-          for (int i = 0; i < filterWidth; i++) {
-
-            CLPixelType p = pixelLocalCache[cacheIndexY*cachedAreaDimen.x + cacheIndexX];
-            float alpha = QuantumScale*p.w;
-            float f = filterCache[filterIndex];
-            float g = alpha * f;
-
-            sum.x += g*p.x;
-            sum.y += g*p.y;
-            sum.z += g*p.z;
-            sum.w += f*p.w;
-
-            gamma += g;
-            filterIndex++;
-            cacheIndexX++;
-          }
-          cacheIndexY++;
-        }
-        gamma = PerceptibleReciprocal(gamma);
-        sum.xyz = gamma*sum.xyz;
-      }
-      CLPixelType outputPixel;
-      outputPixel.x = ClampToQuantum(sum.x);
-      outputPixel.y = ClampToQuantum(sum.y);
-      outputPixel.z = ClampToQuantum(sum.z);
-      outputPixel.w = ((channel & AlphaChannel)!=0)?ClampToQuantum(sum.w):input[imageIndex.y * imageWidth + imageIndex.x].w;
-
-      output[imageIndex.y * imageWidth + imageIndex.x] = outputPixel;
-    }
-  )
-
-  STRINGIFY(
-    __kernel 
-    void Convolve(const __global CLPixelType *input, __global CLPixelType *output,
-                  const uint imageWidth, const uint imageHeight,
-                  __constant float *filter, const unsigned int filterWidth, const unsigned int filterHeight,
-                  const uint matte, const ChannelType channel) {
-
-      int2 imageIndex;
-      imageIndex.x = get_global_id(0);
-      imageIndex.y = get_global_id(1);
-
-      /*
-      unsigned int imageWidth = get_global_size(0);
-      unsigned int imageHeight = get_global_size(1);
-      */
-      if (imageIndex.x >= imageWidth
-          || imageIndex.y >= imageHeight)
-          return;
-
-      int2 midFilterDimen;
-      midFilterDimen.x = (filterWidth-1)/2;
-      midFilterDimen.y = (filterHeight-1)/2;
-
-      int filterIndex = 0;
-      float4 sum = (float4)0.0f;
-      float gamma = 0.0f;
-      if (((channel & AlphaChannel) == 0) || (matte == 0)) {
-        for (int j = 0; j < filterHeight; j++) {
-          int2 inputPixelIndex;
-          inputPixelIndex.y = imageIndex.y - midFilterDimen.y + j;
-          inputPixelIndex.y = ClampToCanvas(inputPixelIndex.y, imageHeight);
-          for (int i = 0; i < filterWidth; i++) {
-            inputPixelIndex.x = imageIndex.x - midFilterDimen.x + i;
-            inputPixelIndex.x = ClampToCanvas(inputPixelIndex.x, imageWidth);
-        
-            CLPixelType p = input[inputPixelIndex.y * imageWidth + inputPixelIndex.x];
-            float f = filter[filterIndex];
-
-            sum.x += f * p.x;
-            sum.y += f * p.y;
-            sum.z += f * p.z; 
-            sum.w += f * p.w;
-
-            gamma += f;
-
-            filterIndex++;
-          }
-        }
-      }
-      else {
-
-        for (int j = 0; j < filterHeight; j++) {
-          int2 inputPixelIndex;
-          inputPixelIndex.y = imageIndex.y - midFilterDimen.y + j;
-          inputPixelIndex.y = ClampToCanvas(inputPixelIndex.y, imageHeight);
-          for (int i = 0; i < filterWidth; i++) {
-            inputPixelIndex.x = imageIndex.x - midFilterDimen.x + i;
-            inputPixelIndex.x = ClampToCanvas(inputPixelIndex.x, imageWidth);
-        
-            CLPixelType p = input[inputPixelIndex.y * imageWidth + inputPixelIndex.x];
-            float alpha = QuantumScale*p.w;
-            float f = filter[filterIndex];
-            float g = alpha * f;
-
-            sum.x += g*p.x;
-            sum.y += g*p.y;
-            sum.z += g*p.z;
-            sum.w += f*p.w;
-
-            gamma += g;
-
-
-            filterIndex++;
-          }
-        }
-        gamma = PerceptibleReciprocal(gamma);
-        sum.xyz = gamma*sum.xyz;
-      }
-
-      CLPixelType outputPixel;
-      outputPixel.x = ClampToQuantum(sum.x);
-      outputPixel.y = ClampToQuantum(sum.y);
-      outputPixel.z = ClampToQuantum(sum.z);
-      outputPixel.w = ((channel & AlphaChannel)!=0)?ClampToQuantum(sum.w):input[imageIndex.y * imageWidth + imageIndex.x].w;
-
-      output[imageIndex.y * imageWidth + imageIndex.x] = outputPixel;
-    }
-  )
-
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -1688,7 +1410,7 @@ OPENCL_ENDIF()
 
   STRINGIFY(
   /*
-  apply FunctionImageChannel(braightness-contrast)
+  apply FunctionImageChannel(brightness-contrast)
   */
   CLQuantum ApplyFunction(float pixel,const MagickFunction function,
     const unsigned int number_parameters,__constant float *parameters)
@@ -1752,7 +1474,7 @@ OPENCL_ENDIF()
   /*
   Improve brightness / contrast of the image
   channel : define which channel is improved
-  function : the function called to enchance the brightness contrast
+  function : the function called to enhance the brightness contrast
   number_parameters : numbers of parameters 
   parameters : the parameter
   */
@@ -2035,6 +1757,7 @@ OPENCL_ENDIF()
     switch ((int) floor(h) % 6)
     {
       case 0:
+      default:
         {
           r=tmin+c;
           g=tmin+x;
@@ -2075,12 +1798,6 @@ OPENCL_ENDIF()
           g=tmin;
           b=tmin+x;
           break;
-        }
-      default:
-        {
-          r=0.0;
-          g=0.0;
-          b=0.0;
         }
     }
     *red=ClampToQuantum(QuantumRange*r);
@@ -2283,7 +2000,7 @@ OPENCL_ENDIF()
     http://www.cs.utexas.edu/users/fussell/courses/cs384g/lectures/mitchell/
     Mitchell.pdf.
 
-    Coefficents are determined from B,C values:
+    Coefficients are determined from B,C values:
     P0 = (  6 - 2*B       )/6 = coeff[0]
     P1 =         0
     P2 = (-18 +12*B + 6*C )/6 = coeff[1]
@@ -2564,7 +2281,7 @@ OPENCL_ENDIF()
       }
       barrier(CLK_LOCAL_MEM_FENCE);
 
-      // accumulatte the filtered pixel value and the density
+      // accumulate the filtered pixel value and the density
       for (unsigned int i = 0; i < numItems; i++) {
         if (pixelIndex != -1) {
           if (itemID%numItems == i) {
@@ -2730,7 +2447,7 @@ OPENCL_ENDIF()
       }
       barrier(CLK_LOCAL_MEM_FENCE);
 
-      // accumulatte the filtered pixel value and the density
+      // accumulate the filtered pixel value and the density
       for (unsigned int i = 0; i < numItems; i++) {
         if (pixelIndex != -1) {
           if (itemID%numItems == i) {
@@ -3012,6 +2729,18 @@ OPENCL_ENDIF()
     }
   }
   )
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%    W a v e l e t D e n o i s e                                              %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*/
 
   STRINGIFY(
     __kernel __attribute__((reqd_work_group_size(64, 4, 1)))

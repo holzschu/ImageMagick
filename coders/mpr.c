@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -92,15 +92,20 @@ static Image *ReadMPRImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=(Image *) GetImageRegistry(ImageRegistryType,image_info->filename,
     exception);
-  if (image != (Image *) NULL)
-    (void) SyncImageSettings(image_info,image,exception);
+  if (image == (Image *) NULL)
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),FileOpenError,
+        "UnableToOpenFile","`%s'",image_info->filename);
+      return(image);
+    }
+  (void) SyncImageSettings(image_info,image,exception);
   return(image);
 }
 
@@ -213,9 +218,9 @@ static MagickBooleanType WriteMPRImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  magick_unreferenced(image_info);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  magick_unreferenced(image_info);
   status=SetImageRegistry(ImageRegistryType,image->filename,image,exception);
   return(status);
 }

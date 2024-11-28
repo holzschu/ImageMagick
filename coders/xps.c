@@ -17,7 +17,7 @@
 %                                January 2008                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -82,7 +82,7 @@
 #include "coders/ghostscript-private.h"
 
 /*
-  Typedef declaractions.
+  Typedef declarations.
 */
 typedef struct _XPSInfo
 {
@@ -170,7 +170,7 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   RectangleInfo
     page;
 
-  register ssize_t
+  ssize_t
     i;
 
   unsigned long
@@ -181,11 +181,11 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -209,18 +209,20 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if ((image->resolution.x == 0.0) || (image->resolution.y == 0.0))
     {
       flags=ParseGeometry(PSDensityGeometry,&geometry_info);
-      image->resolution.x=geometry_info.rho;
-      image->resolution.y=geometry_info.sigma;
-      if ((flags & SigmaValue) == 0)
-        image->resolution.y=image->resolution.x;
+      if ((flags & RhoValue) != 0)
+        image->resolution.x=geometry_info.rho;
+      image->resolution.y=image->resolution.x;
+      if ((flags & SigmaValue) != 0)
+        image->resolution.y=geometry_info.sigma;
     }
   if (image_info->density != (char *) NULL)
     {
       flags=ParseGeometry(image_info->density,&geometry_info);
-      image->resolution.x=geometry_info.rho;
-      image->resolution.y=geometry_info.sigma;
-      if ((flags & SigmaValue) == 0)
-        image->resolution.y=image->resolution.x;
+      if ((flags & RhoValue) != 0)
+        image->resolution.x=geometry_info.rho;
+      image->resolution.y=image->resolution.x;
+      if ((flags & SigmaValue) != 0)
+        image->resolution.y=geometry_info.sigma;
     }
   (void) ParseAbsoluteGeometry(PSPageGeometry,&page);
   if (image_info->page != (char *) NULL)
@@ -268,8 +270,11 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   options=AcquireString("");
   (void) FormatLocaleString(density,MagickPathExtent,"%gx%g",resolution.x,
     resolution.y);
-  (void) FormatLocaleString(options,MagickPathExtent,"-g%.20gx%.20g ",(double)
-    page.width,(double) page.height);
+  if (image_info->ping != MagickFalse)
+    (void) FormatLocaleString(density,MagickPathExtent,"2.0x2.0");
+  else
+    (void) FormatLocaleString(options,MagickPathExtent,"-g%.20gx%.20g ",
+      (double) page.width,(double) page.height);
   read_info=CloneImageInfo(image_info);
   *read_info->magick='\0';
   if (read_info->number_scenes != 0)
@@ -312,21 +317,6 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) RelinquishUniqueFileResource(input_filename);
   postscript_image=(Image *) NULL;
   if (status == MagickFalse)
-    for (i=1; ; i++)
-    {
-      (void) InterpretImageFilename(image_info,image,filename,(int) i,
-        read_info->filename,exception);
-      if (IsGhostscriptRendered(read_info->filename) == MagickFalse)
-        break;
-      read_info->blob=NULL;
-      read_info->length=0;
-      next=ReadImage(read_info,exception);
-      (void) RelinquishUniqueFileResource(read_info->filename);
-      if (next == (Image *) NULL)
-        break;
-      AppendImageToList(&postscript_image,next);
-    }
-  else
     for (i=1; ; i++)
     {
       (void) InterpretImageFilename(image_info,image,filename,(int) i,
@@ -385,6 +375,13 @@ static Image *ReadXPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
     (void) CopyMagickString(postscript_image->magick,image->magick,
       MagickPathExtent);
     postscript_image->page=page;
+    if (image_info->ping != MagickFalse)
+      {
+        postscript_image->magick_columns=page.width;
+        postscript_image->magick_rows=page.height;
+        postscript_image->columns=page.width;
+        postscript_image->rows=page.height;
+      }
     (void) CloneImageProfiles(postscript_image,image);
     (void) CloneImageProperties(postscript_image,image);
     next=SyncNextImageInList(postscript_image);

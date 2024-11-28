@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -192,11 +192,11 @@ static Image *ReadTTFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   PixelInfo
     background_color;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -207,11 +207,11 @@ static Image *ReadTTFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   image->columns=800;
   image->rows=480;
@@ -240,7 +240,7 @@ static Image *ReadTTFImage(const ImageInfo *image_info,ExceptionInfo *exception)
     for (x=0; x < (ssize_t) image->columns; x++)
     {
       SetPixelViaPixelInfo(image,&background_color,q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -290,9 +290,12 @@ static Image *ReadTTFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   /*
     Relinquish resources.
   */
-  (void) RelinquishUniqueFileResource(draw_info->font);  
+  (void) RelinquishUniqueFileResource(draw_info->font);
   draw_info=DestroyDrawInfo(draw_info);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 #endif /* MAGICKCORE_FREETYPE_DELEGATE */

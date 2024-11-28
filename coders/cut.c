@@ -16,28 +16,19 @@
 %                                 June 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Permission is hereby granted, free of charge, to any person obtaining a    %
-%  copy of this software and associated documentation files ("ImageMagick"),  %
-%  to deal in ImageMagick without restriction, including without limitation   %
-%  the rights to use, copy, modify, merge, publish, distribute, sublicense,   %
-%  and/or sell copies of ImageMagick, and to permit persons to whom the       %
-%  ImageMagick is furnished to do so, subject to the following conditions:    %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
+%  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
-%  The above copyright notice and this permission notice shall be included in %
-%  all copies or substantial portions of ImageMagick.                         %
+%  You may not use this file except in compliance with the License.  You may  %
+%  obtain a copy of the License at                                            %
 %                                                                             %
-%  The software is provided "as is", without warranty of any kind, express or %
-%  implied, including but not limited to the warranties of merchantability,   %
-%  fitness for a particular purpose and noninfringement.  In no event shall   %
-%  ImageMagick Studio be liable for any claim, damages or other liability,    %
-%  whether in an action of contract, tort or otherwise, arising from, out of  %
-%  or in connection with ImageMagick or the use or other dealings in          %
-%  ImageMagick.                                                               %
+%    https://imagemagick.org/script/license.php                               %
 %                                                                             %
-%  Except as contained in this notice, the name of the ImageMagick Studio     %
-%  shall not be used in advertising or otherwise to promote the sale, use or  %
-%  other dealings in ImageMagick without prior written authorization from the %
-%  ImageMagick Studio.                                                        %
+%  Unless required by applicable law or agreed to in writing, software        %
+%  distributed under the License is distributed on an "AS IS" BASIS,          %
+%  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   %
+%  See the License for the specific language governing permissions and        %
+%  limitations under the License.                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -56,6 +47,7 @@
 #include "MagickCore/color-private.h"
 #include "MagickCore/colormap.h"
 #include "MagickCore/colormap-private.h"
+#include "MagickCore/colorspace-private.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
 #include "MagickCore/image.h"
@@ -70,6 +62,7 @@
 #include "MagickCore/module.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
+#include "coders/coders-private.h"
 
 typedef struct
 {
@@ -104,7 +97,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
   Quantum
     index;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -125,7 +118,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           p++;
         }
@@ -138,7 +131,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
               if (index < image->colors)
                 SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-              q+=GetPixelChannels(image);
+              q+=(ptrdiff_t) GetPixelChannels(image);
             }
             p++;
           }
@@ -152,22 +145,22 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             index=ConstrainColormapIndex(image,(*p >> 4) & 0x3,exception);
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             index=ConstrainColormapIndex(image,(*p >> 2) & 0x3,exception);
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             index=ConstrainColormapIndex(image,(*p) & 0x3,exception);
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             p++;
         }
        if ((image->columns % 4) != 0)
@@ -176,14 +169,14 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             if ((image->columns % 4) > 1)
               {
                 index=ConstrainColormapIndex(image,(*p >> 4) & 0x3,exception);
                 SetPixelIndex(image,index,q);
                 if (index < image->colors)
                   SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-                q+=GetPixelChannels(image);
+                q+=(ptrdiff_t) GetPixelChannels(image);
                 if ((image->columns % 4) > 2)
                   {
                     index=ConstrainColormapIndex(image,(*p >> 2) & 0x3,
@@ -192,7 +185,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
                     if (index < image->colors)
                       SetPixelViaPixelInfo(image,image->colormap+(ssize_t)
                         index,q);
-                    q+=GetPixelChannels(image);
+                    q+=(ptrdiff_t) GetPixelChannels(image);
                   }
               }
             p++;
@@ -208,13 +201,13 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             index=ConstrainColormapIndex(image,(*p) & 0x0f,exception);
             SetPixelIndex(image,index,q);
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
             p++;
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
         if ((image->columns % 2) != 0)
           {
@@ -223,7 +216,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
             p++;
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
         break;
       }
@@ -236,7 +229,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
             if (index < image->colors)
               SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
             p++;
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
       }
       break;
@@ -247,7 +240,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
           SetPixelRed(image,ScaleCharToQuantum(*p++),q);
           SetPixelGreen(image,ScaleCharToQuantum(*p++),q);
           SetPixelBlue(image,ScaleCharToQuantum(*p++),q);
-          q+=GetPixelChannels(image);
+          q+=(ptrdiff_t) GetPixelChannels(image);
         }
       break;
     }
@@ -265,7 +258,7 @@ static int GetCutColors(Image *image,ExceptionInfo *exception)
     intensity,
     scale_intensity;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -285,7 +278,7 @@ static int GetCutColors(Image *image,ExceptionInfo *exception)
         intensity=GetPixelRed(image,q);
       if (intensity >= scale_intensity)
         return(255);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
   }
   if (intensity < ScaleCharToQuantum(2))
@@ -347,18 +340,18 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   ssize_t i,j;
   ssize_t ldblk;
   unsigned char *BImgBuff=NULL,*ptrB;
-  register Quantum *q;
+  Quantum *q;
 
   /*
     Open image file.
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -391,7 +384,7 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
       if (offset < 0)
         ThrowCUTReaderException(CorruptImageError,"ImproperImageHeader");
       if(EOFBlob(image) != MagickFalse) goto CUT_KO;  /*wrong data*/
-      EncodedByte-=i+1;
+      EncodedByte-=(size_t)(i+1);
       ldblk+=(ssize_t) RunCountMasked;
 
       RunCount=(unsigned char) ReadBlobByte(image);
@@ -409,7 +402,7 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   image->columns=Header.Width;
   image->rows=Header.Height;
   image->depth=8;
-  image->colors=(size_t) (GetQuantumRange(1UL*i)+1);
+  image->colors=(size_t) (GetQuantumRange((size_t) i)+1);
 
   if (image_info->ping != MagickFalse) goto Finish;
   status=SetImageExtent(image,image->columns,image->rows,exception);
@@ -504,21 +497,23 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
           image->colormap[i].red=(Quantum) ReadBlobLSBShort(palette);
           if (QuantumRange != (Quantum) PalHeader.MaxRed)
             {
-              image->colormap[i].red=ClampToQuantum(((double)
-                image->colormap[i].red*QuantumRange+(PalHeader.MaxRed>>1))/
+              image->colormap[i].red=ClampToQuantum((image->colormap[i].red*
+                (double) QuantumRange+(PalHeader.MaxRed >> 1))/
                 PalHeader.MaxRed);
             }
           image->colormap[i].green=(Quantum) ReadBlobLSBShort(palette);
           if (QuantumRange != (Quantum) PalHeader.MaxGreen)
             {
-              image->colormap[i].green=ClampToQuantum
-                (((double) image->colormap[i].green*QuantumRange+(PalHeader.MaxGreen>>1))/PalHeader.MaxGreen);
+              image->colormap[i].green=ClampToQuantum((image->colormap[i].green*
+                (double) QuantumRange+(PalHeader.MaxGreen >> 1))/
+                PalHeader.MaxGreen);
             }
           image->colormap[i].blue=(Quantum) ReadBlobLSBShort(palette);
           if (QuantumRange != (Quantum) PalHeader.MaxBlue)
             {
-              image->colormap[i].blue=ClampToQuantum
-                (((double)image->colormap[i].blue*QuantumRange+(PalHeader.MaxBlue>>1))/PalHeader.MaxBlue);
+              image->colormap[i].blue=ClampToQuantum((image->colormap[i].blue*
+                (double) QuantumRange+(PalHeader.MaxBlue >> 1))/
+                PalHeader.MaxBlue);
             }
 
         }
@@ -607,23 +602,24 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) SyncImage(image,exception);
 
 
-  /*detect monochrome image*/
-
-  if(palette==NULL)
-    {    /*attempt to detect binary (black&white) images*/
+  /* detect monochrome image */
+  if (palette == (Image *) NULL)
+    {
+      /* attempt to detect binary (black&white) images */
       if ((image->storage_class == PseudoClass) &&
-          (SetImageGray(image,exception) != MagickFalse))
+          (IdentifyImageCoderGray(image,exception) != MagickFalse))
         {
-          if(GetCutColors(image,exception)==2)
+          if (GetCutColors(image,exception) == 2)
             {
               for (i=0; i < (ssize_t)image->colors; i++)
                 {
-                  register Quantum
+                  Quantum
                     sample;
+
                   sample=ScaleCharToQuantum((unsigned char) i);
-                  if(image->colormap[i].red!=sample) goto Finish;
-                  if(image->colormap[i].green!=sample) goto Finish;
-                  if(image->colormap[i].blue!=sample) goto Finish;
+                  if (image->colormap[i].red != (double) sample) goto Finish;
+                  if (image->colormap[i].green != (double) sample) goto Finish;
+                  if (image->colormap[i].blue != (double) sample) goto Finish;
                 }
 
               image->colormap[1].red=image->colormap[1].green=
@@ -641,7 +637,7 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
                           SetPixelGreen(image,QuantumRange,q);
                           SetPixelBlue(image,QuantumRange,q);
                         }
-                      q+=GetPixelChannels(image);
+                      q+=(ptrdiff_t) GetPixelChannels(image);
                     }
                   if (SyncAuthenticPixels(image,exception) == MagickFalse) goto Finish;
                 }
@@ -659,7 +655,10 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 

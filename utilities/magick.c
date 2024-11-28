@@ -17,7 +17,7 @@
 %                               January 2012                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999 ImageMagick Studio LLC, a non-profit organization           %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -44,6 +44,7 @@
 #include "MagickWand/studio.h"
 #include "MagickWand/MagickWand.h"
 #include "ios_error.h"
+#include "MagickCore/resource-private.h"
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,7 +84,9 @@ static int MagickMain(int argc,char **argv)
     MagickCommands[] =
     {
       MagickCommandSize("magick", MagickFalse, MagickImageCommand),
+#if !defined(MAGICKCORE_EXCLUDE_DEPRECATED)
       MagickCommandSize("convert", MagickFalse, ConvertImageCommand),
+#endif
       MagickCommandSize("composite", MagickFalse, CompositeImageCommand),
       MagickCommandSize("identify", MagickTrue, IdentifyImageCommand),
       MagickCommandSize("animate", MagickFalse, AnimateImageCommand),
@@ -113,13 +116,14 @@ static int MagickMain(int argc,char **argv)
   MagickBooleanType
     status;
 
-  register ssize_t
-    i;
-
   size_t
     number_commands;
 
+  ssize_t
+    i;
+
   MagickCoreGenesis(*argv,MagickTrue);
+  MagickWandGenesis();
   exception=AcquireExceptionInfo();
   image_info=AcquireImageInfo();
   GetPathComponent(argv[0],TailPath,client_name);
@@ -131,7 +135,7 @@ static int MagickMain(int argc,char **argv)
     if (offset == 0)
       break;
   }
-  i%=(number_commands);
+  i%=(ssize_t) number_commands;
   if ((i == 0) && (argc > 1))
     {
       for (i=1; i < (ssize_t) number_commands; i++)
@@ -144,7 +148,7 @@ static int MagickMain(int argc,char **argv)
             break;
           }
       }
-      i%=number_commands;
+      i%=(ssize_t) number_commands;
     }
   metadata=(char *) NULL;
   status=MagickCommandGenesis(image_info,MagickCommands[i].command,argc,argv,
@@ -171,27 +175,34 @@ static int MagickMain(int argc,char **argv)
     }
   image_info=DestroyImageInfo(image_info);
   exception=DestroyExceptionInfo(exception);
-  MagickCoreTerminus();
+  MagickWandTerminus();
   return(exit_code);
 }
 
-#if !defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__CYGWIN__) || defined(__MINGW32__)
+#if !defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__CYGWIN__)
 int main(int argc,char **argv)
 {
   return(MagickMain(argc,argv));
 }
 #else
+static LONG WINAPI NTUncaughtException(EXCEPTION_POINTERS *info)
+{
+  magick_unreferenced(info);
+  AsynchronousResourceComponentTerminus();
+  return(EXCEPTION_CONTINUE_SEARCH);
+}
+
 int wmain(int argc,wchar_t *argv[])
 {
   char
     **utf8;
 
   int
+    i,
     status;
 
-  register int
-    i;
-
+  SetUnhandledExceptionFilter(NTUncaughtException);
+  SetConsoleOutputCP(CP_UTF8);
   utf8=NTArgvToUTF8(argc,argv);
   status=MagickMain(argc,utf8);
   for (i=0; i < argc; i++)

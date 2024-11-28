@@ -2,105 +2,294 @@
 
 
 
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
 <head>
-  <meta charset="utf-8"  />
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,shrink-to-fit=no"  />
-  <title>ImageMagick - MagickWand, C API: Drawing Wand Methods</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ImageMagick – MagickWand, C API: Drawing Wand Methods</title>
+  <meta name="keywords" content="MagickWand, C API: Drawing Wand Methods, Image Processing, Digital Image Editing, Image Conversion, Open-Source Software, Image Manipulation, Command-Line Image Tools" />
+  <meta name="description" content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta name="application-name" content="ImageMagick" />
-  <meta name="description" content="Use ImageMagick® to create, edit, compose, and convert bitmap images. Resize an image, crop it, change its shades and colors, add captions, and more." />
   <meta name="application-url" content="https://imagemagick.org" />
-  <meta name="generator" content="PHP" />
-  <meta name="keywords" content="magickwc, api:, drawing, wmethods, image converter, image resizer, image editor, photo editor, jpg converter, png converter, tiff converter, vector images, online, free, swiss army" />
-  <meta name="rating" content="GENERAL" />
-  <meta name="robots" content="INDEX, FOLLOW" />
-  <meta name="generator" content="ImageMagick Studio LLC" />
-  <meta name="author" content="ImageMagick Studio LLC" />
-  <meta name="revisit-after" content="2 DAYS" />
-  <meta name="resource-type" content="document" />
-  <meta name="copyright" content="Copyright (c) 1999-2020 ImageMagick Studio LLC" />
-  <meta name="distribution" content="Global" />
-  <meta name="magick-serial" content="P131-S030410-R485315270133-P82224-A6668-G1245-1" />
+  <meta name="copyright" content="Copyright (c) 1999 ImageMagick Studio LLC" />
+  <meta itemprop='url' content='../../' />
+  <meta itemprop='title' content='ImageMagick' />
+  <meta itemprop='description' content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta property='og:url' content='../../' />
-  <meta property='og:title' content='ImageMagick' />
+  <meta property='og:name' content='ImageMagick' />
   <meta property='og:image' content='../../../images/logo.png' />
   <meta property='og:type' content='website' />
   <meta property='og:site_name' content='ImageMagick' />
-  <meta property='og:description' content="Create, Edit, Compose, or Convert Bitmap Images" />
+  <meta property='og:description' content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta name="google-site-verification" content="_bMOCDpkx9ZAzBwb2kF3PRHbfUUdFj2uO8Jd1AXArz4" />
+  <link type="images/png" sizes="64x64" href="../../images/wand.png" rel="icon" />
+  <link type="images/icon" sizes="16x16" href="../../images/wand.ico" rel="shortcut icon" />
   <link href="drawing-wand.html" rel="canonical" />
-  <link href="../../images/wand.png" rel="icon" />
-  <link href="../../images/wand.ico" rel="shortcut icon" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" />
   <link href="../assets/magick.css" rel="stylesheet" />
+  <script src="../assets/color-modes.js" ></script>
+  <script async src="https://localhost/pagead/js/adsbygoogle.js?client=ca-pub-3129977114552745" crossorigin="anonymous"></script>
+  <script async src="https://localhost/cse.js?cx=006134137889097767902:turn9fku95u"> </script>
 </head>
 <body>
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+    <symbol id="check2" viewBox="0 0 16 16">
+      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+    </symbol>
+    <symbol id="circle-half" viewBox="0 0 16 16">
+      <path d="M8 15A7 7 0 1 0 8 1v14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"/>
+    </symbol>
+    <symbol id="moon-stars-fill" viewBox="0 0 16 16">
+      <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+      <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
+    </symbol>
+    <symbol id="sun-fill" viewBox="0 0 16 16">
+      <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+    </symbol>
+  </svg>
+  <div class="dropdown position-fixed bottom-0 end-0 mb-3 me-3 bd-mode-toggle">
+    <button class="btn btn-bd-secondary py-2 dropdown-toggle d-flex align-items-center"
+            id="bd-theme"
+            type="button"
+            aria-expanded="false"
+            data-bs-toggle="dropdown"
+            aria-label="Toggle theme (auto)">
+      <svg class="bi my-1 theme-icon-active" width="1em" height="1em"><use href="#circle-half"></use></svg>
+      <span class="visually-hidden" id="bd-theme-text">Toggle theme</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bd-theme-text">
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#sun-fill"></use></svg>
+          Light
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="dark" aria-pressed="false">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#moon-stars-fill"></use></svg>
+          Dark
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#circle-half"></use></svg>
+          Auto
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+    </ul>
+  </div>
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+    <symbol id="arrow-right-circle" viewBox="0 0 16 16">
+      <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+    </symbol>
+    <symbol id="color-mode" viewBox="0 0 118 94">
+      <title>Color Modes</title>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M24.509 0c-6.733 0-11.715 5.893-11.492 12.284.214 6.14-.064 14.092-2.066 20.577C8.943 39.365 5.547 43.485 0 44.014v5.972c5.547.529 8.943 4.649 10.951 11.153 2.002 6.485 2.28 14.437 2.066 20.577C12.794 88.106 17.776 94 24.51 94H93.5c6.733 0 11.714-5.893 11.491-12.284-.214-6.14.064-14.092 2.066-20.577 2.009-6.504 5.396-10.624 10.943-11.153v-5.972c-5.547-.529-8.934-4.649-10.943-11.153-2.002-6.484-2.28-14.437-2.066-20.577C105.214 5.894 100.233 0 93.5 0H24.508zM80 57.863C80 66.663 73.436 72 62.543 72H44a2 2 0 01-2-2V24a2 2 0 012-2h18.437c9.083 0 15.044 4.92 15.044 12.474 0 5.302-4.01 10.049-9.119 10.88v.277C75.317 46.394 80 51.21 80 57.863zM60.521 28.34H49.948v14.934h8.905c6.884 0 10.68-2.772 10.68-7.727 0-4.643-3.264-7.207-9.012-7.207zM49.948 49.2v16.458H60.91c7.167 0 10.964-2.876 10.964-8.281 0-5.406-3.903-8.178-11.425-8.178H49.948z"></path>
+    </symbol>
+  </svg>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
     <a class="navbar-brand" href="../index.html"><img class="d-block" id="icon" alt="ImageMagick" width="32" height="32" src="../../images/wand.ico"/></a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsMagick" aria-controls="navbarsMagick" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#magick-navbars" aria-controls="magick-navbars" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="navbar-collapse collapse" id="navbarsMagick" style="">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item ">
-        <a class="nav-link" href="../index.html">Home <span class="sr-only">(current)</span></a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="../www/download.html">Download</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="../www/command-line-tools.html">Tools</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="../www/command-line-processing.html">Command-line</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="../www/develop.html">Develop</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" target="_blank" href="https://github.com/ImageMagick/ImageMagick/discussions">Community</a>
-      </li>
-      <li class="nav-item">
-          
-      </li>
-      <li class="nav-item">
-        <iframe src="https://github.com/sponsors/ImageMagick/button" title="Sponsor ImageMagick" height="35" width="107" style="border: 0;"></iframe>
-      </li>
-    </ul>
+    <div class="collapse navbar-collapse" id="magick-navbars">
+      <ul class="navbar-nav me-auto mb-2 mb-md-0">
+        <li class="nav-item">
+          <a class="nav-link " href="../www/download.html">Download</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="../www/command-line-tools.html">Tools</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="../www/command-line-processing.html">CLI</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="../www/develop.html">Develop</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" target="_blank" href="https://github.com/ImageMagick/ImageMagick/discussions">Community</a>
+        </li>
+        <li class="nav-item">
+          <iframe src="https://github.com/sponsors/ImageMagick/button" title="Sponsor ImageMagick" height="35" width="107" style="border: 0;"></iframe>
+        </li>
+      </ul>
+      <form class="d-flex form-inline" action="https://imagemagick.org/script/search.php">
+        <input class="form-control me-2" type="text" name="q" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-success" type="submit" name="sa">Search</button>
+      </form>
     </div>
-    <form class="form-inline my-2 my-md-0" action="https://imagemagick.org/script/search.php">
-      <input class="form-control mr-sm-2" type="text" name="q" placeholder="Search" aria-label="Search">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit" name="sa">Search</button>
-    </form>
-  </nav>
-  <div class="container">
-   <script async="async" src="https://localhost/pagead/js/adsbygoogle.js"></script>    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-3129977114552745"
-         data-ad-slot="6345125851"
-         data-full-width-responsive="true"
-         data-ad-format="horizontal"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-
   </div>
+  </nav>
 
-  <main role="main" class="container">
-    <div class="magick-template">
+<div class="col-lg-8 mx-auto p-4 py-md-5 text-body-secondary">
+  <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+    <a href="../index.html" class="d-flex align-items-center text-decoration-none">
+      <h1 class="fs-4">MagickWand, C API: Drawing Wand Methods</h1>
+    </a>
+  </header>
+
+  <main class="container">
+<h1 class="text-center">Drawing-wand</h1>
+<div class="btn-group">
+<button class="btn btn-secondary dropdown-toggle" type="button" id="defaultDropdown" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
+  Select API Method
+</button>
+<ul class="dropdown-menu pre-scrollable" aria-labelledby="defaultDropdown">
+  <li><a href="#ClearDrawingWand">ClearDrawingWand</a></li>
+  <li><a href="#CloneDrawingWand">CloneDrawingWand</a></li>
+  <li><a href="#DestroyDrawingWand">DestroyDrawingWand</a></li>
+  <li><a href="#DrawAffine">DrawAffine</a></li>
+  <li><a href="#DrawAlpha">DrawAlpha</a></li>
+  <li><a href="#DrawAnnotation">DrawAnnotation</a></li>
+  <li><a href="#DrawArc">DrawArc</a></li>
+  <li><a href="#DrawBezier">DrawBezier</a></li>
+  <li><a href="#DrawCircle">DrawCircle</a></li>
+  <li><a href="#DrawClearException">DrawClearException</a></li>
+  <li><a href="#DrawCloneExceptionInfo">DrawCloneExceptionInfo</a></li>
+  <li><a href="#DrawColor">DrawColor</a></li>
+  <li><a href="#DrawComposite">DrawComposite</a></li>
+  <li><a href="#DrawComment">DrawComment</a></li>
+  <li><a href="#DrawEllipse">DrawEllipse</a></li>
+  <li><a href="#DrawGetBorderColor">DrawGetBorderColor</a></li>
+  <li><a href="#DrawGetClipPath">DrawGetClipPath</a></li>
+  <li><a href="#DrawGetClipRule">DrawGetClipRule</a></li>
+  <li><a href="#DrawGetClipUnits">DrawGetClipUnits</a></li>
+  <li><a href="#DrawGetDensity">DrawGetDensity</a></li>
+  <li><a href="#DrawGetException">DrawGetException</a></li>
+  <li><a href="#DrawGetExceptionType">DrawGetExceptionType</a></li>
+  <li><a href="#DrawGetFillColor">DrawGetFillColor</a></li>
+  <li><a href="#DrawGetFillOpacity">DrawGetFillOpacity</a></li>
+  <li><a href="#DrawGetFillRule">DrawGetFillRule</a></li>
+  <li><a href="#DrawGetFont">DrawGetFont</a></li>
+  <li><a href="#DrawGetFontFamily">DrawGetFontFamily</a></li>
+  <li><a href="#DrawGetFontResolution">DrawGetFontResolution</a></li>
+  <li><a href="#DrawGetFontSize">DrawGetFontSize</a></li>
+  <li><a href="#DrawGetFontStretch">DrawGetFontStretch</a></li>
+  <li><a href="#DrawGetFontStyle">DrawGetFontStyle</a></li>
+  <li><a href="#DrawGetFontWeight">DrawGetFontWeight</a></li>
+  <li><a href="#DrawGetGravity">DrawGetGravity</a></li>
+  <li><a href="#DrawGetOpacity">DrawGetOpacity</a></li>
+  <li><a href="#DrawGetStrokeAntialias">DrawGetStrokeAntialias</a></li>
+  <li><a href="#DrawGetStrokeColor">DrawGetStrokeColor</a></li>
+  <li><a href="#DrawGetStrokeDashArray">DrawGetStrokeDashArray</a></li>
+  <li><a href="#DrawGetStrokeDashOffset">DrawGetStrokeDashOffset</a></li>
+  <li><a href="#DrawGetStrokeLineCap">DrawGetStrokeLineCap</a></li>
+  <li><a href="#DrawGetStrokeLineJoin">DrawGetStrokeLineJoin</a></li>
+  <li><a href="#DrawGetStrokeMiterLimit">DrawGetStrokeMiterLimit</a></li>
+  <li><a href="#DrawGetStrokeOpacity">DrawGetStrokeOpacity</a></li>
+  <li><a href="#DrawGetStrokeWidth">DrawGetStrokeWidth</a></li>
+  <li><a href="#DrawGetTextAlignment">DrawGetTextAlignment</a></li>
+  <li><a href="#DrawGetTextAntialias">DrawGetTextAntialias</a></li>
+  <li><a href="#DrawGetTextDecoration">DrawGetTextDecoration</a></li>
+  <li><a href="#DrawGetTextDirection">DrawGetTextDirection</a></li>
+  <li><a href="#DrawGetTextEncoding">DrawGetTextEncoding</a></li>
+  <li><a href="#DrawGetTextKerning">DrawGetTextKerning</a></li>
+  <li><a href="#DrawGetTextInterlineSpacing">DrawGetTextInterlineSpacing</a></li>
+  <li><a href="#DrawGetTextInterwordSpacing">DrawGetTextInterwordSpacing</a></li>
+  <li><a href="#DrawGetTypeMetrics">DrawGetTypeMetrics</a></li>
+  <li><a href="#DrawGetVectorGraphics">DrawGetVectorGraphics</a></li>
+  <li><a href="#DrawGetTextUnderColor">DrawGetTextUnderColor</a></li>
+  <li><a href="#DrawLine">DrawLine</a></li>
+  <li><a href="#DrawPathClose">DrawPathClose</a></li>
+  <li><a href="#DrawPathCurveToAbsolute">DrawPathCurveToAbsolute</a></li>
+  <li><a href="#DrawPathCurveToRelative">DrawPathCurveToRelative</a></li>
+  <li><a href="#DrawPathCurveToQuadraticBezierAbsolute">DrawPathCurveToQuadraticBezierAbsolute</a></li>
+  <li><a href="#DrawPathCurveToQuadraticBezierRelative">DrawPathCurveToQuadraticBezierRelative</a></li>
+  <li><a href="#DrawPathCurveToQuadraticBezierSmoothAbsolute">DrawPathCurveToQuadraticBezierSmoothAbsolute</a></li>
+  <li><a href="#DrawPathCurveToQuadraticBezierSmoothRelative">DrawPathCurveToQuadraticBezierSmoothRelative</a></li>
+  <li><a href="#DrawPathCurveToSmoothAbsolute">DrawPathCurveToSmoothAbsolute</a></li>
+  <li><a href="#DrawPathCurveToSmoothRelative">DrawPathCurveToSmoothRelative</a></li>
+  <li><a href="#DrawPathEllipticArcAbsolute">DrawPathEllipticArcAbsolute</a></li>
+  <li><a href="#DrawPathEllipticArcRelative">DrawPathEllipticArcRelative</a></li>
+  <li><a href="#DrawPathFinish">DrawPathFinish</a></li>
+  <li><a href="#DrawPathLineToAbsolute">DrawPathLineToAbsolute</a></li>
+  <li><a href="#DrawPathLineToRelative">DrawPathLineToRelative</a></li>
+  <li><a href="#DrawPathLineToHorizontalAbsolute">DrawPathLineToHorizontalAbsolute</a></li>
+  <li><a href="#DrawPathLineToHorizontalRelative">DrawPathLineToHorizontalRelative</a></li>
+  <li><a href="#DrawPathLineToVerticalAbsolute">DrawPathLineToVerticalAbsolute</a></li>
+  <li><a href="#DrawPathLineToVerticalRelative">DrawPathLineToVerticalRelative</a></li>
+  <li><a href="#DrawPathMoveToAbsolute">DrawPathMoveToAbsolute</a></li>
+  <li><a href="#DrawPathMoveToRelative">DrawPathMoveToRelative</a></li>
+  <li><a href="#DrawPathStart">DrawPathStart</a></li>
+  <li><a href="#DrawPoint">DrawPoint</a></li>
+  <li><a href="#DrawPolygon">DrawPolygon</a></li>
+  <li><a href="#DrawPolyline">DrawPolyline</a></li>
+  <li><a href="#DrawPopClipPath">DrawPopClipPath</a></li>
+  <li><a href="#DrawPopDefs">DrawPopDefs</a></li>
+  <li><a href="#DrawPopPattern">DrawPopPattern</a></li>
+  <li><a href="#DrawPushClipPath">DrawPushClipPath</a></li>
+  <li><a href="#DrawPushDefs">DrawPushDefs</a></li>
+  <li><a href="#DrawPushPattern">DrawPushPattern</a></li>
+  <li><a href="#DrawRectangle">DrawRectangle</a></li>
+  <li><a href="#DrawResetVectorGraphics">DrawResetVectorGraphics</a></li>
+  <li><a href="#DrawRotate">DrawRotate</a></li>
+  <li><a href="#DrawRoundRectangle">DrawRoundRectangle</a></li>
+  <li><a href="#DrawScale">DrawScale</a></li>
+  <li><a href="#DrawSetBorderColor">DrawSetBorderColor</a></li>
+  <li><a href="#DrawSetClipPath">DrawSetClipPath</a></li>
+  <li><a href="#DrawSetClipRule">DrawSetClipRule</a></li>
+  <li><a href="#DrawSetClipUnits">DrawSetClipUnits</a></li>
+  <li><a href="#DrawSetDensity">DrawSetDensity</a></li>
+  <li><a href="#DrawSetFillColor">DrawSetFillColor</a></li>
+  <li><a href="#DrawSetFillOpacity">DrawSetFillOpacity</a></li>
+  <li><a href="#DrawSetFontResolution">DrawSetFontResolution</a></li>
+  <li><a href="#DrawSetOpacity">DrawSetOpacity</a></li>
+  <li><a href="#DrawSetFillPatternURL">DrawSetFillPatternURL</a></li>
+  <li><a href="#DrawSetFillRule">DrawSetFillRule</a></li>
+  <li><a href="#DrawSetFont">DrawSetFont</a></li>
+  <li><a href="#DrawSetFontFamily">DrawSetFontFamily</a></li>
+  <li><a href="#DrawSetFontSize">DrawSetFontSize</a></li>
+  <li><a href="#DrawSetFontStretch">DrawSetFontStretch</a></li>
+  <li><a href="#DrawSetFontStyle">DrawSetFontStyle</a></li>
+  <li><a href="#DrawSetFontWeight">DrawSetFontWeight</a></li>
+  <li><a href="#DrawSetGravity">DrawSetGravity</a></li>
+  <li><a href="#DrawSetStrokeColor">DrawSetStrokeColor</a></li>
+  <li><a href="#DrawSetStrokePatternURL">DrawSetStrokePatternURL</a></li>
+  <li><a href="#DrawSetStrokeAntialias">DrawSetStrokeAntialias</a></li>
+  <li><a href="#DrawSetStrokeDashArray">DrawSetStrokeDashArray</a></li>
+  <li><a href="#DrawSetStrokeDashOffset">DrawSetStrokeDashOffset</a></li>
+  <li><a href="#DrawSetStrokeLineCap">DrawSetStrokeLineCap</a></li>
+  <li><a href="#DrawSetStrokeLineJoin">DrawSetStrokeLineJoin</a></li>
+  <li><a href="#DrawSetStrokeMiterLimit">DrawSetStrokeMiterLimit</a></li>
+  <li><a href="#DrawSetStrokeOpacity">DrawSetStrokeOpacity</a></li>
+  <li><a href="#DrawSetStrokeWidth">DrawSetStrokeWidth</a></li>
+  <li><a href="#DrawSetTextAlignment">DrawSetTextAlignment</a></li>
+  <li><a href="#DrawSetTextAntialias">DrawSetTextAntialias</a></li>
+  <li><a href="#DrawSetTextDecoration">DrawSetTextDecoration</a></li>
+  <li><a href="#DrawSetTextDirection">DrawSetTextDirection</a></li>
+  <li><a href="#DrawSetTextEncoding">DrawSetTextEncoding</a></li>
+  <li><a href="#DrawSetTextKerning">DrawSetTextKerning</a></li>
+  <li><a href="#DrawSetTextInterlineSpacing">DrawSetTextInterlineSpacing</a></li>
+  <li><a href="#DrawSetTextInterwordSpacing">DrawSetTextInterwordSpacing</a></li>
+  <li><a href="#DrawSetTextUnderColor">DrawSetTextUnderColor</a></li>
+  <li><a href="#DrawSetVectorGraphics">DrawSetVectorGraphics</a></li>
+  <li><a href="#DrawSkewX">DrawSkewX</a></li>
+  <li><a href="#DrawSkewY">DrawSkewY</a></li>
+  <li><a href="#DrawTranslate">DrawTranslate</a></li>
+  <li><a href="#DrawSetViewbox">DrawSetViewbox</a></li>
+  <li><a href="#IsDrawingWand">IsDrawingWand</a></li>
+  <li><a href="#NewDrawingWand">NewDrawingWand</a></li>
+  <li><a href="#PeekDrawingWand">PeekDrawingWand</a></li>
+  <li><a href="#PopDrawingWand">PopDrawingWand</a></li>
+</ul>
+</div>
+<br/>
+<br/>
 <div class="magick-header">
-<p class="text-center"><a href="drawing-wand.html#ClearDrawingWand">ClearDrawingWand</a> &#8226; <a href="drawing-wand.html#CloneDrawingWand">CloneDrawingWand</a> &#8226; <a href="drawing-wand.html#DestroyDrawingWand">DestroyDrawingWand</a> &#8226; <a href="drawing-wand.html#DrawAffine">DrawAffine</a> &#8226; <a href="drawing-wand.html#DrawAlpha">DrawAlpha</a> &#8226; <a href="drawing-wand.html#DrawAnnotation">DrawAnnotation</a> &#8226; <a href="drawing-wand.html#DrawArc">DrawArc</a> &#8226; <a href="drawing-wand.html#DrawBezier">DrawBezier</a> &#8226; <a href="drawing-wand.html#DrawCircle">DrawCircle</a> &#8226; <a href="drawing-wand.html#DrawClearException">DrawClearException</a> &#8226; <a href="drawing-wand.html#DrawCloneExceptionInfo">DrawCloneExceptionInfo</a> &#8226; <a href="drawing-wand.html#DrawColor">DrawColor</a> &#8226; <a href="drawing-wand.html#DrawComposite">DrawComposite</a> &#8226; <a href="drawing-wand.html#DrawComment">DrawComment</a> &#8226; <a href="drawing-wand.html#DrawEllipse">DrawEllipse</a> &#8226; <a href="drawing-wand.html#DrawGetBorderColor">DrawGetBorderColor</a> &#8226; <a href="drawing-wand.html#DrawGetClipPath">DrawGetClipPath</a> &#8226; <a href="drawing-wand.html#DrawGetClipRule">DrawGetClipRule</a> &#8226; <a href="drawing-wand.html#DrawGetClipUnits">DrawGetClipUnits</a> &#8226; <a href="drawing-wand.html#DrawGetDensity">DrawGetDensity</a> &#8226; <a href="drawing-wand.html#DrawGetException">DrawGetException</a> &#8226; <a href="drawing-wand.html#DrawGetExceptionType">DrawGetExceptionType</a> &#8226; <a href="drawing-wand.html#DrawGetFillColor">DrawGetFillColor</a> &#8226; <a href="drawing-wand.html#DrawGetFillOpacity">DrawGetFillOpacity</a> &#8226; <a href="drawing-wand.html#DrawGetFillRule">DrawGetFillRule</a> &#8226; <a href="drawing-wand.html#DrawGetFont">DrawGetFont</a> &#8226; <a href="drawing-wand.html#DrawGetFontFamily">DrawGetFontFamily</a> &#8226; <a href="drawing-wand.html#DrawGetFontResolution">DrawGetFontResolution</a> &#8226; <a href="drawing-wand.html#DrawGetFontSize">DrawGetFontSize</a> &#8226; <a href="drawing-wand.html#DrawGetFontStretch">DrawGetFontStretch</a> &#8226; <a href="drawing-wand.html#DrawGetFontStyle">DrawGetFontStyle</a> &#8226; <a href="drawing-wand.html#DrawGetFontWeight">DrawGetFontWeight</a> &#8226; <a href="drawing-wand.html#DrawGetGravity">DrawGetGravity</a> &#8226; <a href="drawing-wand.html#DrawGetOpacity">DrawGetOpacity</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeAntialias">DrawGetStrokeAntialias</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeColor">DrawGetStrokeColor</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeDashArray">DrawGetStrokeDashArray</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeDashOffset">DrawGetStrokeDashOffset</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeLineCap">DrawGetStrokeLineCap</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeLineJoin">DrawGetStrokeLineJoin</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeMiterLimit">DrawGetStrokeMiterLimit</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeOpacity">DrawGetStrokeOpacity</a> &#8226; <a href="drawing-wand.html#DrawGetStrokeWidth">DrawGetStrokeWidth</a> &#8226; <a href="drawing-wand.html#DrawGetTextAlignment">DrawGetTextAlignment</a> &#8226; <a href="drawing-wand.html#DrawGetTextAntialias">DrawGetTextAntialias</a> &#8226; <a href="drawing-wand.html#DrawGetTextDecoration">DrawGetTextDecoration</a> &#8226; <a href="drawing-wand.html#DrawGetTextDirection">DrawGetTextDirection</a> &#8226; <a href="drawing-wand.html#DrawGetTextEncoding">DrawGetTextEncoding</a> &#8226; <a href="drawing-wand.html#DrawGetTextKerning">DrawGetTextKerning</a> &#8226; <a href="drawing-wand.html#DrawGetTextInterlineSpacing">DrawGetTextInterlineSpacing</a> &#8226; <a href="drawing-wand.html#DrawGetTextInterwordSpacing">DrawGetTextInterwordSpacing</a> &#8226; <a href="drawing-wand.html#DrawGetTypeMetrics">DrawGetTypeMetrics</a> &#8226; <a href="drawing-wand.html#DrawGetVectorGraphics">DrawGetVectorGraphics</a> &#8226; <a href="drawing-wand.html#DrawGetTextUnderColor">DrawGetTextUnderColor</a> &#8226; <a href="drawing-wand.html#DrawLine">DrawLine</a> &#8226; <a href="drawing-wand.html#DrawPathClose">DrawPathClose</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToAbsolute">DrawPathCurveToAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToRelative">DrawPathCurveToRelative</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToQuadraticBezierAbsolute">DrawPathCurveToQuadraticBezierAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToQuadraticBezierRelative">DrawPathCurveToQuadraticBezierRelative</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToQuadraticBezierSmoothAbsolute">DrawPathCurveToQuadraticBezierSmoothAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToQuadraticBezierSmoothRelative">DrawPathCurveToQuadraticBezierSmoothRelative</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToSmoothAbsolute">DrawPathCurveToSmoothAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathCurveToSmoothRelative">DrawPathCurveToSmoothRelative</a> &#8226; <a href="drawing-wand.html#DrawPathEllipticArcAbsolute">DrawPathEllipticArcAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathEllipticArcRelative">DrawPathEllipticArcRelative</a> &#8226; <a href="drawing-wand.html#DrawPathFinish">DrawPathFinish</a> &#8226; <a href="drawing-wand.html#DrawPathLineToAbsolute">DrawPathLineToAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathLineToRelative">DrawPathLineToRelative</a> &#8226; <a href="drawing-wand.html#DrawPathLineToHorizontalAbsolute">DrawPathLineToHorizontalAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathLineToHorizontalRelative">DrawPathLineToHorizontalRelative</a> &#8226; <a href="drawing-wand.html#DrawPathLineToVerticalAbsolute">DrawPathLineToVerticalAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathLineToVerticalRelative">DrawPathLineToVerticalRelative</a> &#8226; <a href="drawing-wand.html#DrawPathMoveToAbsolute">DrawPathMoveToAbsolute</a> &#8226; <a href="drawing-wand.html#DrawPathMoveToRelative">DrawPathMoveToRelative</a> &#8226; <a href="drawing-wand.html#DrawPathStart">DrawPathStart</a> &#8226; <a href="drawing-wand.html#DrawPoint">DrawPoint</a> &#8226; <a href="drawing-wand.html#DrawPolygon">DrawPolygon</a> &#8226; <a href="drawing-wand.html#DrawPolyline">DrawPolyline</a> &#8226; <a href="drawing-wand.html#DrawPopClipPath">DrawPopClipPath</a> &#8226; <a href="drawing-wand.html#DrawPopDefs">DrawPopDefs</a> &#8226; <a href="drawing-wand.html#DrawPopPattern">DrawPopPattern</a> &#8226; <a href="drawing-wand.html#DrawPushClipPath">DrawPushClipPath</a> &#8226; <a href="drawing-wand.html#DrawPushDefs">DrawPushDefs</a> &#8226; <a href="drawing-wand.html#DrawPushPattern">DrawPushPattern</a> &#8226; <a href="drawing-wand.html#DrawRectangle">DrawRectangle</a> &#8226; <a href="drawing-wand.html#DrawResetVectorGraphics">DrawResetVectorGraphics</a> &#8226; <a href="drawing-wand.html#DrawRotate">DrawRotate</a> &#8226; <a href="drawing-wand.html#DrawRoundRectangle">DrawRoundRectangle</a> &#8226; <a href="drawing-wand.html#DrawScale">DrawScale</a> &#8226; <a href="drawing-wand.html#DrawSetBorderColor">DrawSetBorderColor</a> &#8226; <a href="drawing-wand.html#DrawSetClipPath">DrawSetClipPath</a> &#8226; <a href="drawing-wand.html#DrawSetClipRule">DrawSetClipRule</a> &#8226; <a href="drawing-wand.html#DrawSetClipUnits">DrawSetClipUnits</a> &#8226; <a href="drawing-wand.html#DrawSetDensity">DrawSetDensity</a> &#8226; <a href="drawing-wand.html#DrawSetFillColor">DrawSetFillColor</a> &#8226; <a href="drawing-wand.html#DrawSetFillOpacity">DrawSetFillOpacity</a> &#8226; <a href="drawing-wand.html#DrawSetFontResolution">DrawSetFontResolution</a> &#8226; <a href="drawing-wand.html#DrawSetOpacity">DrawSetOpacity</a> &#8226; <a href="drawing-wand.html#DrawSetFillPatternURL">DrawSetFillPatternURL</a> &#8226; <a href="drawing-wand.html#DrawSetFillRule">DrawSetFillRule</a> &#8226; <a href="drawing-wand.html#DrawSetFont">DrawSetFont</a> &#8226; <a href="drawing-wand.html#DrawSetFontFamily">DrawSetFontFamily</a> &#8226; <a href="drawing-wand.html#DrawSetFontSize">DrawSetFontSize</a> &#8226; <a href="drawing-wand.html#DrawSetFontStretch">DrawSetFontStretch</a> &#8226; <a href="drawing-wand.html#DrawSetFontStyle">DrawSetFontStyle</a> &#8226; <a href="drawing-wand.html#DrawSetFontWeight">DrawSetFontWeight</a> &#8226; <a href="drawing-wand.html#DrawSetGravity">DrawSetGravity</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeColor">DrawSetStrokeColor</a> &#8226; <a href="drawing-wand.html#DrawSetStrokePatternURL">DrawSetStrokePatternURL</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeAntialias">DrawSetStrokeAntialias</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeDashArray">DrawSetStrokeDashArray</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeDashOffset">DrawSetStrokeDashOffset</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeLineCap">DrawSetStrokeLineCap</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeLineJoin">DrawSetStrokeLineJoin</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeMiterLimit">DrawSetStrokeMiterLimit</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeOpacity">DrawSetStrokeOpacity</a> &#8226; <a href="drawing-wand.html#DrawSetStrokeWidth">DrawSetStrokeWidth</a> &#8226; <a href="drawing-wand.html#DrawSetTextAlignment">DrawSetTextAlignment</a> &#8226; <a href="drawing-wand.html#DrawSetTextAntialias">DrawSetTextAntialias</a> &#8226; <a href="drawing-wand.html#DrawSetTextDecoration">DrawSetTextDecoration</a> &#8226; <a href="drawing-wand.html#DrawSetTextDirection">DrawSetTextDirection</a> &#8226; <a href="drawing-wand.html#DrawSetTextEncoding">DrawSetTextEncoding</a> &#8226; <a href="drawing-wand.html#DrawSetTextKerning">DrawSetTextKerning</a> &#8226; <a href="drawing-wand.html#DrawSetTextInterlineSpacing">DrawSetTextInterlineSpacing</a> &#8226; <a href="drawing-wand.html#DrawSetTextInterwordSpacing">DrawSetTextInterwordSpacing</a> &#8226; <a href="drawing-wand.html#DrawSetTextUnderColor">DrawSetTextUnderColor</a> &#8226; <a href="drawing-wand.html#DrawSetVectorGraphics">DrawSetVectorGraphics</a> &#8226; <a href="drawing-wand.html#DrawSkewX">DrawSkewX</a> &#8226; <a href="drawing-wand.html#DrawSkewY">DrawSkewY</a> &#8226; <a href="drawing-wand.html#DrawTranslate">DrawTranslate</a> &#8226; <a href="drawing-wand.html#DrawSetViewbox">DrawSetViewbox</a> &#8226; <a href="drawing-wand.html#IsDrawingWand">IsDrawingWand</a> &#8226; <a href="drawing-wand.html#NewDrawingWand">NewDrawingWand</a> &#8226; <a href="drawing-wand.html#PeekDrawingWand">PeekDrawingWand</a> &#8226; <a href="drawing-wand.html#PopDrawingWand">PopDrawingWand</a> &#8226; <a href="drawing-wand.html#PushDrawingWand">PushDrawingWand</a></p>
-
 <h2><a href="../../api/MagickWand/drawing-wand_8c.html" id="ClearDrawingWand">ClearDrawingWand</a></h2>
 
 <p>ClearDrawingWand() clears resources associated with the drawing wand.</p>
 
 <p>The format of the ClearDrawingWand method is:</p>
 
-<pre class="text">
-void ClearDrawingWand(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void ClearDrawingWand(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -120,9 +309,8 @@ void ClearDrawingWand(DrawingWand *wand)
 
 <p>The format of the CloneDrawingWand method is:</p>
 
-<pre class="text">
-DrawingWand *CloneDrawingWand(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DrawingWand *CloneDrawingWand(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -142,9 +330,8 @@ DrawingWand *CloneDrawingWand(const DrawingWand *wand)
 
 <p>The format of the DestroyDrawingWand method is:</p>
 
-<pre class="text">
-DrawingWand *DestroyDrawingWand(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DrawingWand *DestroyDrawingWand(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -164,9 +351,8 @@ DrawingWand *DestroyDrawingWand(DrawingWand *wand)
 
 <p>The format of the DrawAffine method is:</p>
 
-<pre class="text">
-void DrawAffine(DrawingWand *wand,const AffineMatrix *affine)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawAffine(DrawingWand *wand,const AffineMatrix *affine)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -188,21 +374,19 @@ void DrawAffine(DrawingWand *wand,const AffineMatrix *affine)
 
 <p>DrawAlpha() paints on the image's alpha channel in order to set effected pixels to transparent. The available paint methods are:</p>
 
-<pre class="text">
-    PointMethod: Select the target pixel
+<pre class="bg-light text-dark mx-4"><samp>    PointMethod: Select the target pixel
     ReplaceMethod: Select any pixel that matches the target pixel.
     FloodfillMethod: Select the target pixel and matching neighbors.
     FillToBorderMethod: Select the target pixel and neighbors not matching
 border color.
     ResetMethod: Select all pixels.
-</pre>
+</samp></pre>
 
 <p>The format of the DrawAlpha method is:</p>
 
-<pre class="text">
-void DrawAlpha(DrawingWand *wand,const double x,const double y,
+<pre class="bg-light text-dark mx-4"><samp>void DrawAlpha(DrawingWand *wand,const double x,const double y,
   const PaintMethod paint_method)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -234,10 +418,9 @@ void DrawAlpha(DrawingWand *wand,const double x,const double y,
 
 <p>The format of the DrawAnnotation method is:</p>
 
-<pre class="text">
-void DrawAnnotation(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawAnnotation(DrawingWand *wand,const double x,
   const double y,const unsigned char *text)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -269,10 +452,9 @@ void DrawAnnotation(DrawingWand *wand,const double x,
 
 <p>The format of the DrawArc method is:</p>
 
-<pre class="text">
-void DrawArc(DrawingWand *wand,const double sx,const double sy,
+<pre class="bg-light text-dark mx-4"><samp>void DrawArc(DrawingWand *wand,const double sx,const double sy,
   const double ex,const double ey,const double sd,const double ed)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -316,10 +498,9 @@ void DrawArc(DrawingWand *wand,const double sx,const double sy,
 
 <p>The format of the DrawBezier method is:</p>
 
-<pre class="text">
-void DrawBezier(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawBezier(DrawingWand *wand,
   const size_t number_coordinates,const PointInfo *coordinates)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -347,10 +528,9 @@ void DrawBezier(DrawingWand *wand,
 
 <p>The format of the DrawCircle method is:</p>
 
-<pre class="text">
-void DrawCircle(DrawingWand *wand,const double ox,
+<pre class="bg-light text-dark mx-4"><samp>void DrawCircle(DrawingWand *wand,const double ox,
   const double oy,const double px, const double py)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -386,9 +566,8 @@ void DrawCircle(DrawingWand *wand,const double ox,
 
 <p>The format of the DrawClearException method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawClearException(DrawWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawClearException(DrawWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -408,9 +587,8 @@ MagickBooleanType DrawClearException(DrawWand *wand)
 
 <p>The format of the DrawCloneExceptionInfo method is:</p>
 
-<pre class="text">
-ExceptionInfo *DrawCloneExceptionInfo(DrawWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>ExceptionInfo *DrawCloneExceptionInfo(DrawWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -428,19 +606,17 @@ ExceptionInfo *DrawCloneExceptionInfo(DrawWand *wand)
 
 <p>DrawColor() draws color on image using the current fill color, starting at specified position, and using specified paint method. The available paint methods are:</p>
 
-<pre class="text">
-    PointMethod: Recolors the target pixel
+<pre class="bg-light text-dark mx-4"><samp>    PointMethod: Recolors the target pixel
     ReplaceMethod: Recolor any pixel that matches the target pixel.
     FloodfillMethod: Recolors target pixels and matching neighbors.
     ResetMethod: Recolor all pixels.
-</pre>
+</samp></pre>
 
 <p>The format of the DrawColor method is:</p>
 
-<pre class="text">
-void DrawColor(DrawingWand *wand,const double x,const double y,
+<pre class="bg-light text-dark mx-4"><samp>void DrawColor(DrawingWand *wand,const double x,const double y,
   const PaintMethod paint_method)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -472,12 +648,11 @@ void DrawColor(DrawingWand *wand,const double x,const double y,
 
 <p>The format of the DrawComposite method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawComposite(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawComposite(DrawingWand *wand,
   const CompositeOperator compose,const double x,
   const double y,const double width,const double height,
   MagickWand *magick_wand)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -521,9 +696,8 @@ MagickBooleanType DrawComposite(DrawingWand *wand,
 
 <p>The format of the DrawComment method is:</p>
 
-<pre class="text">
-void DrawComment(DrawingWand *wand,const char *comment)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawComment(DrawingWand *wand,const char *comment)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -547,10 +721,9 @@ void DrawComment(DrawingWand *wand,const char *comment)
 
 <p>The format of the DrawEllipse method is:</p>
 
-<pre class="text">
- void DrawEllipse(DrawingWand *wand,const double ox,const double oy,
+<pre class="bg-light text-dark mx-4"><samp> void DrawEllipse(DrawingWand *wand,const double ox,const double oy,
    const double rx,const double ry,const double start,const double end)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -594,10 +767,9 @@ void DrawComment(DrawingWand *wand,const char *comment)
 
 <p>The format of the DrawGetBorderColor method is:</p>
 
-<pre class="text">
-void DrawGetBorderColor(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawGetBorderColor(const DrawingWand *wand,
   PixelWand *border_color)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -621,9 +793,8 @@ void DrawGetBorderColor(const DrawingWand *wand,
 
 <p>The format of the DrawGetClipPath method is:</p>
 
-<pre class="text">
-char *DrawGetClipPath(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetClipPath(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -643,9 +814,8 @@ char *DrawGetClipPath(const DrawingWand *wand)
 
 <p>The format of the DrawGetClipRule method is:</p>
 
-<pre class="text">
-     FillRule DrawGetClipRule(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>     FillRule DrawGetClipRule(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -665,9 +835,8 @@ char *DrawGetClipPath(const DrawingWand *wand)
 
 <p>The format of the DrawGetClipUnits method is:</p>
 
-<pre class="text">
-ClipPathUnits DrawGetClipUnits(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>ClipPathUnits DrawGetClipUnits(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -687,9 +856,8 @@ ClipPathUnits DrawGetClipUnits(const DrawingWand *wand)
 
 <p>The format of the DrawGetDensity method is:</p>
 
-<pre class="text">
-char *DrawGetDensity(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetDensity(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -709,10 +877,9 @@ char *DrawGetDensity(const DrawingWand *wand)
 
 <p>The format of the DrawGetException method is:</p>
 
-<pre class="text">
-char *DrawGetException(const DrawWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetException(const DrawWand *wand,
   ExceptionType *severity)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -736,9 +903,8 @@ char *DrawGetException(const DrawWand *wand,
 
 <p>The format of the DrawGetExceptionType method is:</p>
 
-<pre class="text">
-ExceptionType DrawGetExceptionType(const DrawWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>ExceptionType DrawGetExceptionType(const DrawWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -758,10 +924,9 @@ ExceptionType DrawGetExceptionType(const DrawWand *wand)
 
 <p>The format of the DrawGetFillColor method is:</p>
 
-<pre class="text">
-void DrawGetFillColor(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawGetFillColor(const DrawingWand *wand,
   PixelWand *fill_color)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -785,9 +950,8 @@ void DrawGetFillColor(const DrawingWand *wand,
 
 <p>The format of the DrawGetFillOpacity method is:</p>
 
-<pre class="text">
-double DrawGetFillOpacity(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetFillOpacity(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -807,9 +971,8 @@ double DrawGetFillOpacity(const DrawingWand *wand)
 
 <p>The format of the DrawGetFillRule method is:</p>
 
-<pre class="text">
-FillRule DrawGetFillRule(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>FillRule DrawGetFillRule(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -825,13 +988,12 @@ FillRule DrawGetFillRule(const DrawingWand *wand)
 </dl>
 <h2><a href="../../api/MagickWand/drawing-wand_8c.html" id="DrawGetFont">DrawGetFont</a></h2>
 
-<p>DrawGetFont() returns a null-terminaged string specifying the font used when annotating with text. The value returned must be freed by the user when no longer needed.</p>
+<p>DrawGetFont() returns a null-terminated string specifying the font used when annotating with text. The value returned must be freed by the user when no longer needed.</p>
 
 <p>The format of the DrawGetFont method is:</p>
 
-<pre class="text">
-char *DrawGetFont(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetFont(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -851,9 +1013,8 @@ char *DrawGetFont(const DrawingWand *wand)
 
 <p>The format of the DrawGetFontFamily method is:</p>
 
-<pre class="text">
-char *DrawGetFontFamily(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetFontFamily(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -873,10 +1034,9 @@ char *DrawGetFontFamily(const DrawingWand *wand)
 
 <p>The format of the DrawGetFontResolution method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawGetFontResolution(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawGetFontResolution(const DrawingWand *wand,
   double *x,double *y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -904,9 +1064,8 @@ MagickBooleanType DrawGetFontResolution(const DrawingWand *wand,
 
 <p>The format of the DrawGetFontSize method is:</p>
 
-<pre class="text">
-double DrawGetFontSize(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetFontSize(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -926,9 +1085,8 @@ double DrawGetFontSize(const DrawingWand *wand)
 
 <p>The format of the DrawGetFontStretch method is:</p>
 
-<pre class="text">
-StretchType DrawGetFontStretch(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>StretchType DrawGetFontStretch(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -948,9 +1106,8 @@ StretchType DrawGetFontStretch(const DrawingWand *wand)
 
 <p>The format of the DrawGetFontStyle method is:</p>
 
-<pre class="text">
-StyleType DrawGetFontStyle(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>StyleType DrawGetFontStyle(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -970,9 +1127,8 @@ StyleType DrawGetFontStyle(const DrawingWand *wand)
 
 <p>The format of the DrawGetFontWeight method is:</p>
 
-<pre class="text">
-size_t DrawGetFontWeight(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>size_t DrawGetFontWeight(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -992,9 +1148,8 @@ size_t DrawGetFontWeight(const DrawingWand *wand)
 
 <p>The format of the DrawGetGravity method is:</p>
 
-<pre class="text">
-GravityType DrawGetGravity(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>GravityType DrawGetGravity(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1014,9 +1169,8 @@ GravityType DrawGetGravity(const DrawingWand *wand)
 
 <p>The format of the DrawGetOpacity method is:</p>
 
-<pre class="text">
-double DrawGetOpacity(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetOpacity(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1036,9 +1190,8 @@ double DrawGetOpacity(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeAntialias method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawGetStrokeAntialias(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawGetStrokeAntialias(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1058,10 +1211,9 @@ MagickBooleanType DrawGetStrokeAntialias(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeColor method is:</p>
 
-<pre class="text">
-void DrawGetStrokeColor(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawGetStrokeColor(const DrawingWand *wand,
   PixelWand *stroke_color)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1085,10 +1237,9 @@ void DrawGetStrokeColor(const DrawingWand *wand,
 
 <p>The format of the DrawGetStrokeDashArray method is:</p>
 
-<pre class="text">
-double *DrawGetStrokeDashArray(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>double *DrawGetStrokeDashArray(const DrawingWand *wand,
   size_t *number_elements)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1112,9 +1263,8 @@ double *DrawGetStrokeDashArray(const DrawingWand *wand,
 
 <p>The format of the DrawGetStrokeDashOffset method is:</p>
 
-<pre class="text">
-double DrawGetStrokeDashOffset(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetStrokeDashOffset(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1134,9 +1284,8 @@ double DrawGetStrokeDashOffset(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeLineCap method is:</p>
 
-<pre class="text">
-LineCap DrawGetStrokeLineCap(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>LineCap DrawGetStrokeLineCap(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1156,9 +1305,8 @@ LineCap DrawGetStrokeLineCap(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeLineJoin method is:</p>
 
-<pre class="text">
-LineJoin DrawGetStrokeLineJoin(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>LineJoin DrawGetStrokeLineJoin(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1178,9 +1326,8 @@ LineJoin DrawGetStrokeLineJoin(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeMiterLimit method is:</p>
 
-<pre class="text">
-size_t DrawGetStrokeMiterLimit(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>size_t DrawGetStrokeMiterLimit(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1200,9 +1347,8 @@ size_t DrawGetStrokeMiterLimit(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeOpacity method is:</p>
 
-<pre class="text">
-double DrawGetStrokeOpacity(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetStrokeOpacity(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1222,9 +1368,8 @@ double DrawGetStrokeOpacity(const DrawingWand *wand)
 
 <p>The format of the DrawGetStrokeWidth method is:</p>
 
-<pre class="text">
-double DrawGetStrokeWidth(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetStrokeWidth(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1244,9 +1389,8 @@ double DrawGetStrokeWidth(const DrawingWand *wand)
 
 <p>The format of the DrawGetTextAlignment method is:</p>
 
-<pre class="text">
-AlignType DrawGetTextAlignment(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>AlignType DrawGetTextAlignment(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1266,9 +1410,8 @@ AlignType DrawGetTextAlignment(const DrawingWand *wand)
 
 <p>The format of the DrawGetTextAntialias method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawGetTextAntialias(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawGetTextAntialias(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1288,9 +1431,8 @@ MagickBooleanType DrawGetTextAntialias(const DrawingWand *wand)
 
 <p>The format of the DrawGetTextDecoration method is:</p>
 
-<pre class="text">
-DecorationType DrawGetTextDecoration(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DecorationType DrawGetTextDecoration(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1310,9 +1452,8 @@ DecorationType DrawGetTextDecoration(const DrawingWand *wand)
 
 <p>The format of the DrawGetTextDirection method is:</p>
 
-<pre class="text">
-DirectionType DrawGetTextDirection(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DirectionType DrawGetTextDirection(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1332,9 +1473,8 @@ DirectionType DrawGetTextDirection(const DrawingWand *wand)
 
 <p>The format of the DrawGetTextEncoding method is:</p>
 
-<pre class="text">
-char *DrawGetTextEncoding(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetTextEncoding(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1354,9 +1494,8 @@ char *DrawGetTextEncoding(const DrawingWand *wand)
 
 <p>The format of the DrawSetFontKerning method is:</p>
 
-<pre class="text">
-double DrawGetTextKerning(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetTextKerning(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1376,9 +1515,8 @@ double DrawGetTextKerning(DrawingWand *wand)
 
 <p>The format of the DrawGetTextInterlineSpacing method is:</p>
 
-<pre class="text">
-double DrawGetTextInterlineSpacing(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetTextInterlineSpacing(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1398,9 +1536,8 @@ double DrawGetTextInterlineSpacing(DrawingWand *wand)
 
 <p>The format of the DrawSetFontKerning method is:</p>
 
-<pre class="text">
-double DrawGetTextInterwordSpacing(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>double DrawGetTextInterwordSpacing(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1418,8 +1555,7 @@ double DrawGetTextInterwordSpacing(DrawingWand *wand)
 
 <p>DrawGetTypeMetrics() returns the following information for the specified font and text:</p>
 
-<pre class="text">
-    character width
+<pre class="bg-light text-dark mx-4"><samp>    character width
     character height
     ascender
     descender
@@ -1434,15 +1570,14 @@ double DrawGetTextInterwordSpacing(DrawingWand *wand)
     origin: y
     underline position
     underline thickness
-</pre>
+</samp></pre>
 
 <p>The format of the DrawGetTypeMetrics method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawGetTypeMetrics(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawGetTypeMetrics(const DrawingWand *wand,
   const char *text,MagickBooleanType ignore_newlines,
 $  TypeMetric *metrics)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1478,9 +1613,8 @@ $  TypeMetric *metrics)
 
 <p>The format of the DrawGetVectorGraphics method is:</p>
 
-<pre class="text">
-char *DrawGetVectorGraphics(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>char *DrawGetVectorGraphics(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1500,10 +1634,9 @@ char *DrawGetVectorGraphics(DrawingWand *wand)
 
 <p>The format of the DrawGetTextUnderColor method is:</p>
 
-<pre class="text">
-void DrawGetTextUnderColor(const DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawGetTextUnderColor(const DrawingWand *wand,
   PixelWand *under_color)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1527,10 +1660,9 @@ void DrawGetTextUnderColor(const DrawingWand *wand,
 
 <p>The format of the DrawLine method is:</p>
 
-<pre class="text">
-void DrawLine(DrawingWand *wand,const double sx,const double sy,
+<pre class="bg-light text-dark mx-4"><samp>void DrawLine(DrawingWand *wand,const double sx,const double sy,
   const double ex,const double ey)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1566,9 +1698,8 @@ void DrawLine(DrawingWand *wand,const double sx,const double sy,
 
 <p>The format of the DrawPathClose method is:</p>
 
-<pre class="text">
-void DrawPathClose(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathClose(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1588,11 +1719,10 @@ void DrawPathClose(DrawingWand *wand)
 
 <p>The format of the DrawPathCurveToAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathCurveToAbsolute(DrawingWand *wand,const double x1,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToAbsolute(DrawingWand *wand,const double x1,
   const double y1,const double x2,const double y2,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1636,11 +1766,10 @@ void DrawPathCurveToAbsolute(DrawingWand *wand,const double x1,
 
 <p>The format of the DrawPathCurveToRelative method is:</p>
 
-<pre class="text">
-void DrawPathCurveToRelative(DrawingWand *wand,const double x1,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToRelative(DrawingWand *wand,const double x1,
   const double y1,const double x2,const double y2,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1684,10 +1813,9 @@ void DrawPathCurveToRelative(DrawingWand *wand,const double x1,
 
 <p>The format of the DrawPathCurveToQuadraticBezierAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathCurveToQuadraticBezierAbsolute(DrawingWand *wand,
-  const double x1,const double y1,onst double x,const double y)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToQuadraticBezierAbsolute(DrawingWand *wand,
+  const double x1,const double y1,const double x,const double y)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1723,10 +1851,9 @@ void DrawPathCurveToQuadraticBezierAbsolute(DrawingWand *wand,
 
 <p>The format of the DrawPathCurveToQuadraticBezierRelative method is:</p>
 
-<pre class="text">
-void DrawPathCurveToQuadraticBezierRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToQuadraticBezierRelative(DrawingWand *wand,
   const double x1,const double y1,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1762,10 +1889,9 @@ void DrawPathCurveToQuadraticBezierRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathCurveToQuadraticBezierSmoothAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathCurveToQuadraticBezierSmoothAbsolute(
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToQuadraticBezierSmoothAbsolute(
   DrawingWand *wand,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1793,10 +1919,9 @@ void DrawPathCurveToQuadraticBezierSmoothAbsolute(
 
 <p>The format of the DrawPathCurveToQuadraticBezierSmoothRelative method is:</p>
 
-<pre class="text">
-void DrawPathCurveToQuadraticBezierSmoothRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToQuadraticBezierSmoothRelative(DrawingWand *wand,
   const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1824,10 +1949,9 @@ void DrawPathCurveToQuadraticBezierSmoothRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathCurveToSmoothAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathCurveToSmoothAbsolute(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToSmoothAbsolute(DrawingWand *wand,
   const double x2,const double y2,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1863,10 +1987,9 @@ void DrawPathCurveToSmoothAbsolute(DrawingWand *wand,
 
 <p>The format of the DrawPathCurveToSmoothRelative method is:</p>
 
-<pre class="text">
-void DrawPathCurveToSmoothRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathCurveToSmoothRelative(DrawingWand *wand,
   const double x2,const double y2,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1902,12 +2025,11 @@ void DrawPathCurveToSmoothRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathEllipticArcAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathEllipticArcAbsolute(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathEllipticArcAbsolute(DrawingWand *wand,
   const double rx,const double ry,const double x_axis_rotation,
   const MagickBooleanType large_arc_flag,
   const MagickBooleanType sweep_flag,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1949,12 +2071,11 @@ void DrawPathEllipticArcAbsolute(DrawingWand *wand,
 
 <p>The format of the DrawPathEllipticArcRelative method is:</p>
 
-<pre class="text">
-void DrawPathEllipticArcRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathEllipticArcRelative(DrawingWand *wand,
   const double rx,const double ry,const double x_axis_rotation,
   const MagickBooleanType large_arc_flag,
   const MagickBooleanType sweep_flag,const double x,const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -1994,9 +2115,8 @@ void DrawPathEllipticArcRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathFinish method is:</p>
 
-<pre class="text">
-void DrawPathFinish(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathFinish(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2016,10 +2136,9 @@ void DrawPathFinish(DrawingWand *wand)
 
 <p>The format of the DrawPathLineToAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathLineToAbsolute(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToAbsolute(DrawingWand *wand,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2047,10 +2166,9 @@ void DrawPathLineToAbsolute(DrawingWand *wand,const double x,
 
 <p>The format of the DrawPathLineToRelative method is:</p>
 
-<pre class="text">
-void DrawPathLineToRelative(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToRelative(DrawingWand *wand,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2078,9 +2196,8 @@ void DrawPathLineToRelative(DrawingWand *wand,const double x,
 
 <p>The format of the DrawPathLineToHorizontalAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const double x)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const double x)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2104,10 +2221,9 @@ void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const double x)
 
 <p>The format of the DrawPathLineToHorizontalRelative method is:</p>
 
-<pre class="text">
-void DrawPathLineToHorizontalRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToHorizontalRelative(DrawingWand *wand,
   const double x)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2131,10 +2247,9 @@ void DrawPathLineToHorizontalRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathLineToVerticalAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathLineToVerticalAbsolute(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToVerticalAbsolute(DrawingWand *wand,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2158,10 +2273,9 @@ void DrawPathLineToVerticalAbsolute(DrawingWand *wand,
 
 <p>The format of the DrawPathLineToVerticalRelative method is:</p>
 
-<pre class="text">
-void DrawPathLineToVerticalRelative(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathLineToVerticalRelative(DrawingWand *wand,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2185,10 +2299,9 @@ void DrawPathLineToVerticalRelative(DrawingWand *wand,
 
 <p>The format of the DrawPathMoveToAbsolute method is:</p>
 
-<pre class="text">
-void DrawPathMoveToAbsolute(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathMoveToAbsolute(DrawingWand *wand,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2216,10 +2329,9 @@ void DrawPathMoveToAbsolute(DrawingWand *wand,const double x,
 
 <p>The format of the DrawPathMoveToRelative method is:</p>
 
-<pre class="text">
-void DrawPathMoveToRelative(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathMoveToRelative(DrawingWand *wand,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2247,9 +2359,8 @@ void DrawPathMoveToRelative(DrawingWand *wand,const double x,
 
 <p>The format of the DrawPathStart method is:</p>
 
-<pre class="text">
-void DrawPathStart(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPathStart(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2269,9 +2380,8 @@ void DrawPathStart(DrawingWand *wand)
 
 <p>The format of the DrawPoint method is:</p>
 
-<pre class="text">
-void DrawPoint(DrawingWand *wand,const double x,const double y)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPoint(DrawingWand *wand,const double x,const double y)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2299,10 +2409,9 @@ void DrawPoint(DrawingWand *wand,const double x,const double y)
 
 <p>The format of the DrawPolygon method is:</p>
 
-<pre class="text">
-void DrawPolygon(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPolygon(DrawingWand *wand,
   const size_t number_coordinates,const PointInfo *coordinates)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2330,10 +2439,9 @@ void DrawPolygon(DrawingWand *wand,
 
 <p>The format of the DrawPolyline method is:</p>
 
-<pre class="text">
-void DrawPolyline(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawPolyline(DrawingWand *wand,
   const size_t number_coordinates,const PointInfo *coordinates)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2361,9 +2469,8 @@ void DrawPolyline(DrawingWand *wand,
 
 <p>The format of the DrawPopClipPath method is:</p>
 
-<pre class="text">
-void DrawPopClipPath(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPopClipPath(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2383,9 +2490,8 @@ void DrawPopClipPath(DrawingWand *wand)
 
 <p>The format of the DrawPopDefs method is:</p>
 
-<pre class="text">
-void DrawPopDefs(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPopDefs(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2405,9 +2511,8 @@ void DrawPopDefs(DrawingWand *wand)
 
 <p>The format of the DrawPopPattern method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawPopPattern(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawPopPattern(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2427,9 +2532,8 @@ MagickBooleanType DrawPopPattern(DrawingWand *wand)
 
 <p>The format of the DrawPushClipPath method is:</p>
 
-<pre class="text">
-void DrawPushClipPath(DrawingWand *wand,const char *clip_mask_id)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPushClipPath(DrawingWand *wand,const char *clip_mask_id)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2453,9 +2557,8 @@ void DrawPushClipPath(DrawingWand *wand,const char *clip_mask_id)
 
 <p>The format of the DrawPushDefs method is:</p>
 
-<pre class="text">
-void DrawPushDefs(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawPushDefs(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2475,11 +2578,10 @@ void DrawPushDefs(DrawingWand *wand)
 
 <p>The format of the DrawPushPattern method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawPushPattern(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawPushPattern(DrawingWand *wand,
   const char *pattern_id,const double x,const double y,
   const double width,const double height)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2519,10 +2621,9 @@ MagickBooleanType DrawPushPattern(DrawingWand *wand,
 
 <p>The format of the DrawRectangle method is:</p>
 
-<pre class="text">
-void DrawRectangle(DrawingWand *wand,const double x1,
+<pre class="bg-light text-dark mx-4"><samp>void DrawRectangle(DrawingWand *wand,const double x1,
   const double y1,const double x2,const double y2)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2554,9 +2655,8 @@ void DrawRectangle(DrawingWand *wand,const double x1,
 
 <p>The format of the DrawResetVectorGraphics method is:</p>
 
-<pre class="text">
-void DrawResetVectorGraphics(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawResetVectorGraphics(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2576,9 +2676,8 @@ void DrawResetVectorGraphics(DrawingWand *wand)
 
 <p>The format of the DrawRotate method is:</p>
 
-<pre class="text">
-void DrawRotate(DrawingWand *wand,const double degrees)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawRotate(DrawingWand *wand,const double degrees)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2598,14 +2697,13 @@ void DrawRotate(DrawingWand *wand,const double degrees)
 </dl>
 <h2><a href="../../api/MagickWand/drawing-wand_8c.html" id="DrawRoundRectangle">DrawRoundRectangle</a></h2>
 
-<p>DrawRoundRectangle() draws a rounted rectangle given two coordinates, x &amp; y corner radiuses and using the current stroke, stroke width, and fill settings.</p>
+<p>DrawRoundRectangle() draws a rounded rectangle given two coordinates, x &amp; y corner radiuses and using the current stroke, stroke width, and fill settings.</p>
 
 <p>The format of the DrawRoundRectangle method is:</p>
 
-<pre class="text">
-void DrawRoundRectangle(DrawingWand *wand,double x1,double y1,
+<pre class="bg-light text-dark mx-4"><samp>void DrawRoundRectangle(DrawingWand *wand,double x1,double y1,
   double x2,double y2,double rx,double ry)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2649,9 +2747,8 @@ void DrawRoundRectangle(DrawingWand *wand,double x1,double y1,
 
 <p>The format of the DrawScale method is:</p>
 
-<pre class="text">
-void DrawScale(DrawingWand *wand,const double x,const double y)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawScale(DrawingWand *wand,const double x,const double y)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2679,9 +2776,8 @@ void DrawScale(DrawingWand *wand,const double x,const double y)
 
 <p>The format of the DrawSetBorderColor method is:</p>
 
-<pre class="text">
-void DrawSetBorderColor(DrawingWand *wand,const PixelWand *border_wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetBorderColor(DrawingWand *wand,const PixelWand *border_wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2705,10 +2801,9 @@ void DrawSetBorderColor(DrawingWand *wand,const PixelWand *border_wand)
 
 <p>The format of the DrawSetClipPath method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetClipPath(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetClipPath(DrawingWand *wand,
   const char *clip_mask)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2732,9 +2827,8 @@ MagickBooleanType DrawSetClipPath(DrawingWand *wand,
 
 <p>The format of the DrawSetClipRule method is:</p>
 
-<pre class="text">
-void DrawSetClipRule(DrawingWand *wand,const FillRule fill_rule)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetClipRule(DrawingWand *wand,const FillRule fill_rule)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2758,10 +2852,9 @@ void DrawSetClipRule(DrawingWand *wand,const FillRule fill_rule)
 
 <p>The format of the DrawSetClipUnits method is:</p>
 
-<pre class="text">
-void DrawSetClipUnits(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetClipUnits(DrawingWand *wand,
   const ClipPathUnits clip_units)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2785,10 +2878,9 @@ void DrawSetClipUnits(DrawingWand *wand,
 
 <p>The format of the DrawSetDensity method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetDensity(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetDensity(DrawingWand *wand,
   const char *density)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2812,9 +2904,8 @@ MagickBooleanType DrawSetDensity(DrawingWand *wand,
 
 <p>The format of the DrawSetFillColor method is:</p>
 
-<pre class="text">
-void DrawSetFillColor(DrawingWand *wand,const PixelWand *fill_wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFillColor(DrawingWand *wand,const PixelWand *fill_wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2838,9 +2929,8 @@ void DrawSetFillColor(DrawingWand *wand,const PixelWand *fill_wand)
 
 <p>The format of the DrawSetFillOpacity method is:</p>
 
-<pre class="text">
-void DrawSetFillOpacity(DrawingWand *wand,const double fill_alpha)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFillOpacity(DrawingWand *wand,const double fill_alpha)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2864,10 +2954,9 @@ void DrawSetFillOpacity(DrawingWand *wand,const double fill_alpha)
 
 <p>The format of the DrawSetFontResolution method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetFontResolution(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetFontResolution(DrawingWand *wand,
   const double x_resolution,const double y_resolution)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2895,9 +2984,8 @@ MagickBooleanType DrawSetFontResolution(DrawingWand *wand,
 
 <p>The format of the DrawSetOpacity method is:</p>
 
-<pre class="text">
-void DrawSetOpacity(DrawingWand *wand,const double alpha)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetOpacity(DrawingWand *wand,const double alpha)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2921,10 +3009,9 @@ void DrawSetOpacity(DrawingWand *wand,const double alpha)
 
 <p>The format of the DrawSetFillPatternURL method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetFillPatternURL(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetFillPatternURL(DrawingWand *wand,
   const char *fill_url)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2948,9 +3035,8 @@ MagickBooleanType DrawSetFillPatternURL(DrawingWand *wand,
 
 <p>The format of the DrawSetFillRule method is:</p>
 
-<pre class="text">
-void DrawSetFillRule(DrawingWand *wand,const FillRule fill_rule)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFillRule(DrawingWand *wand,const FillRule fill_rule)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -2970,13 +3056,12 @@ void DrawSetFillRule(DrawingWand *wand,const FillRule fill_rule)
 </dl>
 <h2><a href="../../api/MagickWand/drawing-wand_8c.html" id="DrawSetFont">DrawSetFont</a></h2>
 
-<p>DrawSetFont() sets the fully-sepecified font to use when annotating with text.</p>
+<p>DrawSetFont() sets the fully-specified font to use when annotating with text.</p>
 
 <p>The format of the DrawSetFont method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetFont(DrawingWand *wand,const char *font_name)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetFont(DrawingWand *wand,const char *font_name)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3000,10 +3085,9 @@ MagickBooleanType DrawSetFont(DrawingWand *wand,const char *font_name)
 
 <p>The format of the DrawSetFontFamily method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetFontFamily(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetFontFamily(DrawingWand *wand,
   const char *font_family)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3027,9 +3111,8 @@ MagickBooleanType DrawSetFontFamily(DrawingWand *wand,
 
 <p>The format of the DrawSetFontSize method is:</p>
 
-<pre class="text">
-void DrawSetFontSize(DrawingWand *wand,const double pointsize)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFontSize(DrawingWand *wand,const double pointsize)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3053,10 +3136,9 @@ void DrawSetFontSize(DrawingWand *wand,const double pointsize)
 
 <p>The format of the DrawSetFontStretch method is:</p>
 
-<pre class="text">
-void DrawSetFontStretch(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFontStretch(DrawingWand *wand,
   const StretchType font_stretch)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3080,9 +3162,8 @@ void DrawSetFontStretch(DrawingWand *wand,
 
 <p>The format of the DrawSetFontStyle method is:</p>
 
-<pre class="text">
-void DrawSetFontStyle(DrawingWand *wand,const StyleType style)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFontStyle(DrawingWand *wand,const StyleType style)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3106,10 +3187,9 @@ void DrawSetFontStyle(DrawingWand *wand,const StyleType style)
 
 <p>The format of the DrawSetFontWeight method is:</p>
 
-<pre class="text">
-void DrawSetFontWeight(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetFontWeight(DrawingWand *wand,
   const size_t font_weight)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3133,9 +3213,8 @@ void DrawSetFontWeight(DrawingWand *wand,
 
 <p>The format of the DrawSetGravity method is:</p>
 
-<pre class="text">
-void DrawSetGravity(DrawingWand *wand,const GravityType gravity)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetGravity(DrawingWand *wand,const GravityType gravity)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3159,10 +3238,9 @@ void DrawSetGravity(DrawingWand *wand,const GravityType gravity)
 
 <p>The format of the DrawSetStrokeColor method is:</p>
 
-<pre class="text">
-void DrawSetStrokeColor(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeColor(DrawingWand *wand,
   const PixelWand *stroke_wand)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3186,10 +3264,9 @@ void DrawSetStrokeColor(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokePatternURL method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetStrokePatternURL(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetStrokePatternURL(DrawingWand *wand,
   const char *stroke_url)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3213,10 +3290,9 @@ MagickBooleanType DrawSetStrokePatternURL(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeAntialias method is:</p>
 
-<pre class="text">
-void DrawSetStrokeAntialias(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeAntialias(DrawingWand *wand,
   const MagickBooleanType stroke_antialias)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3240,10 +3316,9 @@ void DrawSetStrokeAntialias(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeDashArray method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetStrokeDashArray(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetStrokeDashArray(DrawingWand *wand,
   const size_t number_elements,const double *dasharray)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3271,10 +3346,9 @@ MagickBooleanType DrawSetStrokeDashArray(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeDashOffset method is:</p>
 
-<pre class="text">
-void DrawSetStrokeDashOffset(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeDashOffset(DrawingWand *wand,
   const double dash_offset)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3298,10 +3372,9 @@ void DrawSetStrokeDashOffset(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeLineCap method is:</p>
 
-<pre class="text">
-void DrawSetStrokeLineCap(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeLineCap(DrawingWand *wand,
   const LineCap linecap)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3325,10 +3398,9 @@ void DrawSetStrokeLineCap(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeLineJoin method is:</p>
 
-<pre class="text">
-void DrawSetStrokeLineJoin(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeLineJoin(DrawingWand *wand,
   const LineJoin linejoin)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3352,10 +3424,9 @@ void DrawSetStrokeLineJoin(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeMiterLimit method is:</p>
 
-<pre class="text">
-void DrawSetStrokeMiterLimit(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeMiterLimit(DrawingWand *wand,
   const size_t miterlimit)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3379,10 +3450,9 @@ void DrawSetStrokeMiterLimit(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeOpacity method is:</p>
 
-<pre class="text">
-void DrawSetStrokeOpacity(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeOpacity(DrawingWand *wand,
   const double stroke_alpha)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3406,10 +3476,9 @@ void DrawSetStrokeOpacity(DrawingWand *wand,
 
 <p>The format of the DrawSetStrokeWidth method is:</p>
 
-<pre class="text">
-void DrawSetStrokeWidth(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetStrokeWidth(DrawingWand *wand,
   const double stroke_width)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3433,9 +3502,8 @@ void DrawSetStrokeWidth(DrawingWand *wand,
 
 <p>The format of the DrawSetTextAlignment method is:</p>
 
-<pre class="text">
-void DrawSetTextAlignment(DrawingWand *wand,const AlignType alignment)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextAlignment(DrawingWand *wand,const AlignType alignment)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3459,10 +3527,9 @@ void DrawSetTextAlignment(DrawingWand *wand,const AlignType alignment)
 
 <p>The format of the DrawSetTextAntialias method is:</p>
 
-<pre class="text">
-void DrawSetTextAntialias(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextAntialias(DrawingWand *wand,
   const MagickBooleanType text_antialias)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3486,10 +3553,9 @@ void DrawSetTextAntialias(DrawingWand *wand,
 
 <p>The format of the DrawSetTextDecoration method is:</p>
 
-<pre class="text">
-void DrawSetTextDecoration(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextDecoration(DrawingWand *wand,
   const DecorationType decoration)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3513,10 +3579,9 @@ void DrawSetTextDecoration(DrawingWand *wand,
 
 <p>The format of the DrawSetTextDirection method is:</p>
 
-<pre class="text">
-void DrawSetTextDirection(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextDirection(DrawingWand *wand,
   const DirectionType direction)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3540,9 +3605,8 @@ void DrawSetTextDirection(DrawingWand *wand,
 
 <p>The format of the DrawSetTextEncoding method is:</p>
 
-<pre class="text">
-void DrawSetTextEncoding(DrawingWand *wand,const char *encoding)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextEncoding(DrawingWand *wand,const char *encoding)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3566,9 +3630,8 @@ void DrawSetTextEncoding(DrawingWand *wand,const char *encoding)
 
 <p>The format of the DrawSetTextKerning method is:</p>
 
-<pre class="text">
-void DrawSetTextKerning(DrawingWand *wand,const double kerning)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextKerning(DrawingWand *wand,const double kerning)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3592,10 +3655,9 @@ void DrawSetTextKerning(DrawingWand *wand,const double kerning)
 
 <p>The format of the DrawSetInterlineSpacing method is:</p>
 
-<pre class="text">
-void DrawSetTextInterlineSpacing(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextInterlineSpacing(DrawingWand *wand,
   const double interline_spacing)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3619,10 +3681,9 @@ void DrawSetTextInterlineSpacing(DrawingWand *wand,
 
 <p>The format of the DrawSetInterwordSpacing method is:</p>
 
-<pre class="text">
-void DrawSetTextInterwordSpacing(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextInterwordSpacing(DrawingWand *wand,
   const double interword_spacing)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3646,10 +3707,9 @@ void DrawSetTextInterwordSpacing(DrawingWand *wand,
 
 <p>The format of the DrawSetTextUnderColor method is:</p>
 
-<pre class="text">
-void DrawSetTextUnderColor(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetTextUnderColor(DrawingWand *wand,
   const PixelWand *under_wand)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3673,10 +3733,9 @@ void DrawSetTextUnderColor(DrawingWand *wand,
 
 <p>The format of the DrawSetVectorGraphics method is:</p>
 
-<pre class="text">
-MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
   const char *xml)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3700,9 +3759,8 @@ MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
 
 <p>The format of the DrawSkewX method is:</p>
 
-<pre class="text">
-void DrawSkewX(DrawingWand *wand,const double degrees)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSkewX(DrawingWand *wand,const double degrees)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3726,9 +3784,8 @@ void DrawSkewX(DrawingWand *wand,const double degrees)
 
 <p>The format of the DrawSkewY method is:</p>
 
-<pre class="text">
-void DrawSkewY(DrawingWand *wand,const double degrees)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>void DrawSkewY(DrawingWand *wand,const double degrees)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3752,10 +3809,9 @@ void DrawSkewY(DrawingWand *wand,const double degrees)
 
 <p>The format of the DrawTranslate method is:</p>
 
-<pre class="text">
-void DrawTranslate(DrawingWand *wand,const double x,
+<pre class="bg-light text-dark mx-4"><samp>void DrawTranslate(DrawingWand *wand,const double x,
   const double y)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3783,10 +3839,9 @@ void DrawTranslate(DrawingWand *wand,const double x,
 
 <p>The format of the DrawSetViewbox method is:</p>
 
-<pre class="text">
-void DrawSetViewbox(DrawingWand *wand,const double x1,const double y1,
+<pre class="bg-light text-dark mx-4"><samp>void DrawSetViewbox(DrawingWand *wand,const double x1,const double y1,
   const double x2,const double y2)
-</pre>
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3822,9 +3877,8 @@ void DrawSetViewbox(DrawingWand *wand,const double x1,const double y1,
 
 <p>The format of the IsDrawingWand method is:</p>
 
-<pre class="text">
-MagickBooleanType IsDrawingWand(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType IsDrawingWand(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3844,9 +3898,8 @@ MagickBooleanType IsDrawingWand(const DrawingWand *wand)
 
 <p>The format of the NewDrawingWand method is:</p>
 
-<pre class="text">
-DrawingWand *NewDrawingWand(void)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DrawingWand *NewDrawingWand(void)
+</samp></pre>
 
 <h2><a href="../../api/MagickWand/drawing-wand_8c.html" id="PeekDrawingWand">PeekDrawingWand</a></h2>
 
@@ -3854,9 +3907,8 @@ DrawingWand *NewDrawingWand(void)
 
 <p>The format of the PeekDrawingWand method is:</p>
 
-<pre class="text">
-DrawInfo *PeekDrawingWand(const DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>DrawInfo *PeekDrawingWand(const DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3876,9 +3928,8 @@ DrawInfo *PeekDrawingWand(const DrawingWand *wand)
 
 <p>The format of the PopDrawingWand method is:</p>
 
-<pre class="text">
-MagickBooleanType PopDrawingWand(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType PopDrawingWand(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3898,9 +3949,8 @@ MagickBooleanType PopDrawingWand(DrawingWand *wand)
 
 <p>The format of the PushDrawingWand method is:</p>
 
-<pre class="text">
-MagickBooleanType PushDrawingWand(DrawingWand *wand)
-</pre>
+<pre class="bg-light text-dark mx-4"><samp>MagickBooleanType PushDrawingWand(DrawingWand *wand)
+</samp></pre>
 
 <p>A description of each parameter follows:</p>
 
@@ -3915,31 +3965,32 @@ MagickBooleanType PushDrawingWand(DrawingWand *wand)
 <dd>  </dd>
 </dl>
 </div>
-    </div>
+  </div>
   </main><!-- /.container -->
-  <footer class="magick-footer">
-    <div class="container">
-    <p><a href="../www/security-policy.html">Security</a> •
-    <a href="../www/news.html">News</a>
+  <footer class="py-5 text-center text-body-secondary bg-body-tertiary">
+    <div class="container-fluid">
+      <a href="../www/security-policy.html">Security</a> •
+      <a href="../www/news.html">News</a>
      
-    <a href="drawing-wand.html#"><img class="d-inline" id="wand" alt="And Now a Touch of Magick" width="16" height="16" src="../../images/wand.ico"/></a>
+      <a href="#"><img class="d-inline" id="wand" alt="And Now a Touch of Magick" width="16" height="16" src="../../images/wand.ico"/></a>
      
-    <a href="../www/links.html">Related</a> •
-     <a href="../www/sitemap.html">Sitemap</a>
+      <a href="../www/links.html">Related</a> •
+      <a href="../www/sitemap.html">Sitemap</a>
+   <br/>
+     <a href="../www/support.html">Sponsor</a> •
+     <a href="../www/cite.html">Cite</a> •
+     <a href="http://pgp.mit.edu/pks/lookup?op=get&amp;search=0x89AB63D48277377A">Public Key</a> •
+     <a href="../www/contact.html">Contact Us</a>
+   <br/>
+     <a href="https://github.com/imagemagick/imagemagick" target="_blank" rel="noopener" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 499.36" width="2%" height="2%" role="img" focusable="false"><title>GitHub</title><path fill="currentColor" fill-rule="evenodd" d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z"/></svg></a> •
+     <a href="https://twitter.com/imagemagick" target="_blank" rel="noopener" aria-label="Twitter"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 300 300" width="2%" height="2%" role="img" focusable="false"><title>Twitter</title><path d="M178.57 127.15 290.27 0h-26.46l-97.03 110.38L89.34 0H0l117.13 166.93L0 300.25h26.46l102.4-116.59 81.8 116.59h89.34M36.01 19.54H76.66l187.13 262.13h-40.66"/></svg></a>
     <br/>
-    <a href="../www/support.html">Sponsor</a> •
-    <a href="../www/cite.html">Cite</a> •
-    <a href="http://pgp.mit.edu/pks/lookup?op=get&amp;search=0x89AB63D48277377A">Public Key</a> •
-    <a href="../www/contact.html">Contact Us</a> 
-    <br/>
-    <a href="https://github.com/imagemagick/imagemagick" target="_blank" rel="noopener" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 499.36" width="2%" height="2%" role="img" focusable="false"><title>GitHub</title><path fill="currentColor" fill-rule="evenodd" d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z"/></svg></a> •
-        <a href="https://twitter.com/imagemagick" target="_blank" rel="noopener" aria-label="Twitter"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 416.32" width="2%" height="2%" role="img" focusable="false"><title>Twitter</title><path fill="currentColor" d="M160.83 416.32c193.2 0 298.92-160.22 298.92-298.92 0-4.51 0-9-.2-13.52A214 214 0 0 0 512 49.38a212.93 212.93 0 0 1-60.44 16.6 105.7 105.7 0 0 0 46.3-58.19 209 209 0 0 1-66.79 25.37 105.09 105.09 0 0 0-181.73 71.91 116.12 116.12 0 0 0 2.66 24c-87.28-4.3-164.73-46.3-216.56-109.82A105.48 105.48 0 0 0 68 159.6a106.27 106.27 0 0 1-47.53-13.11v1.43a105.28 105.28 0 0 0 84.21 103.06 105.67 105.67 0 0 1-47.33 1.84 105.06 105.06 0 0 0 98.14 72.94A210.72 210.72 0 0 1 25 370.84a202.17 202.17 0 0 1-25-1.43 298.85 298.85 0 0 0 160.83 46.92"/></svg></a>
-    <br/>
-    <small>© 1999-2020 ImageMagick Studio LLC</small></p>
-    <div>
+    <small>Copyright © 1999 ImageMagick Studio LLC</small>
+    </div>
   </footer>
+</div>
 
   <!-- Javascript assets -->
-  <script>window.jQuery || document.write('<script src="../assets/jquery.slim.min.js"><\/script>')</script><script src="../assets/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous">
-</body>
+  <script src="../assets/magick.js" ></script>
+  </body>
 </html>

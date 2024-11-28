@@ -57,7 +57,7 @@
 
 2008-01-10  6.3.7-10 Cristy  <quetzlzacatenango@image...>
   * Inherit image exception *before* destroying the cloned image (reference
-    http://imagemagick.org/discourse-server/viewtopic.php?f=3&t=10415).
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=10415).
 
 2007-11-27  6.3.7-2 Cristy  <quetzlzacatenango@image...>
   * Fix memory leak in MagickSetImageProfile() (reference
@@ -69,7 +69,7 @@
 
 2007-10-27  6.3.6-4 Cristy  <quetzlzacatenango@image...>
   * Added get/set font and pointsize methods to magick-property.c (reference
-    http://imagemagick.org/discourse-server/viewtopic.php?f=6&t=9997).
+    https://imagemagick.org/discourse-server/viewtopic.php?f=6&t=9997).
 
 2007-09-10  6.3.5-9 Cristy  <quetzlzacatenango@image...>
   * Added MagickGetImageProperties(), MagickGetImageOptions(), and
@@ -81,7 +81,7 @@
 2007-07-16  6.3.5-2 Cristy  <quetzlzacatenango@image...>
   * Add MagickGetType() method.
   * Fix MagickAddImage() relative to the iterator offset (reference
-    http://imagemagick.org/discourse-server/viewtopic.php?f=3&t=9218).
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=9218).
 
 2007-05-23  6.3.4-5 Cristy  <quetzlzacatenango@image...>
   * * Add MagickPaintFloodfillImage() method.
@@ -97,7 +97,7 @@
     MagickGetInterpolateMethod(), and MagickSetInterpolateMethod().
 
 2007-01-08  6.3.1-7 Cristy  <stentz@image...>
-  * MagickOrtderedPosterizeImage() performs an ordered dither based on a number
+  * MagickOrderedPosterizeImage() performs an ordered dither based on a number
         of pre-defined dithering threshold maps, but over multiple intensity levels,
         which can be different for different channels, according to the input
         arguments.
@@ -157,7 +157,7 @@
 2005-09-10  Cristy  <yarrow@image...>
   * Added MagickGetImageTicksPerSecond() and MagickSetImageTicksPerSecond().
   * Added MagickGetMagickResource().
-  * Added MagickThumbnaiImage().
+  * Added MagickThumbnailImage().
 
 2005-09-01  Cristy  <yarrow@image...>
   * DrawSetStrokeDashArray() no longer faults for an array of one element
@@ -297,7 +297,7 @@
     previously GetLastImageInList().
 
 2004-10-28  Cristy  <yarrow@image...>
-  * MagickTrimImage() was not properly trimmming the image.
+  * MagickTrimImage() was not properly trimming the image.
 
 2004-10-27  Cristy  <yarrow@image...>
   * Added DrawSetTextAlignment() and DrawGetTextAlignment() methods (suggested
@@ -320,7 +320,7 @@
     persist the vector graphics state.
 
 2004-09-30  Cristy  <yarrow@image...>
-  * Add new MagickQueryConfigureOption() method to return a valur associated
+  * Add new MagickQueryConfigureOption() method to return a value associated
     with a particular option.
 
 2004-09-29  Cristy  <yarrow@image...>

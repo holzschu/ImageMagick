@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -76,6 +76,7 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/morphology-private.h"
+#include "MagickCore/nt-base-private.h"
 #include "MagickCore/option.h"
 #include "MagickCore/paint.h"
 #include "MagickCore/pixel-accessor.h"
@@ -88,6 +89,7 @@
 #include "MagickCore/segment.h"
 #include "MagickCore/semaphore.h"
 #include "MagickCore/signature-private.h"
+#include "MagickCore/statistic-private.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/thread-private.h"
 #include "MagickCore/timer.h"
@@ -165,10 +167,10 @@ static MagickBooleanType TraceEdges(Image *edge_image,CacheView *edge_view,
   MagickBooleanType
     status;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
   q=GetCacheViewAuthenticPixels(edge_view,x,y,1,1,exception);
@@ -275,10 +277,10 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   /*
     Filter out noise.
   */
@@ -315,10 +317,10 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
 #endif
   for (y=0; y < (ssize_t) edge_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -339,7 +341,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
         dx,
         dy;
 
-      register const Quantum
+      const Quantum
         *magick_restrict kernel_pixels;
 
       ssize_t
@@ -408,7 +410,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
         }
       if (SetMatrixElement(canny_cache,x,y,&pixel) == MagickFalse)
         continue;
-      p+=GetPixelChannels(edge_image);
+      p+=(ptrdiff_t) GetPixelChannels(edge_image);
     }
   }
   edge_view=DestroyCacheView(edge_view);
@@ -427,10 +429,10 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
 #endif
   for (y=0; y < (ssize_t) edge_image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -505,7 +507,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
           max=pixel.intensity;
       }
       *q=0;
-      q+=GetPixelChannels(edge_image);
+      q+=(ptrdiff_t) GetPixelChannels(edge_image);
     }
     if (SyncCacheViewAuthenticPixels(edge_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -522,7 +524,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
   edge_view=AcquireAuthenticCacheView(edge_image,exception);
   for (y=0; y < (ssize_t) edge_image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -532,7 +534,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
       CannyInfo
         pixel;
 
-      register const Quantum
+      const Quantum
         *magick_restrict p;
 
       /*
@@ -586,7 +588,7 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
 %  each of four directions (horizontal, vertical, left and right diagonals)
 %  for the specified distance.  The features include the angular second
 %  moment, contrast, correlation, sum of squares: variance, inverse difference
-%  moment, sum average, sum varience, sum entropy, entropy, difference variance,
+%  moment, sum average, sum variance, sum entropy, entropy, difference variance,
 %  difference entropy, information measures of correlation 1, information
 %  measures of correlation 2, and maximum correlation coefficient.  You can
 %  access the red channel contrast, for example, like this:
@@ -610,16 +612,6 @@ MagickExport Image *CannyEdgeImage(const Image *image,const double radius,
 %    o exception: return any errors or warnings in this structure.
 %
 */
-
-static inline double MagickLog10(const double x)
-{
-#define Log10Epsilon  (1.0e-11)
-
- if (fabs(x) < Log10Epsilon)
-   return(log10(Log10Epsilon));
- return(log10(fabs(x)));
-}
-
 MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
   const size_t distance,ExceptionInfo *exception)
 {
@@ -659,7 +651,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     r;
 
@@ -671,7 +663,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if ((image->columns < (distance+1)) || (image->rows < (distance+1)))
     return((ChannelFeatures *) NULL);
@@ -710,10 +702,10 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 #endif
   for (r=0; r < (ssize_t) image->rows; r++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -738,7 +730,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
       if (image->alpha_trait != UndefinedPixelTrait)
         grays[ScaleQuantumToMap(GetPixelAlpha(image,p))].alpha=
           ScaleQuantumToMap(GetPixelAlpha(image,p));
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
   }
   image_view=DestroyCacheView(image_view);
@@ -781,12 +773,12 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
       number_grays=gray.alpha;
   cooccurrence=(ChannelStatistics **) AcquireQuantumMemory(number_grays,
     sizeof(*cooccurrence));
-  density_x=(ChannelStatistics *) AcquireQuantumMemory(2*(number_grays+1),
-    sizeof(*density_x));
-  density_xy=(ChannelStatistics *) AcquireQuantumMemory(2*(number_grays+1),
-    sizeof(*density_xy));
-  density_y=(ChannelStatistics *) AcquireQuantumMemory(2*(number_grays+1),
-    sizeof(*density_y));
+  density_x=(ChannelStatistics *) AcquireQuantumMemory(number_grays+1,
+    2*sizeof(*density_x));
+  density_xy=(ChannelStatistics *) AcquireQuantumMemory(number_grays+1,
+    2*sizeof(*density_xy));
+  density_y=(ChannelStatistics *) AcquireQuantumMemory(number_grays+1,
+    2*sizeof(*density_y));
   Q=(ChannelStatistics **) AcquireQuantumMemory(number_grays,sizeof(*Q));
   sum=(ChannelStatistics *) AcquireQuantumMemory(number_grays,sizeof(*sum));
   if ((cooccurrence == (ChannelStatistics **) NULL) ||
@@ -881,10 +873,10 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
   image_view=AcquireVirtualCacheView(image,exception);
   for (r=0; r < (ssize_t) image->rows; r++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     ssize_t
@@ -901,7 +893,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
         status=MagickFalse;
         continue;
       }
-    p+=distance*GetPixelChannels(image);;
+    p+=(ptrdiff_t) distance*GetPixelChannels(image);;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
       for (i=0; i < 4; i++)
@@ -946,7 +938,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
         v=0;
         while (grays[u].red != ScaleQuantumToMap(GetPixelRed(image,p)))
           u++;
-        while (grays[v].red != ScaleQuantumToMap(GetPixelRed(image,p+offset*GetPixelChannels(image))))
+        while (grays[v].red != ScaleQuantumToMap(GetPixelRed(image,p+offset*(ssize_t) GetPixelChannels(image))))
           v++;
         cooccurrence[u][v].direction[i].red++;
         cooccurrence[v][u].direction[i].red++;
@@ -954,7 +946,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
         v=0;
         while (grays[u].green != ScaleQuantumToMap(GetPixelGreen(image,p)))
           u++;
-        while (grays[v].green != ScaleQuantumToMap(GetPixelGreen(image,p+offset*GetPixelChannels(image))))
+        while (grays[v].green != ScaleQuantumToMap(GetPixelGreen(image,p+offset*(ssize_t) GetPixelChannels(image))))
           v++;
         cooccurrence[u][v].direction[i].green++;
         cooccurrence[v][u].direction[i].green++;
@@ -962,7 +954,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
         v=0;
         while (grays[u].blue != ScaleQuantumToMap(GetPixelBlue(image,p)))
           u++;
-        while (grays[v].blue != ScaleQuantumToMap(GetPixelBlue(image,p+offset*GetPixelChannels(image))))
+        while (grays[v].blue != ScaleQuantumToMap(GetPixelBlue(image,p+offset*(ssize_t) GetPixelChannels(image))))
           v++;
         cooccurrence[u][v].direction[i].blue++;
         cooccurrence[v][u].direction[i].blue++;
@@ -972,7 +964,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
             v=0;
             while (grays[u].black != ScaleQuantumToMap(GetPixelBlack(image,p)))
               u++;
-            while (grays[v].black != ScaleQuantumToMap(GetPixelBlack(image,p+offset*GetPixelChannels(image))))
+            while (grays[v].black != ScaleQuantumToMap(GetPixelBlack(image,p+offset*(ssize_t) GetPixelChannels(image))))
               v++;
             cooccurrence[u][v].direction[i].black++;
             cooccurrence[v][u].direction[i].black++;
@@ -983,13 +975,13 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
             v=0;
             while (grays[u].alpha != ScaleQuantumToMap(GetPixelAlpha(image,p)))
               u++;
-            while (grays[v].alpha != ScaleQuantumToMap(GetPixelAlpha(image,p+offset*GetPixelChannels(image))))
+            while (grays[v].alpha != ScaleQuantumToMap(GetPixelAlpha(image,p+offset*(ssize_t) GetPixelChannels(image))))
               v++;
             cooccurrence[u][v].direction[i].alpha++;
             cooccurrence[v][u].direction[i].alpha++;
           }
       }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
   }
   grays=(PixelPacket *) RelinquishMagickMemory(grays);
@@ -1014,7 +1006,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
     double
       normalize;
 
-    register ssize_t
+    ssize_t
       y;
 
     switch (i)
@@ -1056,7 +1048,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
     normalize=PerceptibleReciprocal(normalize);
     for (y=0; y < (ssize_t) number_grays; y++)
     {
-      register ssize_t
+      ssize_t
         x;
 
       for (x=0; x < (ssize_t) number_grays; x++)
@@ -1080,12 +1072,12 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 #endif
   for (i=0; i < 4; i++)
   {
-    register ssize_t
+    ssize_t
       y;
 
     for (y=0; y < (ssize_t) number_grays; y++)
     {
-      register ssize_t
+      ssize_t
         x;
 
       for (x=0; x < (ssize_t) number_grays; x++)
@@ -1265,7 +1257,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 #endif
   for (i=0; i < 4; i++)
   {
-    register ssize_t
+    ssize_t
       x;
 
     for (x=2; x < (ssize_t) (2*number_grays); x++)
@@ -1341,12 +1333,12 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 #endif
   for (i=0; i < 4; i++)
   {
-    register ssize_t
+    ssize_t
       y;
 
     for (y=0; y < (ssize_t) number_grays; y++)
     {
-      register ssize_t
+      ssize_t
         x;
 
       for (x=0; x < (ssize_t) number_grays; x++)
@@ -1456,7 +1448,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 #endif
   for (i=0; i < 4; i++)
   {
-    register ssize_t
+    ssize_t
       x;
 
     for (x=0; x < (ssize_t) number_grays; x++)
@@ -1613,7 +1605,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 
     for (z=0; z < (ssize_t) number_grays; z++)
     {
-      register ssize_t
+      ssize_t
         y;
 
       ChannelStatistics
@@ -1622,7 +1614,7 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
       (void) memset(&pixel,0,sizeof(pixel));
       for (y=0; y < (ssize_t) number_grays; y++)
       {
-        register ssize_t
+        ssize_t
           x;
 
         for (x=0; x < (ssize_t) number_grays; x++)
@@ -1693,17 +1685,17 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
       Future: return second largest eigenvalue of Q.
     */
     channel_features[RedPixelChannel].maximum_correlation_coefficient[i]=
-      sqrt((double) -1.0);
+      sqrt(-1.0);
     channel_features[GreenPixelChannel].maximum_correlation_coefficient[i]=
-      sqrt((double) -1.0);
+      sqrt(-1.0);
     channel_features[BluePixelChannel].maximum_correlation_coefficient[i]=
-      sqrt((double) -1.0);
+      sqrt(-1.0);
     if (image->colorspace == CMYKColorspace)
       channel_features[BlackPixelChannel].maximum_correlation_coefficient[i]=
-        sqrt((double) -1.0);
+        sqrt(-1.0);
     if (image->alpha_trait != UndefinedPixelTrait)
       channel_features[AlphaPixelChannel].maximum_correlation_coefficient[i]=
-        sqrt((double) -1.0);
+        sqrt(-1.0);
   }
   /*
     Relinquish resources.
@@ -1733,17 +1725,17 @@ MagickExport ChannelFeatures *GetImageFeatures(const Image *image,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  Use HoughLineImage() in conjunction with any binary edge extracted image (we
-%  recommand Canny) to identify lines in the image.  The algorithm accumulates
-%  counts for every white pixel for every possible orientation (for angles from
-%  0 to 179 in 1 degree increments) and distance from the center of the image to
-%  the corner (in 1 px increments) and stores the counts in an accumulator
-%  matrix of angle vs distance. The size of the accumulator is 180x(diagonal/2).
-%  Next it searches this space for peaks in counts and converts the locations
-%  of the peaks to slope and intercept in the normal x,y input image space. Use
-%  the slope/intercepts to find the endpoints clipped to the bounds of the
-%  image. The lines are then drawn. The counts are a measure of the length of
-%  the lines.
+%  HoughLineImage() can be used in conjunction with any binary edge extracted
+%  image (we recommend Canny) to identify lines in the image. The algorithm
+%  accumulates counts for every white pixel for every possible orientation (for
+%  angles from 0 to 179 in 1 degree increments) and distance from the center of
+%  the image to the corner (in 1 px increments) and stores the counts in an
+%  accumulator matrix of angle vs distance. The size of the accumulator is
+%  180x(diagonal/2). Next it searches this space for peaks in counts and
+%  converts the locations of the peaks to slope and intercept in the normal
+%  x,y input image space. Use  the slope/intercepts to find the endpoints
+%  clipped to the bounds of the image. The lines are then drawn. The counts
+%  are a measure of the length of the lines.
 %
 %  The format of the HoughLineImage method is:
 %
@@ -1831,7 +1823,8 @@ static Image *RenderHoughLines(const ImageInfo *image_info,const size_t columns,
      }
   (void) DrawImage(image,draw_info,exception);
   draw_info=DestroyDrawInfo(draw_info);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    image=DestroyImageList(image);
   return(GetFirstImageInList(image));
 }
 
@@ -1874,7 +1867,7 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
   PointInfo
     center;
 
-  register ssize_t
+  ssize_t
     y;
 
   size_t
@@ -1887,10 +1880,10 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   accumulator_width=180;
   hough_height=((sqrt(2.0)*(double) (image->rows > image->columns ?
     image->rows : image->columns))/2.0);
@@ -1914,10 +1907,10 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
   image_view=AcquireVirtualCacheView(image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1930,9 +1923,9 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      if (GetPixelIntensity(image,p) > (QuantumRange/2.0))
+      if (GetPixelIntensity(image,p) > ((double) QuantumRange/2.0))
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < 180; i++)
@@ -1950,7 +1943,7 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
               MagickRound(radius+hough_height),&count);
           }
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (image->progress_monitor != (MagickProgressMonitor) NULL)
       {
@@ -1999,7 +1992,7 @@ MagickExport Image *HoughLineImage(const Image *image,const size_t width,
     line_count=threshold;
   for (y=0; y < (ssize_t) accumulator_height; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
     for (x=0; x < (ssize_t) accumulator_width; x++)
@@ -2187,10 +2180,10 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   mean_image=CloneImage(image,0,0,MagickTrue,exception);
   if (mean_image == (Image *) NULL)
     return((Image *) NULL);
@@ -2210,13 +2203,13 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
 #endif
   for (y=0; y < (ssize_t) mean_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2239,7 +2232,7 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
         mean_location,
         previous_location;
 
-      register ssize_t
+      ssize_t
         i;
 
       GetPixelInfo(image,&mean_pixel);
@@ -2250,7 +2243,7 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
       {
         double
           distance,
-          gamma;
+          gamma = 1.0;
 
         PixelInfo
           sum_pixel;
@@ -2299,7 +2292,8 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
               }
           }
         }
-        gamma=PerceptibleReciprocal(count);
+        if (count != 0)
+          gamma=PerceptibleReciprocal((double) count);
         mean_location.x=gamma*sum_location.x;
         mean_location.y=gamma*sum_location.y;
         mean_pixel.red=gamma*sum_pixel.red;
@@ -2323,8 +2317,8 @@ MagickExport Image *MeanShiftImage(const Image *image,const size_t width,
       SetPixelGreen(mean_image,ClampToQuantum(mean_pixel.green),q);
       SetPixelBlue(mean_image,ClampToQuantum(mean_pixel.blue),q);
       SetPixelAlpha(mean_image,ClampToQuantum(mean_pixel.alpha),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(mean_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(mean_image);
     }
     if (SyncCacheViewAuthenticPixels(mean_view,exception) == MagickFalse)
       status=MagickFalse;

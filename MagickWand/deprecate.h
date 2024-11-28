@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -27,6 +27,7 @@ extern "C" {
 #if !defined(MAGICKCORE_EXCLUDE_DEPRECATED)
 
 extern WandExport MagickBooleanType
+  ConvertImageCommand(ImageInfo *,int,char **,char **,ExceptionInfo *),
   MagickGetImageAlphaColor(MagickWand *,PixelWand *),
   MagickSetImageAlphaColor(MagickWand *,const PixelWand *);
 

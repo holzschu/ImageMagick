@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -52,11 +52,13 @@
 #include "MagickCore/list.h"
 #include "MagickCore/magick.h"
 #include "MagickCore/memory_.h"
+#include "MagickCore/option.h"
 #include "MagickCore/property.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
+#include "MagickCore/string-private.h"
 #include "MagickCore/module.h"
 #include "MagickCore/utility.h"
 
@@ -87,6 +89,19 @@
 %    o exception: return any errors or warnings in this structure.
 %
 */
+
+static inline void AdjustTypeMetricBounds(TypeMetric *metrics)
+{
+  if (metrics->bounds.x1 >= 0.0)
+    metrics->bounds.x1=0.0;
+  else
+    {
+      double x1 = ceil(-metrics->bounds.x1+0.5);
+      metrics->width+=x1+x1;
+      metrics->bounds.x1=x1;
+    }
+}
+
 static Image *ReadLABELImage(const ImageInfo *image_info,
   ExceptionInfo *exception)
 {
@@ -101,6 +116,7 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
     *image;
 
   MagickBooleanType
+    left_bearing,
     status;
 
   TypeMetric
@@ -115,11 +131,11 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   (void) ResetImagePage(image,"0x0+0+0");
   if ((image->columns != 0) && (image->rows != 0))
@@ -135,7 +151,7 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
     return(DestroyImageList(image));
   (void) SetImageProperty(image,"label",label,exception);
   draw_info=CloneDrawInfo(image_info,(DrawInfo *) NULL);
-  width=(size_t) floor(draw_info->pointsize*strlen(label)+0.5);
+  width=CastDoubleToUnsigned(0.5*draw_info->pointsize*strlen(label)+0.5);
   if (AcquireMagickResource(WidthResource,width) == MagickFalse)
     {
       label=DestroyString(label);
@@ -145,6 +161,7 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
   draw_info->text=ConstantString(label);
   (void) memset(&metrics,0,sizeof(metrics));
   status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
+  AdjustTypeMetricBounds(&metrics);
   if ((image->columns == 0) && (image->rows == 0))
     {
       image->columns=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
@@ -155,6 +172,9 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
         (((image->columns == 0) || (image->rows == 0)) ||
          (fabs(image_info->pointsize) < MagickEpsilon)))
       {
+        const char
+          *option;
+
         double
           high,
           low;
@@ -165,47 +185,75 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
         /*
           Auto fit text into bounding box.
         */
-        for (n=0; n < 32; n++, draw_info->pointsize*=2.0)
-        {
-          (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
-            -metrics.bounds.x1,metrics.ascent);
-          if (draw_info->gravity == UndefinedGravity)
-            (void) CloneString(&draw_info->geometry,geometry);
-          status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
-          if (status == MagickFalse)
-            break;
-          width=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
-          height=(size_t) floor(metrics.height+draw_info->stroke_width+0.5);
-          if ((image->columns != 0) && (image->rows != 0))
-            {
-              if ((width >= image->columns) && (height >= image->rows))
-                break;
-            }
-          else
-            if (((image->columns != 0) && (width >= image->columns)) ||
-                ((image->rows != 0) && (height >= image->rows)))
-              break;
-        }
-        if (status == MagickFalse)
+        low=1.0;
+        option=GetImageOption(image_info,"label:max-pointsize");
+        if (option != (const char*) NULL)
           {
-            label=DestroyString(label);
-            draw_info=DestroyDrawInfo(draw_info);
-            image=DestroyImageList(image);
-            return((Image *) NULL);
+            high=StringToDouble(option,(char**) NULL);
+            if (high < 1.0)
+              high=1.0;
+            high+=1.0;
           }
-        high=draw_info->pointsize;
-        for (low=1.0; (high-low) > 0.5; )
+        else
+          {
+            option=GetImageOption(image_info,"label:start-pointsize");
+            if (option != (const char *) NULL)
+              {
+                draw_info->pointsize=StringToDouble(option,(char**) NULL);
+                if (draw_info->pointsize < 1.0)
+                  draw_info->pointsize=1.0;
+              }
+            for (n=0; n < 32; n++, draw_info->pointsize*=2.0)
+            {
+              (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
+                metrics.bounds.x1,metrics.ascent);
+              if (draw_info->gravity == UndefinedGravity)
+                (void) CloneString(&draw_info->geometry,geometry);
+              status=GetMultilineTypeMetrics(image,draw_info,&metrics,
+                exception);
+              if (status == MagickFalse)
+                break;
+              AdjustTypeMetricBounds(&metrics);
+              width=CastDoubleToUnsigned(metrics.width+draw_info->stroke_width+
+                0.5);
+              height=CastDoubleToUnsigned(
+                metrics.height-metrics.underline_position+
+                draw_info->stroke_width+0.5);
+              if ((image->columns != 0) && (image->rows != 0))
+                {
+                  if ((width > image->columns) && (height > image->rows))
+                    break;
+                  if ((width <= image->columns) && (height <= image->rows))
+                    low=draw_info->pointsize;
+                }
+              else
+                if (((image->columns != 0) && (width > image->columns)) ||
+                    ((image->rows != 0) && (height > image->rows)))
+                  break;
+            }
+            if (status == MagickFalse)
+              {
+                label=DestroyString(label);
+                draw_info=DestroyDrawInfo(draw_info);
+                image=DestroyImageList(image);
+                return((Image *) NULL);
+              }
+            high=draw_info->pointsize;
+          }
+        while ((high-low) > 0.5)
         {
           draw_info->pointsize=(low+high)/2.0;
           (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
-            -metrics.bounds.x1,metrics.ascent);
+            metrics.bounds.x1,metrics.ascent);
           if (draw_info->gravity == UndefinedGravity)
             (void) CloneString(&draw_info->geometry,geometry);
           status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
           if (status == MagickFalse)
             break;
-          width=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
-          height=(size_t) floor(metrics.height+draw_info->stroke_width+0.5);
+          AdjustTypeMetricBounds(&metrics);
+          width=CastDoubleToUnsigned(metrics.width+draw_info->stroke_width+0.5);
+          height=CastDoubleToUnsigned(metrics.height-metrics.underline_position+
+            draw_info->stroke_width+0.5);
           if ((image->columns != 0) && (image->rows != 0))
             {
               if ((width < image->columns) && (height < image->rows))
@@ -221,10 +269,7 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
               high=draw_info->pointsize-0.5;
         }
         if (status != MagickFalse)
-          {
-            draw_info->pointsize=floor((low+high)/2.0-0.5);
-            status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
-          }
+          draw_info->pointsize=floor(low-0.5);
       }
    label=DestroyString(label);
    if (status == MagickFalse)
@@ -233,6 +278,11 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
        image=DestroyImageList(image);
        return((Image *) NULL);
      }
+  /*
+    Draw label.
+  */
+  status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
+  AdjustTypeMetricBounds(&metrics);
   if (image->columns == 0)
     image->columns=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
   if (image->columns == 0)
@@ -258,9 +308,15 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
   /*
     Draw label.
   */
+  left_bearing=((draw_info->gravity == UndefinedGravity) ||
+     (draw_info->gravity == NorthWestGravity) ||
+     (draw_info->gravity == WestGravity) ||
+     (draw_info->gravity == SouthWestGravity)) ? MagickTrue : MagickFalse;
   (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
     (draw_info->direction == RightToLeftDirection ? (double) image->columns-
-    metrics.bounds.x2 : 0.0),(draw_info->gravity == UndefinedGravity ?
+    (draw_info->gravity == UndefinedGravity ? metrics.bounds.x2 : 0.0) : 
+    (left_bearing != MagickFalse ? metrics.bounds.x1 : 0.0)),
+    (draw_info->gravity == UndefinedGravity ? 
     MagickMax(metrics.ascent,metrics.bounds.y2) : 0.0));
   (void) CloneString(&draw_info->geometry,geometry);
   status=AnnotateImage(image,draw_info,exception);

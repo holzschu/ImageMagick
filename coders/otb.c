@@ -17,7 +17,7 @@
 %                               January 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -108,10 +108,10 @@ static Image *ReadOTBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -127,11 +127,11 @@ static Image *ReadOTBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -190,7 +190,7 @@ static Image *ReadOTBImage(const ImageInfo *image_info,ExceptionInfo *exception)
       bit++;
       if (bit == 8)
         bit=0;
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -206,7 +206,10 @@ static Image *ReadOTBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -307,10 +310,10 @@ static MagickBooleanType WriteOTBImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -328,14 +331,15 @@ static MagickBooleanType WriteOTBImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   /*
     Convert image to a bi-level image.
   */
@@ -364,7 +368,7 @@ static MagickBooleanType WriteOTBImage(const ImageInfo *image_info,Image *image,
     byte=0;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      if (GetPixelLuma(image,p) < (QuantumRange/2.0))
+      if (GetPixelLuma(image,p) < ((double) QuantumRange/2.0))
         byte|=0x1 << (7-bit);
       bit++;
       if (bit == 8)
@@ -373,7 +377,7 @@ static MagickBooleanType WriteOTBImage(const ImageInfo *image_info,Image *image,
           bit=0;
           byte=0;
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (bit != 0)
       (void) WriteBlobByte(image,byte);
@@ -385,6 +389,7 @@ static MagickBooleanType WriteOTBImage(const ImageInfo *image_info,Image *image,
           break;
       }
   }
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

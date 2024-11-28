@@ -2,12 +2,16 @@
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2002, 2003
 //
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
+//
 // GD/PerlMagick example using Magick++ methods.
 //
 // Concept and algorithms lifted from PerlMagick demo script
 //
 
 #include <Magick++.h>
+#include <cstdlib>
 #include <string>
 #include <iostream>
 
@@ -87,19 +91,19 @@ int main( int /*argc*/, char ** argv)
     if (getenv("MAGICK_FONT") != 0)
       image.font(string(getenv("MAGICK_FONT")));
     image.fontPointsize( 18 );
-#if MAGICKCORE_FREETYPE_DELEGATE
+#if defined(MAGICKCORE_FREETYPE_DELEGATE)
     image.annotate( "Hello world!", "+150+20" );
 #endif
 
     image.fillColor( "blue" );
     image.fontPointsize( 14 );
-#if MAGICKCORE_FREETYPE_DELEGATE
+#if defined(MAGICKCORE_FREETYPE_DELEGATE)
     image.annotate( "Goodbye cruel world!", "+150+38" );
 #endif
 
     image.fillColor( "black" );
     image.fontPointsize( 14 );
-#if MAGICKCORE_FREETYPE_DELEGATE
+#if defined(MAGICKCORE_FREETYPE_DELEGATE)
     image.annotate( "I'm climbing the wall!", "+280+120",
                     NorthWestGravity, 90.0 );
 #endif

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -170,11 +170,11 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
     offset,
     *scanlines;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -192,11 +192,11 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -295,7 +295,7 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    offset=SeekBlob(image,scanlines[image->rows-y-1],SEEK_SET);
+    offset=SeekBlob(image,scanlines[(ssize_t) image->rows-y-1],SEEK_SET);
     if (offset < 0)
       {
         scanlines=(MagickOffsetType *) RelinquishMagickMemory(scanlines);
@@ -318,7 +318,7 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
           {
             while (runlength < 0)
             {
-              q=GetAuthenticPixels(image,(ssize_t) (x % image->columns),y,1,1,
+              q=GetAuthenticPixels(image,x % (ssize_t) image->columns,y,1,1,
                 exception);
               if (q == (Quantum *) NULL)
                 break;
@@ -360,7 +360,7 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
         runlength++;
         do
         {
-          q=GetAuthenticPixels(image,(ssize_t) (x % image->columns),y,1,1,
+          q=GetAuthenticPixels(image,x % (ssize_t) image->columns,y,1,1,
             exception);
           if (q == (Quantum *) NULL)
             break;
@@ -412,7 +412,10 @@ static Image *ReadRLAImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 

@@ -18,7 +18,7 @@
 %                               March 2001                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999 ImageMagick Studio LLC, a non-profit organization           %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -51,12 +51,20 @@
 /*
   Define declarations.
 */
+#if defined(__APPLE__)
+  #include "TargetConditionals.h"
+  #if TARGET_OS_IOS || TARGET_OS_WATCH || TARGET_OS_TV
+    #define system(s) ((s)==NULL ? 0 : -1)
+  #endif // end iOS
+#elif defined(__ANDROID__)
+  #define system(s) ((s)==NULL ? 0 : -1)
+#endif
 #define CIEEpsilon  (216.0/24389.0)
 #define CIEK  (24389.0/27.0)
-#define D65X  0.950456
+#define D65X  0.95047
 #define D65Y  1.0
-#define D65Z  1.088754
-#define ReferenceEpsilon  (QuantumRange*1.0e-2)
+#define D65Z  1.08883
+#define ReferenceEpsilon  ((double) QuantumRange*1.0e-2)
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,519 +82,15 @@
 %
 %  The format of the ValidateColorspaces method is:
 %
-%      size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
-%        ExceptionInfo *exception)
+%      size_t ValidateColorspaces(size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
-%    o image_info: the image info.
-%
-%    o fail: return the number of validation tests that pass.
+%    o fails: return the number of validation tests that pass.
 %
 %    o exception: return any errors or warnings in this structure.
 %
 */
-
-static void ConvertHSIToRGB(const double hue,const double saturation,
-  const double intensity,double *red,double *green,double *blue)
-{
-  double
-    h;
-
-  h=360.0*hue;
-  h-=360.0*floor(h/360.0);
-  if (h < 120.0)
-    {
-      *blue=intensity*(1.0-saturation);
-      *red=intensity*(1.0+saturation*cos(h*(MagickPI/180.0))/cos((60.0-h)*
-        (MagickPI/180.0)));
-      *green=3.0*intensity-*red-*blue;
-    }
-  else
-    if (h < 240.0)
-      {
-        h-=120.0;
-        *red=intensity*(1.0-saturation);
-        *green=intensity*(1.0+saturation*cos(h*(MagickPI/180.0))/cos((60.0-h)*
-          (MagickPI/180.0)));
-        *blue=3.0*intensity-*red-*green;
-      }
-    else
-      {
-        h-=240.0;
-        *green=intensity*(1.0-saturation);
-        *blue=intensity*(1.0+saturation*cos(h*(MagickPI/180.0))/cos((60.0-h)*
-          (MagickPI/180.0)));
-        *red=3.0*intensity-*green-*blue;
-      }
-  *red*=QuantumRange;
-  *green*=QuantumRange;
-  *blue*=QuantumRange;
-}
-
-static void ConvertRGBToHSI(const double red,const double green,
-  const double blue,double *hue,double *saturation,double *intensity)
-{
-  double
-    alpha,
-    beta;
-
-  *intensity=(QuantumScale*red+QuantumScale*green+QuantumScale*blue)/3.0;
-  if (*intensity <= 0.0)
-    {
-      *hue=0.0;
-      *saturation=0.0;
-      return;
-    }
-  *saturation=1.0-MagickMin(QuantumScale*red,MagickMin(QuantumScale*green,
-    QuantumScale*blue))/(*intensity);
-  alpha=0.5*(2.0*QuantumScale*red-QuantumScale*green-QuantumScale*blue);
-  beta=0.8660254037844385*(QuantumScale*green-QuantumScale*blue);
-  *hue=atan2(beta,alpha)*(180.0/MagickPI)/360.0;
-  if (*hue < 0.0)
-    *hue+=1.0;
-}
-
-static void ConvertHSVToRGB(const double hue,const double saturation,
-  const double value,double *red,double *green,double *blue)
-{
-  double
-    c,
-    h,
-    min,
-    x;
-
-  h=hue*360.0;
-  c=value*saturation;
-  min=value-c;
-  h-=360.0*floor(h/360.0);
-  h/=60.0;
-  x=c*(1.0-fabs(h-2.0*floor(h/2.0)-1.0));
-  switch ((int) floor(h))
-  {
-    case 0:
-    {
-      *red=QuantumRange*(min+c);
-      *green=QuantumRange*(min+x);
-      *blue=QuantumRange*min;
-      break;
-    }
-    case 1:
-    {
-      *red=QuantumRange*(min+x);
-      *green=QuantumRange*(min+c);
-      *blue=QuantumRange*min;
-      break;
-    }
-    case 2:
-    {
-      *red=QuantumRange*min;
-      *green=QuantumRange*(min+c);
-      *blue=QuantumRange*(min+x);
-      break;
-    }
-    case 3:
-    {
-      *red=QuantumRange*min;
-      *green=QuantumRange*(min+x);
-      *blue=QuantumRange*(min+c);
-      break;
-    }
-    case 4:
-    {
-      *red=QuantumRange*(min+x);
-      *green=QuantumRange*min;
-      *blue=QuantumRange*(min+c);
-      break;
-    }
-    case 5:
-    {
-      *red=QuantumRange*(min+c);
-      *green=QuantumRange*min;
-      *blue=QuantumRange*(min+x);
-      break;
-    }
-    default:
-    {
-      *red=0.0;
-      *green=0.0;
-      *blue=0.0;
-    }
-  }
-}
-
-static inline void ConvertRGBToXYZ(const double red,const double green,
-  const double blue,double *X,double *Y,double *Z)
-{
-  double
-    b,
-    g,
-    r;
-
-  r=QuantumScale*DecodePixelGamma(red);
-  g=QuantumScale*DecodePixelGamma(green);
-  b=QuantumScale*DecodePixelGamma(blue);
-  *X=0.41239558896741421610*r+0.35758343076371481710*g+0.18049264738170157350*b;
-  *Y=0.21258623078559555160*r+0.71517030370341084990*g+0.07220049864333622685*b;
-  *Z=0.01929721549174694484*r+0.11918386458084853180*g+0.95049712513157976600*b;
-}
-
-static inline void ConvertXYZToLab(const double X,const double Y,const double Z,
-  double *L,double *a,double *b)
-{
-  double
-    x,
-    y,
-    z;
-
-  if ((X/D65X) > CIEEpsilon)
-    x=pow(X/D65X,1.0/3.0);
-  else
-    x=(CIEK*X/D65X+16.0)/116.0;
-  if ((Y/D65Y) > CIEEpsilon)
-    y=pow(Y/D65Y,1.0/3.0);
-  else
-    y=(CIEK*Y/D65Y+16.0)/116.0;
-  if ((Z/D65Z) > CIEEpsilon)
-    z=pow(Z/D65Z,1.0/3.0);
-  else
-    z=(CIEK*Z/D65Z+16.0)/116.0;
-  *L=((116.0*y)-16.0)/100.0;
-  *a=(500.0*(x-y))/255.0+0.5;
-  *b=(200.0*(y-z))/255.0+0.5;
-}
-
-static void ConvertRGBToLab(const double red,const double green,
-  const double blue,double *L,double *a,double *b)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
-  ConvertXYZToLab(X,Y,Z,L,a,b);
-}
-
-static inline void ConvertLabToXYZ(const double L,const double a,const double b,
-  double *X,double *Y,double *Z)
-{
-  double
-    x,
-    y,
-    z;
-
-  y=(L+16.0)/116.0;
-  x=y+a/500.0;
-  z=y-b/200.0;
-  if ((x*x*x) > CIEEpsilon)
-    x=(x*x*x);
-  else
-    x=(116.0*x-16.0)/CIEK;
-  if ((y*y*y) > CIEEpsilon)
-    y=(y*y*y);
-  else
-    y=L/CIEK;
-  if ((z*z*z) > CIEEpsilon)
-    z=(z*z*z);
-  else
-    z=(116.0*z-16.0)/CIEK;
-  *X=D65X*x;
-  *Y=D65Y*y;
-  *Z=D65Z*z;
-}
-
-static inline void ConvertXYZToRGB(const double x,const double y,const double z,
-  double *red,double *green,double *blue)
-{
-  double
-    b,
-    g,
-    r;
-
-  r=3.2406*x-1.5372*y-0.4986*z;
-  g=(-0.9689*x+1.8758*y+0.0415*z);
-  b=0.0557*x-0.2040*y+1.0570*z;
-  *red=EncodePixelGamma(QuantumRange*r);
-  *green=EncodePixelGamma(QuantumRange*g);
-  *blue=EncodePixelGamma(QuantumRange*b);
-}
-
-static inline void ConvertLabToRGB(const double L,const double a,
-  const double b,double *red,double *green,double *blue)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertLabToXYZ(L*100.0,255.0*(a-0.5),255.0*(b-0.5),&X,&Y,&Z);
-  ConvertXYZToRGB(X,Y,Z,red,green,blue);
-}
-
-static void ConvertRGBToYPbPr(const double red,const double green,
-  const double blue,double *Y,double *Pb,double *Pr)
-{
-  *Y=QuantumScale*(0.298839*red+0.586811*green+0.114350*blue);
-  *Pb=QuantumScale*((-0.1687367)*red-0.331264*green+0.5*blue)+0.5;
-  *Pr=QuantumScale*(0.5*red-0.418688*green-0.081312*blue)+0.5;
-}
-
-static void ConvertRGBToYCbCr(const double red,const double green,
-  const double blue,double *Y,double *Cb,double *Cr)
-{
-  ConvertRGBToYPbPr(red,green,blue,Y,Cb,Cr);
-}
-
-static void ConvertYPbPrToRGB(const double Y,const double Pb,const double Pr,
-  double *red,double *green,double *blue)
-{
-  *red=QuantumRange*(0.99999999999914679361*Y-1.2188941887145875e-06*(Pb-0.5)+
-    1.4019995886561440468*(Pr-0.5));
-  *green=QuantumRange*(0.99999975910502514331*Y-0.34413567816504303521*(Pb-0.5)-
-    0.71413649331646789076*(Pr-0.5));
-  *blue=QuantumRange*(1.00000124040004623180*Y+1.77200006607230409200*(Pb-0.5)+
-    2.1453384174593273e-06*(Pr-0.5));
-}
-
-static void ConvertYCbCrToRGB(const double Y,const double Cb,
-  const double Cr,double *red,double *green,double *blue)
-{
-  ConvertYPbPrToRGB(Y,Cb,Cr,red,green,blue);
-}
-
-static inline void ConvertLCHabToXYZ(const double luma,const double chroma,
-  const double hue,double *X,double *Y,double *Z)
-{
-  ConvertLabToXYZ(luma,chroma*cos(hue*MagickPI/180.0),chroma*
-    sin(hue*MagickPI/180.0),X,Y,Z);
-}
-
-static void ConvertLCHabToRGB(const double luma,const double chroma,
-  const double hue,double *red,double *green,double *blue)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertLCHabToXYZ(luma*100.0,255.0*(chroma-0.5),360.0*hue,&X,&Y,&Z);
-  ConvertXYZToRGB(X,Y,Z,red,green,blue);
-}
-
-static void ConvertRGBToHSV(const double red,const double green,
-  const double blue,double *hue,double *saturation,double *value)
-{
-  double
-    c,
-    max,
-    min;
-
-  max=MagickMax(QuantumScale*red,MagickMax(QuantumScale*green,
-    QuantumScale*blue));
-  min=MagickMin(QuantumScale*red,MagickMin(QuantumScale*green,
-    QuantumScale*blue));
-  c=max-min;
-  *value=max;
-  if (c <= 0.0)
-    {
-      *hue=0.0;
-      *saturation=0.0;
-      return;
-    }
-  if (max == (QuantumScale*red))
-    {
-      *hue=(QuantumScale*green-QuantumScale*blue)/c;
-      if ((QuantumScale*green) < (QuantumScale*blue))
-        *hue+=6.0;
-    }
-  else
-    if (max == (QuantumScale*green))
-      *hue=2.0+(QuantumScale*blue-QuantumScale*red)/c;
-    else
-      *hue=4.0+(QuantumScale*red-QuantumScale*green)/c;
-  *hue*=60.0/360.0;
-  *saturation=c/max;
-}
-
-static inline void ConvertXYZToLCHab(const double X,const double Y,
-  const double Z,double *luma,double *chroma,double *hue)
-{
-  double
-    a,
-    b;
-
-  ConvertXYZToLab(X,Y,Z,luma,&a,&b);
-  *chroma=hypot(255.0*(a-0.5),255.0*(b-0.5))/255.0+0.5;
-  *hue=180.0*atan2(255.0*(b-0.5),255.0*(a-0.5))/MagickPI/360.0;
-  if (*hue < 0.0)
-    *hue+=1.0;
-}
-
-static void ConvertRGBToLCHab(const double red,const double green,
-  const double blue,double *luma,double *chroma,double *hue)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
-  ConvertXYZToLCHab(X,Y,Z,luma,chroma,hue);
-}
-
-static inline void ConvertLMSToXYZ(const double L,const double M,const double S,
-  double *X,double *Y,double *Z)
-{
-  *X=1.096123820835514*L-0.278869000218287*M+0.182745179382773*S;
-  *Y=0.454369041975359*L+0.473533154307412*M+0.072097803717229*S;
-  *Z=(-0.009627608738429)*L-0.005698031216113*M+1.015325639954543*S;
-}
-
-static inline void ConvertLMSToRGB(const double L,const double M,
-  const double S,double *red,double *green,double *blue)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertLMSToXYZ(L,M,S,&X,&Y,&Z);
-  ConvertXYZToRGB(X,Y,Z,red,green,blue);
-}
-
-static inline void ConvertXYZToLMS(const double x,const double y,
-  const double z,double *L,double *M,double *S)
-{
-  *L=0.7328*x+0.4296*y-0.1624*z;
-  *M=(-0.7036*x+1.6975*y+0.0061*z);
-  *S=0.0030*x+0.0136*y+0.9834*z;
-}
-
-static void ConvertRGBToLMS(const double red,const double green,
-  const double blue,double *L,double *M,double *S)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
-  ConvertXYZToLMS(X,Y,Z,L,M,S);
-}
-
-static inline void ConvertXYZToLuv(const double X,const double Y,const double Z,
-  double *L,double *u,double *v)
-{
-  double
-    alpha;
-
-  if ((Y/D65Y) > CIEEpsilon)
-    *L=(double) (116.0*pow(Y/D65Y,1.0/3.0)-16.0);
-  else
-    *L=CIEK*(Y/D65Y);
-  alpha=PerceptibleReciprocal(X+15.0*Y+3.0*Z);
-  *u=13.0*(*L)*((4.0*alpha*X)-(4.0*D65X/(D65X+15.0*D65Y+3.0*D65Z)));
-  *v=13.0*(*L)*((9.0*alpha*Y)-(9.0*D65Y/(D65X+15.0*D65Y+3.0*D65Z)));
-  *L/=100.0;
-  *u=(*u+134.0)/354.0;
-  *v=(*v+140.0)/262.0;
-}
-
-static void ConvertRGBToLuv(const double red,const double green,
-  const double blue,double *L,double *u,double *v)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
-  ConvertXYZToLuv(X,Y,Z,L,u,v);
-}
-
-static inline void ConvertLuvToXYZ(const double L,const double u,const double v,
-  double *X,double *Y,double *Z)
-{
-  if (L > (CIEK*CIEEpsilon))
-    *Y=(double) pow((L+16.0)/116.0,3.0);
-  else
-    *Y=L/CIEK;
-  *X=((*Y*((39.0*L/(v+13.0*L*(9.0*D65Y/(D65X+15.0*D65Y+3.0*D65Z))))-5.0))+
-    5.0*(*Y))/((((52.0f*L/(u+13.0*L*(4.0*D65X/(D65X+15.0*D65Y+3.0*D65Z))))-1.0)/
-    3.0)-(-1.0/3.0));
-  *Z=(*X*(((52.0f*L/(u+13.0*L*(4.0*D65X/(D65X+15.0*D65Y+3.0*D65Z))))-1.0)/3.0))-
-    5.0*(*Y);
-}
-
-static inline void ConvertLuvToRGB(const double L,const double u,
-  const double v,double *red,double *green,double *blue)
-{
-  double
-    X,
-    Y,
-    Z;
-
-  ConvertLuvToXYZ(100.0*L,354.0*u-134.0,262.0*v-140.0,&X,&Y,&Z);
-  ConvertXYZToRGB(X,Y,Z,red,green,blue);
-}
-
-static void ConvertRGBToYDbDr(const double red,const double green,
-  const double blue,double *Y,double *Db,double *Dr)
-{
-  *Y=QuantumScale*(0.298839*red+0.586811*green+0.114350*blue);
-  *Db=QuantumScale*(-0.450*red-0.883*green+1.333*blue)+0.5;
-  *Dr=QuantumScale*(-1.333*red+1.116*green+0.217*blue)+0.5;
-}
-
-static void ConvertYDbDrToRGB(const double Y,const double Db,const double Dr,
-  double *red,double *green,double *blue)
-{
-  *red=QuantumRange*(Y+9.2303716147657e-05*(Db-0.5)-0.52591263066186533*
-    (Dr-0.5));
-  *green=QuantumRange*(Y-0.12913289889050927*(Db-0.5)+0.26789932820759876*
-    (Dr-0.5));
-  *blue=QuantumRange*(Y+0.66467905997895482*(Db-0.5)-7.9202543533108e-05*
-    (Dr-0.5));
-}
-
-static void ConvertRGBToYIQ(const double red,const double green,
-  const double blue,double *Y,double *I,double *Q)
-{
-  *Y=QuantumScale*(0.298839*red+0.586811*green+0.114350*blue);
-  *I=QuantumScale*(0.595716*red-0.274453*green-0.321263*blue)+0.5;
-  *Q=QuantumScale*(0.211456*red-0.522591*green+0.311135*blue)+0.5;
-}
-
-static void ConvertYIQToRGB(const double Y,const double I,const double Q,
-  double *red,double *green,double *blue)
-{
-  *red=QuantumRange*(Y+0.9562957197589482261*(I-0.5)+0.6210244164652610754*
-    (Q-0.5));
-  *green=QuantumRange*(Y-0.2721220993185104464*(I-0.5)-0.6473805968256950427*
-    (Q-0.5));
-  *blue=QuantumRange*(Y-1.1069890167364901945*(I-0.5)+1.7046149983646481374*
-    (Q-0.5));
-}
-
-static void ConvertRGBToYUV(const double red,const double green,
-  const double blue,double *Y,double *U,double *V)
-{
-  *Y=QuantumScale*(0.298839*red+0.586811*green+0.114350*blue);
-  *U=QuantumScale*((-0.147)*red-0.289*green+0.436*blue)+0.5;
-  *V=QuantumScale*(0.615*red-0.515*green-0.100*blue)+0.5;
-}
-
-static void ConvertYUVToRGB(const double Y,const double U,const double V,
-  double *red,double *green,double *blue)
-{
-  *red=QuantumRange*(Y-3.945707070708279e-05*(U-0.5)+1.1398279671717170825*
-    (V-0.5));
-  *green=QuantumRange*(Y-0.3946101641414141437*(U-0.5)-0.5805003156565656797*
-    (V-0.5));
-  *blue=QuantumRange*(Y+2.0319996843434342537*(U-0.5)-4.813762626262513e-04*
-    (V-0.5));
-}
 
 static MagickBooleanType ValidateHSIToRGB()
 {
@@ -597,9 +101,9 @@ static MagickBooleanType ValidateHSIToRGB()
 
   (void) FormatLocaleFile(stdout,"  HSIToRGB");
   ConvertHSIToRGB(111.244375/360.0,0.295985,0.658734,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -612,8 +116,8 @@ static MagickBooleanType ValidateRGBToHSI()
     s;
 
   (void) FormatLocaleFile(stdout,"  RGBToHSI");
-  ConvertRGBToHSI(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&h,&s,&i);
+  ConvertRGBToHSI(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&h,&s,&i);
   if ((fabs(h-111.244374/360.0) >= ReferenceEpsilon) ||
       (fabs(s-0.295985) >= ReferenceEpsilon) ||
       (fabs(i-0.658734) >= ReferenceEpsilon))
@@ -630,9 +134,9 @@ static MagickBooleanType ValidateHSLToRGB()
 
   (void) FormatLocaleFile(stdout,"  HSLToRGB");
   ConvertHSLToRGB(110.200859/360.0,0.882623,0.715163,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -645,8 +149,8 @@ static MagickBooleanType ValidateRGBToHSL()
     s;
 
   (void) FormatLocaleFile(stdout,"  RGBToHSL");
-  ConvertRGBToHSL(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&h,&s,&l);
+  ConvertRGBToHSL(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&h,&s,&l);
   if ((fabs(h-110.200859/360.0) >= ReferenceEpsilon) ||
       (fabs(s-0.882623) >= ReferenceEpsilon) ||
       (fabs(l-0.715163) >= ReferenceEpsilon))
@@ -663,9 +167,9 @@ static MagickBooleanType ValidateHSVToRGB()
 
   (void) FormatLocaleFile(stdout,"  HSVToRGB");
   ConvertHSVToRGB(110.200859/360.0,0.520200,0.966567,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -678,8 +182,8 @@ static MagickBooleanType ValidateRGBToHSV()
     v;
 
   (void) FormatLocaleFile(stdout,"  RGBToHSV");
-  ConvertRGBToHSV(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&h,&s,&v);
+  ConvertRGBToHSV(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&h,&s,&v);
   if ((fabs(h-110.200859/360.0) >= ReferenceEpsilon) ||
       (fabs(s-0.520200) >= ReferenceEpsilon) ||
       (fabs(v-0.966567) >= ReferenceEpsilon))
@@ -695,8 +199,8 @@ static MagickBooleanType ValidateRGBToJPEGYCbCr()
     Y;
 
   (void) FormatLocaleFile(stdout,"  RGBToJPEGYCbCr");
-  ConvertRGBToYCbCr(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&Y,&Cb,&Cr);
+  ConvertRGBToYCbCr(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&Y,&Cb,&Cr);
   if ((fabs(Y-0.783460) >= ReferenceEpsilon) ||
       (fabs(Cb-0.319581) >= ReferenceEpsilon) ||
       (fabs(Cr-0.330539) >= ReferenceEpsilon))
@@ -713,9 +217,9 @@ static MagickBooleanType ValidateJPEGYCbCrToRGB()
 
   (void) FormatLocaleFile(stdout,"  JPEGYCbCrToRGB");
   ConvertYCbCrToRGB(0.783460,0.319581,0.330539,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -729,10 +233,10 @@ static MagickBooleanType ValidateLabToRGB()
 
   (void) FormatLocaleFile(stdout,"  LabToRGB");
   ConvertLabToRGB(88.456154/100.0,-54.671483/255+0.5,51.662818/255.0+0.5,
-    &r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+    D65Illuminant,&r,&g,&b);
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -745,11 +249,11 @@ static MagickBooleanType ValidateRGBToLab()
     L;
 
   (void) FormatLocaleFile(stdout,"  RGBToLab");
-  ConvertRGBToLab(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&L,&a,&b);
+  ConvertRGBToLab(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,D65Illuminant,&L,&a,&b);
   if ((fabs(L-(88.456154/100.0)) >= ReferenceEpsilon) ||
       (fabs(a-(-54.671483/255.0+0.5)) >= ReferenceEpsilon) ||
-      (fabs(b-(51.662818/255.0+0.5)) >= ReferenceEpsilon))
+      (fabs((double) b-(51.662818/255.0+0.5)) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -763,10 +267,10 @@ static MagickBooleanType ValidateLchToRGB()
 
   (void) FormatLocaleFile(stdout,"  LchToRGB");
   ConvertLCHabToRGB(88.456154/100.0,75.219797/255.0+0.5,136.620717/360.0,
-    &r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+    D65Illuminant,&r,&g,&b);
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -779,8 +283,8 @@ static MagickBooleanType ValidateRGBToLch()
     L;
 
   (void) FormatLocaleFile(stdout,"  RGBToLch");
-  ConvertRGBToLCHab(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&L,&c,&h);
+  ConvertRGBToLCHab(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,D65Illuminant,&L,&c,&h);
   if ((fabs(L-88.456154/100.0) >= ReferenceEpsilon) ||
       (fabs(c-(75.219797/255.0+0.5)) >= ReferenceEpsilon) ||
       (fabs(h-(136.620717/255.0+0.5)) >= ReferenceEpsilon))
@@ -796,8 +300,8 @@ static MagickBooleanType ValidateRGBToLMS()
     S;
 
   (void) FormatLocaleFile(stdout,"  RGBToLMS");
-  ConvertRGBToLMS(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&L,&M,&S);
+  ConvertRGBToLMS(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&L,&M,&S);
   if ((fabs(L-0.611749) >= ReferenceEpsilon) ||
       (fabs(M-0.910088) >= ReferenceEpsilon) ||
       (fabs(S-0.294880) >= ReferenceEpsilon))
@@ -814,9 +318,9 @@ static MagickBooleanType ValidateLMSToRGB()
 
   (void) FormatLocaleFile(stdout,"  LMSToRGB");
   ConvertLMSToRGB(0.611749,0.910088,0.294880,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -829,8 +333,8 @@ static MagickBooleanType ValidateRGBToLuv()
     v;
 
   (void) FormatLocaleFile(stdout,"  RGBToLuv");
-  ConvertRGBToLuv(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&l,&u,&v);
+  ConvertRGBToLuv(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,D65Illuminant,&l,&u,&v);
   if ((fabs(l-88.456154/262.0) >= ReferenceEpsilon) ||
       (fabs(u-(-51.330414+134.0)/354.0) >= ReferenceEpsilon) ||
       (fabs(v-(76.405526+140.0)/262.0) >= ReferenceEpsilon))
@@ -847,10 +351,10 @@ static MagickBooleanType ValidateLuvToRGB()
 
   (void) FormatLocaleFile(stdout,"  LuvToRGB");
   ConvertLuvToRGB(88.456154/100.0,(-51.330414+134.0)/354.0,
-    (76.405526+140.0)/262.0,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+    (76.405526+140.0)/262.0,D65Illuminant,&r,&g,&b);
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -863,8 +367,8 @@ static MagickBooleanType ValidateRGBToXYZ()
     z;
 
   (void) FormatLocaleFile(stdout,"  RGBToXYZ");
-  ConvertRGBToXYZ(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&x,&y,&z);
+  ConvertRGBToXYZ(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&x,&y,&z);
   if ((fabs(x-0.470646) >= ReferenceEpsilon) ||
       (fabs(y-0.730178) >= ReferenceEpsilon) ||
       (fabs(z-0.288324) >= ReferenceEpsilon))
@@ -881,9 +385,9 @@ static MagickBooleanType ValidateXYZToRGB()
 
   (void) FormatLocaleFile(stdout,"  XYZToRGB");
   ConvertXYZToRGB(0.470646,0.730178,0.288324,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -897,9 +401,9 @@ static MagickBooleanType ValidateYDbDrToRGB()
 
   (void) FormatLocaleFile(stdout,"  YDbDrToRGB");
   ConvertYDbDrToRGB(0.783460,-0.480932+0.5,0.451670+0.5,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -912,8 +416,8 @@ static MagickBooleanType ValidateRGBToYDbDr()
     Y;
 
   (void) FormatLocaleFile(stdout,"  RGBToYDbDr");
-  ConvertRGBToYDbDr(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&Y,&Db,&Dr);
+  ConvertRGBToYDbDr(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&Y,&Db,&Dr);
   if ((fabs(Y-0.783460) >= ReferenceEpsilon) ||
       (fabs(Db-(-0.480932)) >= ReferenceEpsilon) ||
       (fabs(Dr-0.451670) >= ReferenceEpsilon))
@@ -929,8 +433,8 @@ static MagickBooleanType ValidateRGBToYIQ()
     y;
 
   (void) FormatLocaleFile(stdout,"  RGBToYIQ");
-  ConvertRGBToYIQ(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&y,&i,&q);
+  ConvertRGBToYIQ(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&y,&i,&q);
   if ((fabs(y-0.783460) >= ReferenceEpsilon) ||
       (fabs(i-(-0.089078)) >= ReferenceEpsilon) ||
       (fabs(q-(-0.245399)) >= ReferenceEpsilon))
@@ -947,9 +451,9 @@ static MagickBooleanType ValidateYIQToRGB()
 
   (void) FormatLocaleFile(stdout,"  YIQToRGB");
   ConvertYIQToRGB(0.783460,-0.089078+0.5,-0.245399+0.5,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -962,8 +466,8 @@ static MagickBooleanType ValidateRGBToYPbPr()
     y;
 
   (void) FormatLocaleFile(stdout,"  RGBToYPbPr");
-  ConvertRGBToYPbPr(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&y,&Pb,&Pr);
+  ConvertRGBToYPbPr(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&y,&Pb,&Pr);
   if ((fabs(y-0.783460) >= ReferenceEpsilon) ||
       (fabs(Pb-(-0.180419)) >= ReferenceEpsilon) ||
       (fabs(Pr-(-0.169461)) >= ReferenceEpsilon))
@@ -980,9 +484,9 @@ static MagickBooleanType ValidateYPbPrToRGB()
 
   (void) FormatLocaleFile(stdout,"  YPbPrToRGB");
   ConvertYPbPrToRGB(0.783460,-0.180419+0.5,-0.169461+0.5,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -995,8 +499,8 @@ static MagickBooleanType ValidateRGBToYUV()
     Y;
 
   (void) FormatLocaleFile(stdout,"  RGBToYUV");
-  ConvertRGBToYUV(0.545877*QuantumRange,0.966567*QuantumRange,
-    0.463759*QuantumRange,&Y,&U,&V);
+  ConvertRGBToYUV(0.545877*(double) QuantumRange,0.966567*(double)
+    QuantumRange,0.463759*(double) QuantumRange,&Y,&U,&V);
   if ((fabs(Y-0.783460) >= ReferenceEpsilon) ||
       (fabs(U-(-0.157383)) >= ReferenceEpsilon) ||
       (fabs(V-(-0.208443)) >= ReferenceEpsilon))
@@ -1013,20 +517,20 @@ static MagickBooleanType ValidateYUVToRGB()
 
   (void) FormatLocaleFile(stdout,"  YUVToRGB");
   ConvertYUVToRGB(0.783460,-0.157383+0.5,-0.208443+0.5,&r,&g,&b);
-  if ((fabs(r-0.545877*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(g-0.966567*QuantumRange) >= ReferenceEpsilon) ||
-      (fabs(b-0.463759*QuantumRange) >= ReferenceEpsilon))
+  if ((fabs((double) r-0.545877*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) g-0.966567*(double) QuantumRange) >= ReferenceEpsilon) ||
+      (fabs((double) b-0.463759*(double) QuantumRange) >= ReferenceEpsilon))
     return(MagickFalse);
   return(MagickTrue);
 }
 
-static size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
-  ExceptionInfo *exception)
+static size_t ValidateColorspaces(size_t *fails,ExceptionInfo *exception)
 {
   MagickBooleanType
     status;
 
   size_t
+    fail,
     test;
 
   /*
@@ -1052,6 +556,7 @@ static size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
      Y'CbCr       187.577791,  87.586330,  90.040886
   */
   (void) FormatLocaleFile(stdout,"validate colorspaces:\n");
+  fail=0;
   for (test=0; test < 26; test++)
   {
     CatchException(exception);
@@ -1090,14 +595,15 @@ static size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1119,7 +625,7 @@ static size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
 %
 %      size_t ValidateCompareCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1135,7 +641,7 @@ static size_t ValidateColorspaces(ImageInfo *image_info,size_t *fail,
 %
 */
 static size_t ValidateCompareCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1148,13 +654,15 @@ static size_t ValidateCompareCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate compare command line program:\n");
   for (i=0; compare_options[i] != (char *) NULL; i++)
@@ -1171,7 +679,7 @@ static size_t ValidateCompareCommand(ImageInfo *image_info,
           GetMagickModule());
         (void) LogMagickEvent(ExceptionEvent,GetMagickModule(),"%s",
           exception->reason);
-        (*fail)++;
+        fail++;
         continue;
       }
     status=CompareImagesCommand(image_info,number_arguments,arguments,
@@ -1185,14 +693,15 @@ static size_t ValidateCompareCommand(ImageInfo *image_info,
           GetMagickModule());
         (void) LogMagickEvent(ExceptionEvent,GetMagickModule(),"%s",
           exception->reason);
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1214,7 +723,7 @@ static size_t ValidateCompareCommand(ImageInfo *image_info,
 %
 %      size_t ValidateCompositeCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1230,7 +739,7 @@ static size_t ValidateCompareCommand(ImageInfo *image_info,
 %
 */
 static size_t ValidateCompositeCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1243,13 +752,15 @@ static size_t ValidateCompositeCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate composite command line program:\n");
   for (i=0; composite_options[i] != (char *) NULL; i++)
@@ -1265,7 +776,7 @@ static size_t ValidateCompositeCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     status=CompositeImageCommand(image_info,number_arguments,arguments,
@@ -1277,14 +788,15 @@ static size_t ValidateCompositeCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1306,7 +818,7 @@ static size_t ValidateCompositeCommand(ImageInfo *image_info,
 %
 %      size_t ValidateConvertCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1322,7 +834,7 @@ static size_t ValidateCompositeCommand(ImageInfo *image_info,
 %
 */
 static size_t ValidateConvertCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1335,13 +847,15 @@ static size_t ValidateConvertCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate convert command line program:\n");
   for (i=0; convert_options[i] != (char *) NULL; i++)
@@ -1356,7 +870,7 @@ static size_t ValidateConvertCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     status=ConvertImageCommand(image_info,number_arguments,arguments,
@@ -1368,14 +882,15 @@ static size_t ValidateConvertCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1397,7 +912,7 @@ static size_t ValidateConvertCommand(ImageInfo *image_info,
 %
 %      size_t ValidateIdentifyCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1413,7 +928,7 @@ static size_t ValidateConvertCommand(ImageInfo *image_info,
 %
 */
 static size_t ValidateIdentifyCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1426,14 +941,16 @@ static size_t ValidateIdentifyCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
   (void) output_filename;
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate identify command line program:\n");
   for (i=0; identify_options[i] != (char *) NULL; i++)
@@ -1448,7 +965,7 @@ static size_t ValidateIdentifyCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     status=IdentifyImageCommand(image_info,number_arguments,arguments,
@@ -1460,14 +977,15 @@ static size_t ValidateIdentifyCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
           GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1489,7 +1007,7 @@ static size_t ValidateIdentifyCommand(ImageInfo *image_info,
 %
 %      size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1512,7 +1030,7 @@ static size_t ValidateIdentifyCommand(ImageInfo *image_info,
 #undef MagickCountTempFiles
 
 static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1538,17 +1056,19 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     length,
     test;
 
   unsigned char
     *blob;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate image formats in memory:\n");
 
@@ -1588,7 +1108,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1608,7 +1128,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1618,7 +1138,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1632,7 +1152,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1649,7 +1169,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       ping_image=DestroyImage(ping_image);
@@ -1665,7 +1185,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1688,7 +1208,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1704,7 +1224,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           continue;
         }
@@ -1724,7 +1244,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1746,7 +1266,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       difference_image=DestroyImage(difference_image);
@@ -1754,7 +1274,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
         {
           (void) FormatLocaleFile(stdout,"... fail (with distortion %g).\n",
             QuantumScale*distortion);
-          (*fail)++;
+          fail++;
           continue;
         }
 #ifdef MagickCountTempFiles
@@ -1773,7 +1293,8 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -1795,7 +1316,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
 %
 %      size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -1811,7 +1332,7 @@ static size_t ValidateImageFormatsInMemory(ImageInfo *image_info,
 %
 */
 static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -1832,13 +1353,15 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate image formats on disk:\n");
   for (i=0; reference_formats[i].magick != (char *) NULL; i++)
@@ -1870,7 +1393,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1890,7 +1413,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1900,7 +1423,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1914,7 +1437,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           if (exception->reason != (char *) NULL)
             (void) FormatLocaleFile(stdout,"    reason:%s\n",exception->reason);
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1929,7 +1452,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       /*
@@ -1945,7 +1468,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1961,7 +1484,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -1981,7 +1504,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       difference_image=DestroyImage(difference_image);
@@ -1989,7 +1512,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
         {
           (void) FormatLocaleFile(stdout,"... fail (with distortion %g).\n",
             QuantumScale*distortion);
-          (*fail)++;
+          fail++;
           continue;
         }
       (void) FormatLocaleFile(stdout,"... pass.\n");
@@ -1997,7 +1520,8 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -2019,7 +1543,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
 %
 %      size_t ValidateImportExportPixels(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -2035,7 +1559,7 @@ static size_t ValidateImageFormatsOnDisk(ImageInfo *image_info,
 %
 */
 static size_t ValidateImportExportPixels(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   double
@@ -2049,7 +1573,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -2060,9 +1584,11 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
     *pixels;
 
   size_t
+    fail,
     test;
 
   (void) output_filename;
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,
     "validate the import and export of image pixels:\n");
@@ -2086,7 +1612,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       if (LocaleNCompare(reference_map[i],"cmy",3) == 0)
@@ -2094,13 +1620,13 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
       length=strlen(reference_map[i])*reference_image->columns*
         reference_image->rows*reference_storage[j].quantum;
       pixels=(unsigned char *) AcquireQuantumMemory(length,sizeof(*pixels));
-      if (pixels == (unsigned char *) NULL ||
+      if ((pixels == (unsigned char *) NULL) ||
           (exception->severity >= ErrorException))
         {
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -2113,7 +1639,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           pixels=(unsigned char *) RelinquishMagickMemory(pixels);
           reference_image=DestroyImage(reference_image);
           continue;
@@ -2127,7 +1653,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
            pixels=(unsigned char *) RelinquishMagickMemory(pixels);
           reference_image=DestroyImage(reference_image);
           continue;
@@ -2150,7 +1676,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           reference_image=DestroyImage(reference_image);
           continue;
         }
@@ -2167,7 +1693,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
           (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
           CatchException(exception);
-          (*fail)++;
+          fail++;
           continue;
         }
       difference_image=DestroyImage(difference_image);
@@ -2175,7 +1701,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
         {
           (void) FormatLocaleFile(stdout,"... fail (with distortion %g).\n",
             QuantumScale*distortion);
-          (*fail)++;
+          fail++;
           continue;
         }
       (void) FormatLocaleFile(stdout,"... pass.\n");
@@ -2183,7 +1709,102 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
+  return(test);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   V a l i d a t e M a g i c k C o m m a n d                                 %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  ValidateMagickCommand() validates the ImageMagick magick command line
+%  program and returns the number of validation tests that passed and failed.
+%
+%  The format of the ValidateMagickCommand method is:
+%
+%      size_t ValidateMagickCommand(ImageInfo *image_info,
+%        const char *reference_filename,const char *output_filename,
+%        size_t *fails,ExceptionInfo *exception)
+%
+%  A description of each parameter follows:
+%
+%    o image_info: the image info.
+%
+%    o reference_filename: the reference image filename.
+%
+%    o output_filename: the output image filename.
+%
+%    o fail: return the number of validation tests that pass.
+%
+%    o exception: return any errors or warnings in this structure.
+%
+*/
+static size_t ValidateMagickCommand(ImageInfo *image_info,
+  const char *reference_filename,const char *output_filename,size_t *fails,
+  ExceptionInfo *exception)
+{
+  char
+    **arguments,
+    command[MagickPathExtent];
+
+  int
+    number_arguments;
+
+  MagickBooleanType
+    status;
+
+  ssize_t
+    i,
+    j;
+
+  size_t
+    fail,
+    test;
+
+  fail=0;
+  test=0;
+  (void) FormatLocaleFile(stdout,"validate magick command line program:\n");
+  for (i=0; convert_options[i] != (char *) NULL; i++)
+  {
+    CatchException(exception);
+    (void) FormatLocaleFile(stdout,"  test %.20g: %s",(double) test++,
+      convert_options[i]);
+    (void) FormatLocaleString(command,MagickPathExtent,"%s %s %s %s",
+      reference_filename,convert_options[i],reference_filename,output_filename);
+    arguments=StringToArgv(command,&number_arguments);
+    if (arguments == (char **) NULL)
+      {
+        (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
+          GetMagickModule());
+        fail++;
+        continue;
+      }
+    status=MagickImageCommand(image_info,number_arguments,arguments,
+      (char **) NULL,exception);
+    for (j=0; j < (ssize_t) number_arguments; j++)
+      arguments[j]=DestroyString(arguments[j]);
+    arguments=(char **) RelinquishMagickMemory(arguments);
+    if (status == MagickFalse)
+      {
+        (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
+          GetMagickModule());
+        fail++;
+        continue;
+      }
+    (void) FormatLocaleFile(stdout,"... pass.\n");
+  }
+  (void) FormatLocaleFile(stdout,
+    "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -2205,7 +1826,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
 %
 %      size_t ValidateMontageCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -2221,7 +1842,7 @@ static size_t ValidateImportExportPixels(ImageInfo *image_info,
 %
 */
 static size_t ValidateMontageCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -2234,13 +1855,15 @@ static size_t ValidateMontageCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate montage command line program:\n");
   for (i=0; montage_options[i] != (char *) NULL; i++)
@@ -2256,7 +1879,7 @@ static size_t ValidateMontageCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     status=MontageImageCommand(image_info,number_arguments,arguments,
@@ -2268,14 +1891,15 @@ static size_t ValidateMontageCommand(ImageInfo *image_info,
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
             GetMagickModule());
-        (*fail)++;
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -2297,7 +1921,7 @@ static size_t ValidateMontageCommand(ImageInfo *image_info,
 %
 %      size_t ValidateStreamCommand(ImageInfo *image_info,
 %        const char *reference_filename,const char *output_filename,
-%        size_t *fail,ExceptionInfo *exception)
+%        size_t *fails,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -2313,7 +1937,7 @@ static size_t ValidateMontageCommand(ImageInfo *image_info,
 %
 */
 static size_t ValidateStreamCommand(ImageInfo *image_info,
-  const char *reference_filename,const char *output_filename,size_t *fail,
+  const char *reference_filename,const char *output_filename,size_t *fails,
   ExceptionInfo *exception)
 {
   char
@@ -2326,13 +1950,15 @@ static size_t ValidateStreamCommand(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
   size_t
+    fail,
     test;
 
+  fail=0;
   test=0;
   (void) FormatLocaleFile(stdout,"validate stream command line program:\n");
   for (i=0; stream_options[i] != (char *) NULL; i++)
@@ -2346,8 +1972,8 @@ static size_t ValidateStreamCommand(ImageInfo *image_info,
     if (arguments == (char **) NULL)
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
-            GetMagickModule());
-        (*fail)++;
+          GetMagickModule());
+        fail++;
         continue;
       }
     status=StreamImageCommand(image_info,number_arguments,arguments,
@@ -2358,15 +1984,16 @@ static size_t ValidateStreamCommand(ImageInfo *image_info,
     if (status == MagickFalse)
       {
         (void) FormatLocaleFile(stdout,"... fail @ %s/%s/%lu.\n",
-            GetMagickModule());
-        (*fail)++;
+          GetMagickModule());
+        fail++;
         continue;
       }
     (void) FormatLocaleFile(stdout,"... pass.\n");
   }
   (void) FormatLocaleFile(stdout,
     "  summary: %.20g subtests; %.20g passed; %.20g failed.\n",(double) test,
-    (double) (test-(*fail)),(double) *fail);
+    (double) (test-fail),(double) fail);
+  *fails+=fail;
   return(test);
 }
 
@@ -2461,7 +2088,7 @@ int main(int argc,char **argv)
     memory_resource,
     map_resource;
 
-  register ssize_t
+  ssize_t
     i;
 
   TimerInfo
@@ -2614,7 +2241,7 @@ int main(int argc,char **argv)
             "ImageMagick Validation Suite (%s)\n\n",CommandOptionToMnemonic(
             MagickValidateOptions,(ssize_t) type));
           if ((type & ColorspaceValidate) != 0)
-            tests+=ValidateColorspaces(image_info,&fail,exception);
+            tests+=ValidateColorspaces(&fail,exception);
           if ((type & CompareValidate) != 0)
             tests+=ValidateCompareCommand(image_info,reference_filename,
               output_filename,&fail,exception);
@@ -2663,6 +2290,9 @@ int main(int argc,char **argv)
           if ((type & ImportExportValidate) != 0)
             tests+=ValidateImportExportPixels(image_info,reference_filename,
               output_filename,&fail,exception);
+          if ((type & MagickValidate) != 0)
+            tests+=ValidateMagickCommand(image_info,reference_filename,
+              output_filename,&fail,exception);
           if ((type & MontageValidate) != 0)
             tests+=ValidateMontageCommand(image_info,reference_filename,
               output_filename,&fail,exception);
@@ -2673,6 +2303,8 @@ int main(int argc,char **argv)
             "validation suite: %.20g tests; %.20g passed; %.20g failed.\n",
             (double) tests,(double) (tests-fail),(double) fail);
         }
+      (void) RelinquishUniqueFileResource(output_filename);
+      (void) ConcatenateMagickString(output_filename,"-0",MagickPathExtent);
       (void) RelinquishUniqueFileResource(output_filename);
       (void) RelinquishUniqueFileResource(reference_filename);
     }

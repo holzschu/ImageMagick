@@ -17,7 +17,7 @@
 %                                  July 1992                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -111,8 +111,8 @@
   X defines.
 */
 #define XBlueGamma(color) ClampToQuantum(blue_gamma == 1.0 ? (double) \
-  (color) : ((pow(((double) QuantumScale*(color)),1.0/(double) blue_gamma)* \
-  QuantumRange)))
+  (color) : ((pow((QuantumScale*(double) (color)),1.0* \
+  PerceptibleReciprocal((double) blue_gamma))*(double) QuantumRange)))
 #define XGammaPacket(map,color)  (size_t) (map->base_pixel+ \
   ((ScaleQuantumToShort(XRedGamma((color)->red))*map->red_max/65535L)* \
     map->red_mult)+ \
@@ -128,11 +128,11 @@
   ((ScaleQuantumToShort(XBlueGamma(GetPixelBlue(image,color)))*map->blue_max/65535L)* \
     map->blue_mult))
 #define XGreenGamma(color) ClampToQuantum(green_gamma == 1.0 ? (double) \
-  (color) : ((pow(((double) QuantumScale*(color)),1.0/(double) green_gamma)* \
-  QuantumRange)))
+  (color) : ((pow((QuantumScale*(double) (color)),1.0* \
+  PerceptibleReciprocal((double) green_gamma))*(double) QuantumRange)))
 #define XRedGamma(color) ClampToQuantum(red_gamma == 1.0 ? (double) \
-  (color) : ((pow(((double) QuantumScale*(color)),1.0/(double) red_gamma)* \
-  QuantumRange)))
+  (color) : ((pow((QuantumScale*(double) (color)),1.0* \
+  PerceptibleReciprocal((double) red_gamma))*(double) QuantumRange)))
 #define XStandardPixel(map,color)  (size_t) (map->base_pixel+ \
   (((color)->red*map->red_max/65535L)*map->red_mult)+ \
   (((color)->green*map->green_max/65535L)*map->green_mult)+ \
@@ -196,7 +196,7 @@ typedef struct _DiversityPacket
 } DiversityPacket;
 
 /*
-  Constant declaractions.
+  Constant declarations.
 */
 static MagickBooleanType
   xerror_alert = MagickFalse;
@@ -246,7 +246,7 @@ static Window
 */
 MagickExport void DestroyXResources(void)
 {
-  register int
+  int
     i;
 
   unsigned int
@@ -431,7 +431,6 @@ MagickExport void DestroyXResources(void)
       XFree(windows->icon_visual);
       windows->icon_visual=(XVisualInfo *) NULL;
     }
-  (void) XSetWindows((XWindows *) NULL);
 }
 
 /*
@@ -507,11 +506,12 @@ MagickPrivate MagickBooleanType XAnnotateImage(Display *display,
   /*
     Initialize annotated image.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(pixel != (XPixelInfo *) NULL);
   assert(annotate_info != (XAnnotateInfo *) NULL);
   assert(image != (Image *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   /*
     Initialize annotated pixmap.
   */
@@ -569,10 +569,10 @@ MagickPrivate MagickBooleanType XAnnotateImage(Display *display,
   annotate_view=AcquireAuthenticCacheView(annotate_image,exception);
   for (y=0; y < (int) annotate_image->rows; y++)
   {
-    register int
+    int
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=GetCacheViewAuthenticPixels(annotate_view,0,(ssize_t) y,
@@ -611,7 +611,7 @@ MagickPrivate MagickBooleanType XAnnotateImage(Display *display,
           if (annotate_info->stencil == BackgroundStencil)
             SetPixelAlpha(annotate_image,TransparentAlpha,q);
         }
-      q+=GetPixelChannels(annotate_image);
+      q+=(ptrdiff_t) GetPixelChannels(annotate_image);
     }
     if (SyncCacheViewAuthenticPixels(annotate_view,exception) == MagickFalse)
       break;
@@ -747,11 +747,11 @@ static char **FontToList(char *font)
   char
     **fontlist;
 
-  register char
+  char
     *p,
     *q;
 
-  register int
+  int
     i;
 
   unsigned int
@@ -820,7 +820,7 @@ MagickPrivate XFontStruct *XBestFont(Display *display,
   char
     *font_name;
 
-  register const char
+  const char
     **p;
 
   XFontStruct
@@ -835,7 +835,7 @@ MagickPrivate XFontStruct *XBestFont(Display *display,
       char
         **fontlist;
 
-      register int
+      int
         i;
 
       /*
@@ -926,10 +926,11 @@ MagickPrivate void XBestIconSize(Display *display,XWindowInfo *window,
   /*
     Determine if the window manager has specified preferred icon sizes.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (XWindowInfo *) NULL);
   assert(image != (Image *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   window->width=MaxIconSize;
   window->height=MaxIconSize;
   icon_size=(XIconSize *) NULL;
@@ -976,14 +977,14 @@ MagickPrivate void XBestIconSize(Display *display,XWindowInfo *window,
   {
     if (icon_width >= (unsigned int) (scale_factor*width+0.5))
       break;
-    icon_width+=icon_size->width_inc;
+    icon_width+=(unsigned int) icon_size->width_inc;
   }
   icon_height=(unsigned int) icon_size->min_height;
   while ((int) icon_height < icon_size->max_height)
   {
     if (icon_height >= (unsigned int) (scale_factor*height+0.5))
       break;
-    icon_height+=icon_size->height_inc;
+    icon_height+=(unsigned int) icon_size->height_inc;
   }
   (void) XFree((void *) icon_size);
   window->width=icon_width;
@@ -1040,10 +1041,10 @@ MagickPrivate void XBestPixel(Display *display,const Colormap colormap,
   double
     min_distance;
 
-  register double
+  double
     distance;
 
-  register int
+  int
     i,
     j;
 
@@ -1053,9 +1054,10 @@ MagickPrivate void XBestPixel(Display *display,const Colormap colormap,
   /*
     Find closest representation for the requested RGB color.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(color != (XColor *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   status=XAllocColor(display,colormap,color);
   if (status != False)
     return;
@@ -1165,7 +1167,7 @@ MagickPrivate XVisualInfo *XBestVisualInfo(Display *display,
   int
     visual_mask;
 
-  register int
+  int
     i;
 
   size_t
@@ -1184,10 +1186,11 @@ MagickPrivate XVisualInfo *XBestVisualInfo(Display *display,
   /*
     Restrict visual search by screen number.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   map_type=resource_info->map_type;
   visual_type=resource_info->visual_type;
   visual_mask=VisualScreenMask;
@@ -1248,7 +1251,7 @@ MagickPrivate XVisualInfo *XBestVisualInfo(Display *display,
                     if (isdigit((int) ((unsigned char) *visual_type)) != 0)
                       {
                         visual_mask|=VisualIDMask;
-                        visual_template.visualid=
+                        visual_template.visualid=(size_t)
                           strtol(visual_type,(char **) NULL,0);
                       }
                     else
@@ -1458,8 +1461,9 @@ MagickPrivate XVisualInfo *XBestVisualInfo(Display *display,
 MagickPrivate int XCheckDefineCursor(Display *display,Window window,
   Cursor cursor)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (window == XRootWindow(display,XDefaultScreen(display)))
     return(0);
   return(XDefineCursor(display,window,cursor));
@@ -1477,7 +1481,7 @@ MagickPrivate int XCheckDefineCursor(Display *display,Window window,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  XCheckRefreshWindows() checks the X server for exposure events for a
-%  particular window and updates the areassociated with the exposure event.
+%  particular window and updates the are associated with the exposure event.
 %
 %  The format of the XCheckRefreshWindows method is:
 %
@@ -1499,9 +1503,10 @@ MagickPrivate void XCheckRefreshWindows(Display *display,XWindows *windows)
   XEvent
     event;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(windows != (XWindows *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   XDelay(display,SuspendTime);
   id=windows->command.id;
   while (XCheckTypedWindowEvent(display,id,Expose,&event) != MagickFalse)
@@ -1621,8 +1626,9 @@ static Window XClientWindow(Display *display,Window target_window)
   Window
     client_window;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   state=XInternAtom(display,"WM_STATE",MagickTrue);
   if (state == (Atom) NULL)
     return(target_window);
@@ -1752,16 +1758,17 @@ MagickPrivate void XConstrainWindowPosition(Display *display,
   int
     limit;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window_info != (XWindowInfo *) NULL);
-  limit=XDisplayWidth(display,window_info->screen)-window_info->width;
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
+  limit=XDisplayWidth(display,window_info->screen)-(int) window_info->width;
   if (window_info->x < 0)
     window_info->x=0;
   else
     if (window_info->x > (int) limit)
       window_info->x=(int) limit;
-  limit=XDisplayHeight(display,window_info->screen)-window_info->height;
+  limit=XDisplayHeight(display,window_info->screen)-(int) window_info->height;
   if (window_info->y < 0)
     window_info->y=0;
   else
@@ -1840,6 +1847,7 @@ MagickExport void XDestroyResourceInfo(XResourceInfo *resource_info)
   if (resource_info->name != (char *) NULL)
     resource_info->name=DestroyString(resource_info->name);
   (void) memset(resource_info,0,sizeof(*resource_info));
+  (void) XSetWindows((XWindows *) NULL);
 }
 
 /*
@@ -1890,8 +1898,9 @@ MagickPrivate void XDestroyWindowColors(Display *display,Window window)
   /*
     If there are previous resources on the root window, destroy them.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   property=XInternAtom(display,"_XSETROOT_ID",MagickFalse);
   if (property == (Atom) NULL)
     {
@@ -1962,7 +1971,7 @@ MagickPrivate void XDisplayImageInfo(Display *display,
   int
     unique_file;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1981,7 +1990,7 @@ MagickPrivate void XDisplayImageInfo(Display *display,
   assert(resource_info != (XResourceInfo *) NULL);
   assert(windows != (XWindows *) NULL);
   assert(image != (Image *) NULL);
-  if (image->debug)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   file=(FILE *) NULL;
   unique_file=AcquireUniqueFileResource(filename);
@@ -2038,7 +2047,7 @@ MagickPrivate void XDisplayImageInfo(Display *display,
   for (levels=0; undo_image != (Image *) NULL; levels++)
   {
     number_pixels=undo_image->list->columns*undo_image->list->rows;
-    bytes+=number_pixels*sizeof(PixelInfo);
+    bytes+=(ssize_t) (number_pixels*sizeof(PixelInfo));
     undo_image=GetPreviousImageInList(undo_image);
   }
   (void) FormatLocaleFile(file,"Undo Edit Cache\n  levels: %u\n",levels);
@@ -2132,34 +2141,32 @@ static void XDitherImage(Image *image,XImage *ximage,ExceptionInfo *exception)
   CacheView
     *image_view;
 
+  char
+    *q;
+
+  const Quantum
+    *p;
+
   int
+    i,
+    j,
     value,
+    x,
     y;
 
   PixelInfo
     color;
 
-  register char
-    *q;
-
-  register const Quantum
-    *p;
-
-  register int
-    i,
-    j,
-    x;
-
-  unsigned int
-    scanline_pad;
-
-  register size_t
+  size_t
     pixel;
 
   unsigned char
     *blue_map[2][16],
     *green_map[2][16],
     *red_map[2][16];
+
+  unsigned int
+    scanline_pad;
 
   /*
     Allocate and initialize dither maps.
@@ -2196,15 +2203,15 @@ static void XDitherImage(Image *image,XImage *ximage,ExceptionInfo *exception)
         value=x-32;
         if (x < 112)
           value=x/2+24;
-        value+=((size_t) dither_blue[i][j] << 1);
+        value+=(int) (dither_blue[i][j] << 1);
         blue_map[i][j][x]=(unsigned char)
           ((value < 0) ? 0 : (value > 255) ? 255 : value);
       }
   /*
     Dither image.
   */
-  scanline_pad=(unsigned int) (ximage->bytes_per_line-
-    ((size_t) (ximage->width*ximage->bits_per_pixel) >> 3));
+  scanline_pad=(unsigned int) (ximage->bytes_per_line-(int)
+    ((ximage->width*ximage->bits_per_pixel) >> 3));
   i=0;
   j=0;
   q=ximage->data;
@@ -2227,12 +2234,12 @@ static void XDitherImage(Image *image,XImage *ximage,ExceptionInfo *exception)
         (((size_t) color.green & 0xe0) >> 3) |
         (((size_t) color.blue & 0xc0) >> 6));
       *q++=(char) pixel;
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
       j++;
       if (j == 16)
         j=0;
     }
-    q+=scanline_pad;
+    q+=(ptrdiff_t) scanline_pad;
     i++;
     if (i == 2)
       i=0;
@@ -2326,7 +2333,7 @@ MagickPrivate MagickBooleanType XDrawImage(Display *display,
   assert(pixel != (XPixelInfo *) NULL);
   assert(draw_info != (XDrawInfo *) NULL);
   assert(image != (Image *) NULL);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   /*
     Initialize drawd pixmap.
@@ -2468,10 +2475,10 @@ MagickPrivate MagickBooleanType XDrawImage(Display *display,
   draw_view=AcquireAuthenticCacheView(draw_image,exception);
   for (y=0; y < (int) draw_image->rows; y++)
   {
-    register int
+    int
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=QueueCacheViewAuthenticPixels(draw_view,0,(ssize_t) y,draw_image->columns,
@@ -2503,7 +2510,7 @@ MagickPrivate MagickBooleanType XDrawImage(Display *display,
           SetPixelAlpha(draw_image,(Quantum) (draw_info->stencil ==
             OpaqueStencil ? OpaqueAlpha : TransparentAlpha),q);
         }
-      q+=GetPixelChannels(draw_image);
+      q+=(ptrdiff_t) GetPixelChannels(draw_image);
     }
     if (SyncCacheViewAuthenticPixels(draw_view,exception) == MagickFalse)
       break;
@@ -2594,10 +2601,10 @@ MagickPrivate MagickBooleanType XDrawImage(Display *display,
   draw_view=AcquireAuthenticCacheView(draw_image,exception);
   for (y=0; y < (int) draw_image->rows; y++)
   {
-    register int
+    int
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=GetCacheViewAuthenticPixels(draw_view,0,(ssize_t) y,draw_image->columns,1,
@@ -2608,7 +2615,7 @@ MagickPrivate MagickBooleanType XDrawImage(Display *display,
     {
       if (GetPixelAlpha(image,q) != TransparentAlpha)
         SetPixelAlpha(draw_image,OpaqueAlpha,q);
-      q+=GetPixelChannels(draw_image);
+      q+=(ptrdiff_t) GetPixelChannels(draw_image);
     }
     if (SyncCacheViewAuthenticPixels(draw_view,exception) == MagickFalse)
       break;
@@ -2664,9 +2671,10 @@ extern "C" {
 
 MagickExport int XError(Display *display,XErrorEvent *error)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(error != (XErrorEvent *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   xerror_alert=MagickTrue;
   switch (error->request_code)
   {
@@ -2741,9 +2749,10 @@ MagickPrivate void XFreeResources(Display *display,XVisualInfo *visual_info,
   XStandardColormap *map_info,XPixelInfo *pixel,XFontStruct *font_info,
   XResourceInfo *resource_info,XWindowInfo *window_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (window_info != (XWindowInfo *) NULL)
     {
       /*
@@ -2837,10 +2846,11 @@ MagickPrivate void XFreeStandardColormap(Display *display,
   /*
     Free colormap.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(visual_info != (XVisualInfo *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   (void) XFlush(display);
   if (map_info->colormap != (Colormap) NULL)
     {
@@ -2889,8 +2899,9 @@ MagickPrivate void XGetAnnotateInfo(XAnnotateInfo *annotate_info)
   /*
     Initialize annotate structure.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(annotate_info != (XAnnotateInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   annotate_info->x=0;
   annotate_info->y=0;
   annotate_info->width=0;
@@ -2940,9 +2951,10 @@ MagickPrivate void XGetMapInfo(const XVisualInfo *visual_info,
   /*
     Initialize map info.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(visual_info != (XVisualInfo *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   map_info->colormap=colormap;
   map_info->red_max=visual_info->red_mask;
   map_info->red_mult=(size_t) (map_info->red_max != 0 ? 1 : 0);
@@ -3032,7 +3044,7 @@ MagickPrivate void XGetPixelInfo(Display *display,
   Colormap
     colormap;
 
-  register ssize_t
+  ssize_t
     i;
 
   Status
@@ -3044,12 +3056,13 @@ MagickPrivate void XGetPixelInfo(Display *display,
   /*
     Initialize pixel info.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(visual_info != (XVisualInfo *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
   assert(pixel != (XPixelInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   pixel->colors=0;
   if (image != (Image *) NULL)
     if (image->storage_class == PseudoClass)
@@ -3199,13 +3212,14 @@ MagickPrivate void XGetPixelInfo(Display *display,
             Initialize map relative to display and image gamma.
           */
           flags=ParseGeometry(resource_info->display_gamma,&geometry_info);
-          red_gamma=geometry_info.rho;
-          green_gamma=geometry_info.sigma;
-          if ((flags & SigmaValue) == 0)
-            green_gamma=red_gamma;
-          blue_gamma=geometry_info.xi;
-          if ((flags & XiValue) == 0)
-            blue_gamma=red_gamma;
+          if ((flags & RhoValue) != 0)
+            red_gamma=geometry_info.rho;
+          green_gamma=red_gamma;
+          if ((flags & SigmaValue) != 0)
+            green_gamma=geometry_info.sigma;
+          blue_gamma=red_gamma;
+          if ((flags & XiValue) != 0)
+            blue_gamma=geometry_info.xi;
           red_gamma*=image->gamma;
           green_gamma*=image->gamma;
           blue_gamma*=image->gamma;
@@ -3218,7 +3232,7 @@ MagickPrivate void XGetPixelInfo(Display *display,
           for (i=0; i < (ssize_t) image->colors; i++)
             pixel->pixels[i]=XGammaPacket(map_info,image->colormap+i);
           for (i=0; i < MaxNumberPens; i++)
-            pixel->pixels[image->colors+i]=pixel->pen_colors[i].pixel;
+            pixel->pixels[image->colors+(size_t) i]=pixel->pen_colors[i].pixel;
           pixel->colors+=MaxNumberPens;
         }
     }
@@ -3356,7 +3370,7 @@ MagickExport XrmDatabase XGetResourceDatabase(Display *display,
   int
     c;
 
-  register const char
+  const char
     *p;
 
   XrmDatabase
@@ -3425,7 +3439,7 @@ MagickExport XrmDatabase XGetResourceDatabase(Display *display,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  XGetResourceInfo(image_info,) initializes the ResourceInfo structure.
+%  XGetResourceInfo() initializes the ResourceInfo structure.
 %
 %  The format of the XGetResourceInfo method is:
 %
@@ -3455,8 +3469,9 @@ MagickExport void XGetResourceInfo(const ImageInfo *image_info,
   /*
     Initialize resource info fields.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(resource_info != (XResourceInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   (void) memset(resource_info,0,sizeof(*resource_info));
   resource_info->resource_database=database;
   resource_info->image_info=(ImageInfo *) image_info;
@@ -3537,7 +3552,7 @@ MagickExport void XGetResourceInfo(const ImageInfo *image_info,
     client_name,"geometry",(char *) NULL));
   resource_value=XGetResourceClass(database,client_name,"gravity",
     (char *) "Center");
-  resource_info->gravity=(GravityType) ParseCommandOption(MagickGravityOptions,
+  resource_info->gravity=(int) ParseCommandOption(MagickGravityOptions,
     MagickFalse,resource_value);
   directory=getcwd(resource_info->home_directory,MagickPathExtent);
   (void) directory;
@@ -3592,7 +3607,7 @@ MagickExport void XGetResourceInfo(const ImageInfo *image_info,
   resource_info->title=XGetResourceClass(database,client_name,"title",
     (char *) NULL);
   resource_value=XGetResourceClass(database,client_name,"undoCache",
-    (char *) "256");
+    (char *) "4096");
   resource_info->undo_cache=(unsigned int) StringToUnsignedLong(resource_value);
   resource_value=XGetResourceClass(database,client_name,"update",
     (char *) "False");
@@ -3611,6 +3626,8 @@ MagickExport void XGetResourceInfo(const ImageInfo *image_info,
     (char *) NULL);
   resource_info->write_filename=XGetResourceClass(database,client_name,
     "writeFilename",(char *) NULL);
+  resource_info->debug=(GetLogEventMask() & X11Event) != 0 ? MagickTrue :
+    MagickFalse;
 }
 
 /*
@@ -3860,7 +3877,8 @@ MagickPrivate MagickBooleanType XGetWindowColor(Display *display,
   */
   assert(display != (Display *) NULL);
   assert(name != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
   *name='\0';
   target_window=XSelectWindow(display,&crop_info);
   if (target_window == (Window) NULL)
@@ -4000,7 +4018,7 @@ static Image *XGetWindowImage(Display *display,const Window window,
   RectangleInfo
     crop_info;
 
-  register int
+  int
     i;
 
   static ColormapInfo
@@ -4026,8 +4044,9 @@ static Image *XGetWindowImage(Display *display,const Window window,
   /*
     Verify window is viewable.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   status=XGetWindowAttributes(display,window,&window_attributes);
   if ((status == False) || (window_attributes.map_state != IsViewable))
     return((Image *) NULL);
@@ -4056,19 +4075,19 @@ static Image *XGetWindowImage(Display *display,const Window window,
   */
   if (crop_info.x < 0)
     {
-      crop_info.width+=crop_info.x;
+      crop_info.width=(unsigned int) ((int) crop_info.width+crop_info.x);
       crop_info.x=0;
     }
   if (crop_info.y < 0)
     {
-      crop_info.height+=crop_info.y;
+      crop_info.height=(unsigned int) ((int) crop_info.height+crop_info.y);
       crop_info.y=0;
     }
   display_width=XDisplayWidth(display,XDefaultScreen(display));
-  if ((int) (crop_info.x+crop_info.width) > display_width)
+  if ((crop_info.x+(int) crop_info.width) > display_width)
     crop_info.width=(size_t) (display_width-crop_info.x);
   display_height=XDisplayHeight(display,XDefaultScreen(display));
-  if ((int) (crop_info.y+crop_info.height) > display_height)
+  if ((crop_info.y+(int) crop_info.height) > display_height)
     crop_info.height=(size_t) (display_height-crop_info.y);
   /*
     Initialize window info attributes.
@@ -4158,14 +4177,14 @@ static Image *XGetWindowImage(Display *display,const Window window,
       MagickBooleanType
         import;
 
-      register int
+      int
         j,
         x;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
-      register size_t
+      size_t
         pixel;
 
       unsigned int
@@ -4326,7 +4345,7 @@ static Image *XGetWindowImage(Display *display,const Window window,
           case DirectClass:
           default:
           {
-            register size_t
+            size_t
               color,
               index;
 
@@ -4385,9 +4404,10 @@ static Image *XGetWindowImage(Display *display,const Window window,
                   index=(pixel >> blue_shift) & blue_mask;
                   SetPixelBlue(composite_image,
                     ScaleShortToQuantum(colors[index].blue),q);
-                  q+=GetPixelChannels(composite_image);
+                  q+=(ptrdiff_t) GetPixelChannels(composite_image);
                 }
-                status=SyncCacheViewAuthenticPixels(composite_view,exception);
+                status=SyncCacheViewAuthenticPixels(composite_view,exception)
+                  == MagickFalse ? 0 : 1;
                 if (status == MagickFalse)
                   break;
               }
@@ -4416,9 +4436,10 @@ static Image *XGetWindowImage(Display *display,const Window window,
                     color=(65535UL*color)/blue_mask;
                   SetPixelBlue(composite_image,ScaleShortToQuantum(
                     (unsigned short) color),q);
-                  q+=GetPixelChannels(composite_image);
+                  q+=(ptrdiff_t) GetPixelChannels(composite_image);
                 }
-                status=SyncCacheViewAuthenticPixels(composite_view,exception);
+                status=SyncCacheViewAuthenticPixels(composite_view,exception)
+                  == MagickFalse ? 0 : 1;
                 if (status == MagickFalse)
                   break;
               }
@@ -4430,13 +4451,15 @@ static Image *XGetWindowImage(Display *display,const Window window,
               Create colormap.
             */
             status=AcquireImageColormap(composite_image,number_colors,
-              exception);
+              exception) == MagickFalse ? 0 : 1;
             if (status == MagickFalse)
               {
                 XDestroyImage(ximage);
                 composite_image=DestroyImage(composite_image);
                 return((Image *) NULL);
               }
+            if (colors == (XColor *) NULL)
+              break;
             for (i=0; i < (int) composite_image->colors; i++)
             {
               composite_image->colormap[colors[i].pixel].red=(double)
@@ -4461,9 +4484,10 @@ static Image *XGetWindowImage(Display *display,const Window window,
                 SetPixelIndex(composite_image,index,q);
                 SetPixelViaPixelInfo(composite_image,
                   composite_image->colormap+(ssize_t) index,q);
-                q+=GetPixelChannels(composite_image);
+                q+=(ptrdiff_t) GetPixelChannels(composite_image);
               }
-              status=SyncCacheViewAuthenticPixels(composite_view,exception);
+              status=SyncCacheViewAuthenticPixels(composite_view,exception)
+                == MagickFalse ? 0 : 1;
               if (status == MagickFalse)
                 break;
             }
@@ -4560,13 +4584,14 @@ MagickPrivate void XGetWindowInfo(Display *display,XVisualInfo *visual_info,
   /*
     Initialize window info.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(visual_info != (XVisualInfo *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
   assert(pixel != (XPixelInfo *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
   assert(window != (XWindowInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (window->id != (Window) NULL)
     {
       if (window->cursor != (Cursor) NULL)
@@ -4706,11 +4731,12 @@ MagickPrivate void XGetWindowInfo(Display *display,XVisualInfo *visual_info,
 MagickPrivate void XHighlightEllipse(Display *display,Window window,
   GC annotate_context,const RectangleInfo *highlight_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (Window) NULL);
   assert(annotate_context != (GC) NULL);
   assert(highlight_info != (RectangleInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if ((highlight_info->width < 4) || (highlight_info->height < 4))
     return;
   (void) XDrawArc(display,window,annotate_context,(int) highlight_info->x,
@@ -4756,11 +4782,12 @@ MagickPrivate void XHighlightEllipse(Display *display,Window window,
 MagickPrivate void XHighlightLine(Display *display,Window window,
   GC annotate_context,const XSegment *highlight_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (Window) NULL);
   assert(annotate_context != (GC) NULL);
   assert(highlight_info != (XSegment *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   (void) XDrawLine(display,window,annotate_context,highlight_info->x1,
     highlight_info->y1,highlight_info->x2,highlight_info->y2);
 }
@@ -4801,10 +4828,11 @@ MagickPrivate void XHighlightRectangle(Display *display,Window window,
   GC annotate_context,const RectangleInfo *highlight_info)
 {
   assert(display != (Display *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(window != (Window) NULL);
   assert(annotate_context != (GC) NULL);
   assert(highlight_info != (RectangleInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if ((highlight_info->width < 4) || (highlight_info->height < 4))
     return;
   (void) XDrawRectangle(display,window,annotate_context,(int) highlight_info->x,
@@ -4880,10 +4908,10 @@ MagickExport Image *XImportImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  assert(ximage_info != (XImportInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
-  assert(ximage_info != (XImportInfo *) NULL);
   display=XOpenDisplay(image_info->server_name);
   if (display == (Display *) NULL)
     {
@@ -5002,8 +5030,8 @@ MagickExport Image *XImportImage(const ImageInfo *image_info,
           */
           crop_info.x-=window_attributes.border_width;
           crop_info.y-=window_attributes.border_width;
-          crop_info.width+=window_attributes.border_width << 1;
-          crop_info.height+=window_attributes.border_width << 1;
+          crop_info.width+=(size_t) (window_attributes.border_width << 1);
+          crop_info.height+=(size_t) (window_attributes.border_width << 1);
         }
       target=root;
     }
@@ -5036,10 +5064,7 @@ MagickExport Image *XImportImage(const ImageInfo *image_info,
   image=XGetWindowImage(display,target,ximage_info->borders,
     ximage_info->descend ? 1U : 0U,exception);
   (void) XUngrabServer(display);
-  if (image == (Image *) NULL)
-    ThrowXWindowException(XServerError,"UnableToReadXWindowImage",
-      image_info->filename)
-  else
+  if (image != (Image *) NULL)
     {
       (void) CopyMagickString(image->filename,image_info->filename,
         MagickPathExtent);
@@ -5141,6 +5166,8 @@ MagickPrivate XWindows *XInitializeWindows(Display *display,
         "...");
       return((XWindows *) NULL);
     }
+  (void) memset((void *) windows->pixel_info,0,sizeof(XPixelInfo));
+  (void) memset((void *) windows->icon_pixel,0,sizeof(XPixelInfo));
   /*
     Initialize windows structure.
   */
@@ -5162,7 +5189,7 @@ MagickPrivate XWindows *XInitializeWindows(Display *display,
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
   (void) XSynchronize(display,MagickFalse);
 #endif
-  if (IsEventLogging())
+  if ((GetLogEventMask() & X11Event) != 0)
     {
       (void) XSynchronize(display,MagickTrue);
       (void) LogMagickEvent(X11Event,GetMagickModule(),"Version: %s",
@@ -5225,7 +5252,7 @@ MagickPrivate XWindows *XInitializeWindows(Display *display,
       (windows->icon_visual == (XVisualInfo *) NULL))
     ThrowXWindowFatalException(XServerFatalError,"UnableToGetVisual",
       resource_info->visual_type);
-  if (IsEventLogging())
+  if ((GetLogEventMask() & X11Event) != 0)
     {
       (void) LogMagickEvent(X11Event,GetMagickModule(),"Visual:");
       (void) LogMagickEvent(X11Event,GetMagickModule(),"  visual id: 0x%lx",
@@ -5346,7 +5373,8 @@ MagickPrivate Cursor XMakeCursor(Display *display,Window window,
   assert(colormap != (Colormap) NULL);
   assert(background_color != (char *) NULL);
   assert(foreground_color != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",background_color);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",background_color);
   source=XCreateBitmapFromData(display,window,(char *) scope_bits,scope_width,
     scope_height);
   mask=XCreateBitmapFromData(display,window,(char *) scope_mask_bits,
@@ -5416,19 +5444,17 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
     depth,
     format;
 
-  size_t
-    length;
-
   XImage
     *matte_image,
     *ximage;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
   assert(window != (XWindowInfo *) NULL);
   assert(width != 0);
   assert(height != 0);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if ((window->width == 0) || (window->height == 0))
     return(MagickFalse);
   /*
@@ -5512,6 +5538,9 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
 #if defined(MAGICKCORE_HAVE_SHARED_MEMORY)
   if (window->shared_memory != MagickFalse)
     {
+      size_t
+        length;
+
       XShmSegmentInfo
         *segment_info;
 
@@ -5525,7 +5554,7 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
         window->shared_memory=MagickFalse;
       else
         {
-          length=(size_t) ximage->bytes_per_line*ximage->height;
+          length=(size_t) (ximage->bytes_per_line*ximage->height);
           if (CheckOverflowException(length,ximage->bytes_per_line,ximage->height))
             window->shared_memory=MagickFalse;
         }
@@ -5605,8 +5634,7 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
       (void) XCheckDefineCursor(display,window->id,window->cursor);
       return(MagickFalse);
     }
-  length=(size_t) ximage->bytes_per_line*ximage->height;
-  if (IsEventLogging())
+  if ((GetLogEventMask() & X11Event) != 0)
     {
       (void) LogMagickEvent(X11Event,GetMagickModule(),"XImage:");
       (void) LogMagickEvent(X11Event,GetMagickModule(),"  width, height: %dx%d",
@@ -5633,10 +5661,10 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
       if (ximage->format == XYBitmap)
         {
           ximage->data=(char *) AcquireQuantumMemory((size_t)
-            ximage->bytes_per_line,(size_t) ximage->depth*ximage->height);
+            ximage->bytes_per_line,(size_t) (ximage->depth*ximage->height));
           if (ximage->data != (char *) NULL)
             (void) memset(ximage->data,0,(size_t)
-              ximage->bytes_per_line*ximage->depth*ximage->height);
+              (ximage->bytes_per_line*ximage->depth*ximage->height));
         }
       else
         {
@@ -5644,7 +5672,7 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
             ximage->bytes_per_line,(size_t) ximage->height);
           if (ximage->data != (char *) NULL)
             (void) memset(ximage->data,0,(size_t)
-              ximage->bytes_per_line*ximage->height);
+              (ximage->bytes_per_line*ximage->height));
         }
     }
   if (ximage->data == (char *) NULL)
@@ -5662,7 +5690,6 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
       /*
         Destroy previous X image.
       */
-      length=(size_t) window->ximage->bytes_per_line*window->ximage->height;
 #if defined(MAGICKCORE_HAVE_SHARED_MEMORY)
       if (window->segment_info != (XShmSegmentInfo *) NULL)
         {
@@ -5712,7 +5739,7 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
         */
         matte_image=XCreateImage(display,window->visual,1,XYBitmap,0,
           (char *) NULL,width,height,XBitmapPad(display),0);
-        if (IsEventLogging())
+        if ((GetLogEventMask() & X11Event) != 0)
           {
             (void) LogMagickEvent(X11Event,GetMagickModule(),"Matte Image:");
             (void) LogMagickEvent(X11Event,GetMagickModule(),
@@ -5724,8 +5751,8 @@ MagickPrivate MagickBooleanType XMakeImage(Display *display,
               Allocate matte image pixel data.
             */
             matte_image->data=(char *) malloc((size_t)
-              matte_image->bytes_per_line*matte_image->depth*
-              matte_image->height);
+              (matte_image->bytes_per_line*matte_image->depth*
+              matte_image->height));
             if (matte_image->data == (char *) NULL)
               {
                 XDestroyImage(matte_image);
@@ -5859,13 +5886,13 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
   int
     y;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register int
+  int
     x;
 
-  register unsigned char
+  unsigned char
     *q;
 
   unsigned char
@@ -5885,7 +5912,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
   assert(resource_info != (XResourceInfo *) NULL);
   assert(window != (XWindowInfo *) NULL);
   assert(image != (Image *) NULL);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas=image;
   if ((window->immutable == MagickFalse) &&
@@ -5914,9 +5941,10 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
       if (pattern != (Image *) NULL)
         {
           canvas=CloneImage(image,0,0,MagickTrue,exception);
-          if (canvas != (Image *) NULL)
-            (void) CompositeImage(canvas,pattern,DstOverCompositeOp,MagickTrue,
-              0,0,exception);
+          if (canvas == (Image *) NULL)
+            return;
+          (void) CompositeImage(canvas,pattern,DstOverCompositeOp,MagickTrue,
+            0,0,exception);
           pattern=DestroyImage(pattern);
         }
     }
@@ -5929,7 +5957,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
   canvas_view=AcquireVirtualCacheView(canvas,exception);
   if (ximage->format == XYBitmap)
     {
-      register unsigned short
+      unsigned short
         polarity;
 
       unsigned char
@@ -5946,7 +5974,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
         (XPixelIntensity(&window->pixel_info->background_color) <
          XPixelIntensity(&window->pixel_info->foreground_color) ? 0x80 : 0x00);
       polarity=(unsigned short) ((GetPixelInfoIntensity(image,
-        &canvas->colormap[0])) < (QuantumRange/2.0) ? 1 : 0);
+        &canvas->colormap[0])) < ((double) QuantumRange/2.0) ? 1 : 0);
       if (canvas->colors == 2)
         polarity=GetPixelInfoIntensity(image,&canvas->colormap[0]) <
           GetPixelInfoIntensity(image,&canvas->colormap[1]);
@@ -5972,11 +6000,11 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
               bit=0;
               byte=0;
             }
-          p+=GetPixelChannels(canvas);
+          p+=(ptrdiff_t) GetPixelChannels(canvas);
         }
         if (bit != 0)
           *q=byte >> (8-bit);
-        q+=scanline_pad;
+        q+=(ptrdiff_t) scanline_pad;
       }
     }
   else
@@ -5985,7 +6013,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
       {
         case 2:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6029,15 +6057,15 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         case 4:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6069,9 +6097,9 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6097,18 +6125,18 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
             {
               pixel=pixels[(ssize_t) GetPixelIndex(canvas,p)];
               *q++=(unsigned char) pixel;
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         default:
         {
-          register int
+          int
             k;
 
-          register unsigned int
+          unsigned int
             bytes_per_pixel;
 
           /*
@@ -6129,9 +6157,9 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                 *q++=(unsigned char) (pixel & 0xff);
                 pixel>>=8;
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6141,7 +6169,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
       {
         case 2:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6186,15 +6214,15 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         case 4:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6227,9 +6255,9 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6255,9 +6283,9 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
             {
               pixel=XGammaPixel(canvas,map_info,p);
               *q++=(unsigned char) pixel;
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6292,7 +6320,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                       *q++=ScaleQuantumToChar(XRedGamma(
                         GetPixelRed(canvas,p)));
                       *q++=0;
-                      p+=GetPixelChannels(canvas);
+                      p+=(ptrdiff_t) GetPixelChannels(canvas);
                     }
                     continue;
                   }
@@ -6302,7 +6330,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                   *q++=ScaleQuantumToChar((Quantum) GetPixelGreen(canvas,p));
                   *q++=ScaleQuantumToChar((Quantum) GetPixelRed(canvas,p));
                   *q++=0;
-                  p+=GetPixelChannels(canvas);
+                  p+=(ptrdiff_t) GetPixelChannels(canvas);
                 }
               }
             }
@@ -6336,7 +6364,7 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                         *q++=ScaleQuantumToChar(XBlueGamma(
                           GetPixelBlue(canvas,p)));
                         *q++=0;
-                        p+=GetPixelChannels(canvas);
+                        p+=(ptrdiff_t) GetPixelChannels(canvas);
                       }
                       continue;
                     }
@@ -6346,16 +6374,16 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                     *q++=ScaleQuantumToChar((Quantum) GetPixelGreen(canvas,p));
                     *q++=ScaleQuantumToChar((Quantum) GetPixelBlue(canvas,p));
                     *q++=0;
-                    p+=GetPixelChannels(canvas);
+                    p+=(ptrdiff_t) GetPixelChannels(canvas);
                   }
                 }
               }
             else
               {
-                register int
+                int
                   k;
 
-                register unsigned int
+                unsigned int
                   bytes_per_pixel;
 
                 /*
@@ -6376,9 +6404,9 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
                       *q++=(unsigned char) (pixel & 0xff);
                       pixel>>=8;
                     }
-                    p+=GetPixelChannels(canvas);
+                    p+=(ptrdiff_t) GetPixelChannels(canvas);
                   }
-                  q+=scanline_pad;
+                  q+=(ptrdiff_t) scanline_pad;
                 }
               }
           break;
@@ -6412,11 +6440,11 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
               bit=0;
               byte=0;
             }
-          p+=GetPixelChannels(canvas);
+          p+=(ptrdiff_t) GetPixelChannels(canvas);
         }
         if (bit != 0)
           *q=byte >> (8-bit);
-        q+=scanline_pad;
+        q+=(ptrdiff_t) scanline_pad;
       }
     }
   canvas_view=DestroyCacheView(canvas_view);
@@ -6476,13 +6504,13 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
   int
     y;
 
-  register int
+  int
     x;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
   unsigned char
@@ -6502,7 +6530,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
   assert(resource_info != (XResourceInfo *) NULL);
   assert(window != (XWindowInfo *) NULL);
   assert(image != (Image *) NULL);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas=image;
   if ((window->immutable != MagickFalse) &&
@@ -6531,9 +6559,10 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
       if (pattern != (Image *) NULL)
         {
           canvas=CloneImage(image,0,0,MagickTrue,exception);
-          if (canvas != (Image *) NULL)
-            (void) CompositeImage(canvas,pattern,DstOverCompositeOp,MagickFalse,
-              0,0,exception);
+          if (canvas == (Image *) NULL)
+            return;
+          (void) CompositeImage(canvas,pattern,DstOverCompositeOp,MagickFalse,
+            0,0,exception);
           pattern=DestroyImage(pattern);
         }
     }
@@ -6546,7 +6575,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
   canvas_view=AcquireVirtualCacheView(canvas,exception);
   if (ximage->format == XYBitmap)
     {
-      register unsigned short
+      unsigned short
         polarity;
 
       unsigned char
@@ -6563,7 +6592,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
         (XPixelIntensity(&window->pixel_info->background_color) <
          XPixelIntensity(&window->pixel_info->foreground_color) ?  0x01 : 0x00);
       polarity=(unsigned short) ((GetPixelInfoIntensity(image,
-        &canvas->colormap[0])) < (QuantumRange/2.0) ? 1 : 0);
+        &canvas->colormap[0])) < ((double) QuantumRange/2.0) ? 1 : 0);
       if (canvas->colors == 2)
         polarity=GetPixelInfoIntensity(image,&canvas->colormap[0]) <
           GetPixelInfoIntensity(image,&canvas->colormap[1]);
@@ -6589,11 +6618,11 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
               bit=0;
               byte=0;
             }
-          p+=GetPixelChannels(canvas);
+          p+=(ptrdiff_t) GetPixelChannels(canvas);
         }
         if (bit != 0)
           *q=byte << (8-bit);
-        q+=scanline_pad;
+        q+=(ptrdiff_t) scanline_pad;
       }
     }
   else
@@ -6602,7 +6631,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
       {
         case 2:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6647,15 +6676,15 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         case 4:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6688,9 +6717,9 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6716,18 +6745,18 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
             {
               pixel=pixels[(ssize_t) GetPixelIndex(canvas,p)];
               *q++=(unsigned char) pixel;
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         default:
         {
-          register int
+          int
             k;
 
-          register unsigned int
+          unsigned int
             bytes_per_pixel;
 
           unsigned char
@@ -6754,9 +6783,9 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
               }
               for (k=0; k < (int) bytes_per_pixel; k++)
                 *q++=channel[k];
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6766,7 +6795,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
       {
         case 2:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6811,15 +6840,15 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
         case 4:
         {
-          register unsigned int
+          unsigned int
             nibble;
 
           /*
@@ -6852,9 +6881,9 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                   break;
                 }
               }
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6880,9 +6909,9 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
             {
               pixel=XGammaPixel(canvas,map_info,p);
               *q++=(unsigned char) pixel;
-              p+=GetPixelChannels(canvas);
+              p+=(ptrdiff_t) GetPixelChannels(canvas);
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           break;
         }
@@ -6917,7 +6946,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                         GetPixelGreen(canvas,p)));
                       *q++=ScaleQuantumToChar(XBlueGamma(
                         GetPixelBlue(canvas,p)));
-                      p+=GetPixelChannels(canvas);
+                      p+=(ptrdiff_t) GetPixelChannels(canvas);
                     }
                     continue;
                   }
@@ -6927,7 +6956,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                   *q++=ScaleQuantumToChar((Quantum) GetPixelRed(canvas,p));
                   *q++=ScaleQuantumToChar((Quantum) GetPixelGreen(canvas,p));
                   *q++=ScaleQuantumToChar((Quantum) GetPixelBlue(canvas,p));
-                  p+=GetPixelChannels(canvas);
+                  p+=(ptrdiff_t) GetPixelChannels(canvas);
                 }
               }
             }
@@ -6961,7 +6990,7 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                           GetPixelGreen(canvas,p)));
                         *q++=ScaleQuantumToChar(XRedGamma(
                           GetPixelRed(canvas,p)));
-                        p+=GetPixelChannels(canvas);
+                        p+=(ptrdiff_t) GetPixelChannels(canvas);
                       }
                       continue;
                     }
@@ -6971,16 +7000,16 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                     *q++=ScaleQuantumToChar((Quantum) GetPixelBlue(canvas,p));
                     *q++=ScaleQuantumToChar((Quantum) GetPixelGreen(canvas,p));
                     *q++=ScaleQuantumToChar((Quantum) GetPixelRed(canvas,p));
-                    p+=GetPixelChannels(canvas);
+                    p+=(ptrdiff_t) GetPixelChannels(canvas);
                   }
                 }
               }
             else
               {
-                register int
+                int
                   k;
 
-                register unsigned int
+                unsigned int
                   bytes_per_pixel;
 
                 unsigned char
@@ -7006,9 +7035,9 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
                     }
                     for (k=0; k < (int) bytes_per_pixel; k++)
                       *q++=channel[k];
-                    p+=GetPixelChannels(canvas);
+                    p+=(ptrdiff_t) GetPixelChannels(canvas);
                   }
-                  q+=scanline_pad;
+                  q+=(ptrdiff_t) scanline_pad;
                 }
               }
           break;
@@ -7042,11 +7071,11 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
               bit=0;
               byte=0;
             }
-          p+=GetPixelChannels(canvas);
+          p+=(ptrdiff_t) GetPixelChannels(canvas);
         }
         if (bit != 0)
           *q=byte << (8-bit);
-        q+=scanline_pad;
+        q+=(ptrdiff_t) scanline_pad;
       }
     }
   canvas_view=DestroyCacheView(canvas_view);
@@ -7094,13 +7123,13 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
   PixelInfo
     pixel;
 
-  register int
+  int
     x;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register unsigned char
+  unsigned char
     *p,
     *q;
 
@@ -7128,22 +7157,27 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
   /*
     Check boundary conditions.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(windows != (XWindows *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   magnify=1;
   for (n=1; n < (ssize_t) windows->magnify.data; n++)
     magnify<<=1;
-  while ((magnify*windows->image.ximage->width) < windows->magnify.width)
+  while ((magnify*(unsigned int) windows->image.ximage->width) < windows->magnify.width)
     magnify<<=1;
-  while ((magnify*windows->image.ximage->height) < windows->magnify.height)
+  while ((magnify*(unsigned int) windows->image.ximage->height) < windows->magnify.height)
     magnify<<=1;
   while (magnify > windows->magnify.width)
     magnify>>=1;
   while (magnify > windows->magnify.height)
     magnify>>=1;
   if (magnify == 0)
-    magnify=1;
+    {
+      magnify=1;
+      if (previous_magnify != 0)
+        magnify=previous_magnify;
+    }
   if (magnify != previous_magnify)
     {
       Status
@@ -7175,34 +7209,34 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
   if ((windows->magnify.x < 0) ||
       (windows->magnify.x >= windows->image.ximage->width))
     windows->magnify.x=windows->image.ximage->width >> 1;
-  x=windows->magnify.x-((width/magnify) >> 1);
+  x=windows->magnify.x-(int) ((width/magnify) >> 1);
   if (x < 0)
     x=0;
   else
-    if (x > (int) (ximage->width-(width/magnify)))
-      x=ximage->width-width/magnify;
+    if (x > (ximage->width-(int) (width/magnify)))
+      x=ximage->width-(int) (width/magnify);
   if ((windows->magnify.y < 0) ||
       (windows->magnify.y >= windows->image.ximage->height))
     windows->magnify.y=windows->image.ximage->height >> 1;
-  y=windows->magnify.y-((height/magnify) >> 1);
+  y=windows->magnify.y-(int) ((height/magnify) >> 1);
   if (y < 0)
     y=0;
   else
-    if (y > (int) (ximage->height-(height/magnify)))
-      y=ximage->height-height/magnify;
+    if (y > (ximage->height-(int) (height/magnify)))
+      y=ximage->height-(int) (height/magnify);
   q=(unsigned char *) windows->magnify.ximage->data;
   scanline_pad=(unsigned int) (windows->magnify.ximage->bytes_per_line-
-    ((width*windows->magnify.ximage->bits_per_pixel) >> 3));
+    (((int) width*windows->magnify.ximage->bits_per_pixel) >> 3));
   if (ximage->bits_per_pixel < 8)
     {
-      register unsigned char
+      unsigned char
         background,
         byte,
         foreground,
         p_bit,
         q_bit;
 
-      register unsigned int
+      unsigned int
         plane;
 
       XPixelInfo
@@ -7232,7 +7266,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
           for (i=0; i < (ssize_t) height; i+=magnify)
           {
             /*
-              Propogate pixel magnify rows.
+              Propagate pixel magnify rows.
             */
             for (j=0; j < magnify; j++)
             {
@@ -7244,12 +7278,12 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
               for (k=0; k < width; k+=magnify)
               {
                 /*
-                  Propogate pixel magnify columns.
+                  Propagate pixel magnify columns.
                 */
                 for (l=0; l < magnify; l++)
                 {
                   /*
-                    Propogate each bit plane.
+                    Propagate each bit plane.
                   */
                   for (plane=0; (int) plane < ximage->bits_per_pixel; plane++)
                   {
@@ -7275,7 +7309,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
                   }
                 if (q_bit != 0)
                   *q=byte >> (8-q_bit);
-                q+=scanline_pad;
+                q+=(ptrdiff_t) scanline_pad;
               }
             }
             y++;
@@ -7304,7 +7338,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
           for (i=0; i < (ssize_t) height; i+=magnify)
           {
             /*
-              Propogate pixel magnify rows.
+              Propagate pixel magnify rows.
             */
             for (j=0; j < magnify; j++)
             {
@@ -7316,12 +7350,12 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
               for (k=0; k < width; k+=magnify)
               {
                 /*
-                  Propogate pixel magnify columns.
+                  Propagate pixel magnify columns.
                 */
                 for (l=0; l < magnify; l++)
                 {
                   /*
-                    Propogate each bit plane.
+                    Propagate each bit plane.
                   */
                   for (plane=0; (int) plane < ximage->bits_per_pixel; plane++)
                   {
@@ -7347,7 +7381,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
                   }
                 if (q_bit != 0)
                   *q=byte << (8-q_bit);
-                q+=scanline_pad;
+                q+=(ptrdiff_t) scanline_pad;
               }
             }
             y++;
@@ -7368,7 +7402,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
         for (i=0; i < (ssize_t) height; i+=magnify)
         {
           /*
-            Propogate pixel magnify rows.
+            Propagate pixel magnify rows.
           */
           for (j=0; j < magnify; j++)
           {
@@ -7377,13 +7411,13 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
             for (k=0; k < width; k+=magnify)
             {
               /*
-                Propogate pixel magnify columns.
+                Propagate pixel magnify columns.
               */
               for (l=0; l < magnify; l++)
                 *q++=(*p);
               p++;
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           y++;
         }
@@ -7391,7 +7425,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
       }
       default:
       {
-        register unsigned int
+        unsigned int
           bytes_per_pixel,
           m;
 
@@ -7402,7 +7436,7 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
         for (i=0; i < (ssize_t) height; i+=magnify)
         {
           /*
-            Propogate pixel magnify rows.
+            Propagate pixel magnify rows.
           */
           for (j=0; j < magnify; j++)
           {
@@ -7411,14 +7445,14 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
             for (k=0; k < width; k+=magnify)
             {
               /*
-                Propogate pixel magnify columns.
+                Propagate pixel magnify columns.
               */
               for (l=0; l < magnify; l++)
                 for (m=0; m < bytes_per_pixel; m++)
                   *q++=(*(p+m));
-              p+=bytes_per_pixel;
+              p+=(ptrdiff_t) bytes_per_pixel;
             }
-            q+=scanline_pad;
+            q+=(ptrdiff_t) scanline_pad;
           }
           y++;
         }
@@ -7428,28 +7462,30 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
   /*
     Copy X image to magnify pixmap.
   */
-  x=windows->magnify.x-((width/magnify) >> 1);
+  x=windows->magnify.x-(int) ((width/magnify) >> 1);
   if (x < 0)
-    x=(int) ((width >> 1)-windows->magnify.x*magnify);
+    x=((int) (width >> 1)-windows->magnify.x*(int) magnify);
   else
-    if (x > (int) (ximage->width-(width/magnify)))
-      x=(int) ((ximage->width-windows->magnify.x)*magnify-(width >> 1));
+    if (x > (ximage->width-(int) (width/magnify)))
+      x=(int) ((ximage->width-windows->magnify.x)*(int) magnify-(int)
+        (width >> 1));
     else
       x=0;
-  y=windows->magnify.y-((height/magnify) >> 1);
+  y=windows->magnify.y-(int) ((height/magnify) >> 1);
   if (y < 0)
-    y=(int) ((height >> 1)-windows->magnify.y*magnify);
+    y=((int) (height >> 1)-windows->magnify.y*(int) magnify);
   else
-    if (y > (int) (ximage->height-(height/magnify)))
-      y=(int) ((ximage->height-windows->magnify.y)*magnify-(height >> 1));
+    if (y > (ximage->height-(int) (height/magnify)))
+      y=(int) ((ximage->height-windows->magnify.y)*(int) magnify-(int)
+        (height >> 1));
     else
       y=0;
   if ((x != 0) || (y != 0))
     (void) XFillRectangle(display,windows->magnify.pixmap,
       windows->magnify.annotate_context,0,0,width,height);
   (void) XPutImage(display,windows->magnify.pixmap,
-    windows->magnify.annotate_context,windows->magnify.ximage,0,0,x,y,width-x,
-    height-y);
+    windows->magnify.annotate_context,windows->magnify.ximage,0,0,x,y,
+    (unsigned int) ((int) width-x),(unsigned int) ((int) height-y));
   if ((magnify > 1) && ((magnify <= (width >> 1)) &&
       (magnify <= (height >> 1))))
     {
@@ -7497,19 +7533,19 @@ MagickPrivate void XMakeMagnifyImage(Display *display,XWindows *windows,
       ConcatenateColorComponent(&pixel,AlphaPixelChannel,X11Compliance,tuple);
     }
   (void) ConcatenateMagickString(tuple,")",MagickPathExtent);
-  height=(unsigned int) windows->magnify.font_info->ascent+
-    windows->magnify.font_info->descent;
+  height=(unsigned int) (windows->magnify.font_info->ascent+
+    windows->magnify.font_info->descent);
   x=windows->magnify.font_info->max_bounds.width >> 1;
-  y=windows->magnify.font_info->ascent+(height >> 2);
+  y=windows->magnify.font_info->ascent+(int) (height >> 2);
   (void) XDrawImageString(display,windows->magnify.pixmap,
     windows->magnify.annotate_context,x,y,tuple,(int) strlen(tuple));
   GetColorTuple(&pixel,MagickTrue,tuple);
-  y+=height;
+  y+=(int) height;
   (void) XDrawImageString(display,windows->magnify.pixmap,
     windows->magnify.annotate_context,x,y,tuple,(int) strlen(tuple));
   (void) QueryColorname(windows->image.image,&pixel,SVGCompliance,tuple,
     exception);
-  y+=height;
+  y+=(int) height;
   (void) XDrawImageString(display,windows->magnify.pixmap,
     windows->magnify.annotate_context,x,y,tuple,(int) strlen(tuple));
   /*
@@ -7557,10 +7593,11 @@ static MagickBooleanType XMakePixmap(Display *display,
     height,
     width;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
   assert(window != (XWindowInfo  *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (window->pixmap != (Pixmap) NULL)
     {
       /*
@@ -7603,7 +7640,7 @@ static MagickBooleanType XMakePixmap(Display *display,
   if (window->shared_memory == MagickFalse)
     (void) XPutImage(display,window->pixmap,window->annotate_context,
       window->ximage,0,0,0,0,width,height);
-  if (IsEventLogging())
+  if ((GetLogEventMask() & X11Event) != 0)
     {
       (void) LogMagickEvent(X11Event,GetMagickModule(),"Pixmap:");
       (void) LogMagickEvent(X11Event,GetMagickModule(),"  width, height: %ux%u",
@@ -7666,7 +7703,8 @@ static inline double DiversityPixelIntensity(
   double
     intensity;
 
-  intensity=0.212656*pixel->red+0.715158*pixel->green+0.072186*pixel->blue;
+  intensity=0.212656*(double) pixel->red+0.715158*(double) pixel->green+
+    0.072186*(double) pixel->blue;
   return(intensity);
 }
 
@@ -7714,7 +7752,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
   Colormap
     colormap;
 
-  register ssize_t
+  ssize_t
     i;
 
   Status
@@ -7732,12 +7770,13 @@ MagickPrivate void XMakeStandardColormap(Display *display,
     *colors,
     *p;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(visual_info != (XVisualInfo *) NULL);
   assert(map_info != (XStandardColormap *) NULL);
   assert(resource_info != (XResourceInfo *) NULL);
   assert(pixel != (XPixelInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (resource_info->map_type != (char *) NULL)
     {
       /*
@@ -7748,7 +7787,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
       number_colors=(unsigned int) (map_info->base_pixel+
         (map_info->red_max+1)*(map_info->green_max+1)*(map_info->blue_max+1));
       if ((map_info->red_max*map_info->green_max*map_info->blue_max) != 0)
-        if ((image->alpha_trait == UndefinedPixelTrait) &&
+        if (((image->alpha_trait & BlendPixelTrait) == 0) &&
             (resource_info->color_recovery == MagickFalse) &&
             (resource_info->quantize_info->dither_method != NoDitherMethod) &&
             (number_colors < MaxColormapSize))
@@ -7756,7 +7795,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
             Image
               *affinity_image;
 
-            register Quantum
+            Quantum
               *magick_restrict q;
 
             /*
@@ -7780,19 +7819,19 @@ MagickPrivate void XMakeStandardColormap(Display *display,
                   SetPixelRed(affinity_image,0,q);
                   if (map_info->red_max != 0)
                     SetPixelRed(affinity_image,ScaleXToQuantum((size_t)
-                      (i/map_info->red_mult),map_info->red_max),q);
+                      (i/(ssize_t) map_info->red_mult),map_info->red_max),q);
                   SetPixelGreen(affinity_image,0,q);
                   if (map_info->green_max != 0)
                     SetPixelGreen(affinity_image,ScaleXToQuantum((size_t)
-                      ((i/map_info->green_mult) % (map_info->green_max+1)),
-                      map_info->green_max),q);
+                      ((i/(ssize_t) map_info->green_mult) % (ssize_t)
+                      (map_info->green_max+1)),map_info->green_max),q);
                   SetPixelBlue(affinity_image,0,q);
                   if (map_info->blue_max != 0)
                     SetPixelBlue(affinity_image,ScaleXToQuantum((size_t)
-                      (i % map_info->green_mult),map_info->blue_max),q);
-                  SetPixelAlpha(affinity_image,
-                    TransparentAlpha,q);
-                  q+=GetPixelChannels(affinity_image);
+                      (i % (ssize_t) map_info->green_mult),map_info->blue_max),
+                      q);
+                  SetPixelAlpha(affinity_image,TransparentAlpha,q);
+                  q+=(ptrdiff_t) GetPixelChannels(affinity_image);
                 }
                 (void) SyncAuthenticPixels(affinity_image,exception);
                 (void) RemapImage(resource_info->quantize_info,image,
@@ -7803,7 +7842,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
             (void) SetImageStorageClass(image,DirectClass,exception);
             affinity_image=DestroyImage(affinity_image);
           }
-      if (IsEventLogging())
+      if ((GetLogEventMask() & X11Event) != 0)
         {
           (void) LogMagickEvent(X11Event,GetMagickModule(),
             "Standard Colormap:");
@@ -7939,7 +7978,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
           int
             y;
 
-          register int
+          int
             x;
 
           unsigned short
@@ -7967,10 +8006,10 @@ MagickPrivate void XMakeStandardColormap(Display *display,
           image_view=AcquireAuthenticCacheView(image,exception);
           for (y=0; y < (int) image->rows; y++)
           {
-            register int
+            int
               x;
 
-            register const Quantum
+            const Quantum
               *magick_restrict p;
 
             p=GetCacheViewAuthenticPixels(image_view,0,(ssize_t) y,
@@ -7980,7 +8019,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
             for (x=(int) image->columns-1; x >= 0; x--)
             {
               diversity[(ssize_t) GetPixelIndex(image,p)].count++;
-              p+=GetPixelChannels(image);
+              p+=(ptrdiff_t) GetPixelChannels(image);
             }
           }
           image_view=DestroyCacheView(image_view);
@@ -8066,7 +8105,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
                 Fill up colors array-- more choices for pen colors.
               */
               retain_colors=MagickMin((unsigned int)
-               (visual_info->colormap_size-image->colors),256);
+                (visual_info->colormap_size-(int) image->colors),256);
               for (i=0; i < (ssize_t) retain_colors; i++)
                 *p++=server_colors[i];
               number_colors+=retain_colors;
@@ -8097,7 +8136,7 @@ MagickPrivate void XMakeStandardColormap(Display *display,
                 effects of colormap flashing.
               */
               retain_colors=MagickMin((unsigned int)
-                (visual_info->colormap_size-image->colors),256);
+                (visual_info->colormap_size-(int) image->colors),256);
               p=colors+image->colors;
               for (i=0; i < (ssize_t) retain_colors; i++)
               {
@@ -8187,8 +8226,8 @@ MagickPrivate void XMakeStandardColormap(Display *display,
         {
           color.blue=(unsigned short) 0;
           if (map_info->blue_max != 0)
-            color.blue=(unsigned short) ((size_t)
-              ((65535L*(i % map_info->green_mult))/map_info->blue_max));
+            color.blue=(unsigned short) (((65535L*(i % (ssize_t)
+              map_info->green_mult))/(ssize_t) map_info->blue_max));
           color.green=color.blue;
           color.red=color.blue;
           color.pixel=XStandardPixel(map_info,&color);
@@ -8199,17 +8238,17 @@ MagickPrivate void XMakeStandardColormap(Display *display,
         {
           color.red=(unsigned short) 0;
           if (map_info->red_max != 0)
-            color.red=(unsigned short) ((size_t)
-              ((65535L*(i/map_info->red_mult))/map_info->red_max));
+            color.red=(unsigned short) ((size_t) ((65535L*(i/(ssize_t)
+               map_info->red_mult))/(ssize_t) map_info->red_max));
           color.green=(unsigned int) 0;
           if (map_info->green_max != 0)
-            color.green=(unsigned short) ((size_t)
-              ((65535L*((i/map_info->green_mult) % (map_info->green_max+1)))/
-                map_info->green_max));
+            color.green=(unsigned short) ((size_t) ((65535L*((i/(ssize_t)
+              map_info->green_mult) % (ssize_t) (map_info->green_max+1)))/
+              (ssize_t) map_info->green_max));
           color.blue=(unsigned short) 0;
           if (map_info->blue_max != 0)
-            color.blue=(unsigned short) ((size_t)
-              ((65535L*(i % map_info->green_mult))/map_info->blue_max));
+            color.blue=(unsigned short) ((size_t) ((65535L*(i % (ssize_t)
+            map_info->green_mult))/(ssize_t) map_info->blue_max));
           color.pixel=XStandardPixel(map_info,&color);
           *p++=color;
         }
@@ -8261,12 +8300,12 @@ MagickPrivate void XMakeStandardColormap(Display *display,
       {
         XBestPixel(display,colormap,colors,(unsigned int) number_colors,
           &pixel->pen_colors[i]);
-        pixel->pixels[image->colors+i]=pixel->pen_colors[i].pixel;
+        pixel->pixels[(ssize_t) image->colors+i]=pixel->pen_colors[i].pixel;
       }
       pixel->colors=(ssize_t) (image->colors+MaxNumberPens);
     }
   colors=(XColor *) RelinquishMagickMemory(colors);
-  if (IsEventLogging())
+  if ((GetLogEventMask() & X11Event) != 0)
     {
       (void) LogMagickEvent(X11Event,GetMagickModule(),"Standard Colormap:");
       (void) LogMagickEvent(X11Event,GetMagickModule(),"  colormap id: 0x%lx",
@@ -8342,9 +8381,10 @@ MagickPrivate void XMakeWindow(Display *display,Window parent,char **argv,
   /*
     Set window info hints.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window_info != (XWindowInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   size_hints=XAllocSizeHints();
   if (size_hints == (XSizeHints *) NULL)
     ThrowXWindowFatalException(XServerFatalError,"UnableToMakeXWindow",argv[0]);
@@ -8391,7 +8431,7 @@ MagickPrivate void XMakeWindow(Display *display,Window parent,char **argv,
       int
         flags;
 
-      register char
+      char
         *p;
 
       /*
@@ -8406,7 +8446,7 @@ MagickPrivate void XMakeWindow(Display *display,Window parent,char **argv,
         if ((isspace((int) ((unsigned char) *p)) == 0) && (*p != '%'))
           p++;
         else
-          (void) memmove(p,p+1,MagickPathExtent-(p-geometry));
+          (void) memmove(p,p+1,(size_t) (MagickPathExtent-(p-geometry)));
       }
       flags=XWMGeometry(display,window_info->screen,geometry,default_geometry,
         window_info->border_width,size_hints,&size_hints->x,&size_hints->y,
@@ -8522,7 +8562,7 @@ MagickPrivate void XMakeWindow(Display *display,Window parent,char **argv,
       window_info->shape=MagickFalse;
 #endif
     }
-  window_info->shape=MagickFalse;  /* Fedora 30 has a broken shape extention */
+  window_info->shape=MagickFalse;  /* Fedora 30 has a broken shape extension */
   if (window_info->shared_memory != MagickFalse)
     {
 #if defined(MAGICKCORE_HAVE_SHARED_MEMORY)
@@ -8581,7 +8621,7 @@ static const char *GetLocaleMonitorMessage(const char *text)
   const char
     *locale_message;
 
-  register char
+  char
     *p;
 
   (void) CopyMagickString(tag,text,MagickPathExtent);
@@ -8730,11 +8770,12 @@ MagickPrivate void XQueryPosition(Display *display,const Window window,int *x,
   Window
     root_window;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (Window) NULL);
   assert(x != (int *) NULL);
   assert(y != (int *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   (void) XQueryPointer(display,window,&root_window,&root_window,&x_root,&y_root,
     x,y,&mask);
 }
@@ -8779,9 +8820,10 @@ MagickPrivate void XRefreshWindow(Display *display,const XWindowInfo *window,
     height,
     width;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (XWindowInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (window->ximage == (XImage *) NULL)
     return;
   if (event != (XEvent *) NULL)
@@ -8894,7 +8936,8 @@ MagickExport MagickBooleanType XRemoteCommand(Display *display,
     root_window;
 
   assert(filename != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
   if (display == (Display *) NULL)
     display=XOpenDisplay((char *) NULL);
   if (display == (Display *) NULL)
@@ -8970,18 +9013,6 @@ MagickPrivate MagickBooleanType XRenderImage(Image *image,
   const DrawInfo *draw_info,const PointInfo *offset,TypeMetric *metrics,
   ExceptionInfo *exception)
 {
-  const char
-    *client_name;
-
-  DrawInfo
-    cache_info;
-
-  Display
-    *display;
-
-  ImageInfo
-    *image_info;
-
   MagickBooleanType
     status;
 
@@ -8989,92 +9020,109 @@ MagickPrivate MagickBooleanType XRenderImage(Image *image,
     height,
     width;
 
-  XAnnotateInfo
+  static Display
+    *display = (Display *) NULL;
+
+  static DrawInfo
+    cache_info;
+
+  static XAnnotateInfo
     annotate_info;
 
-  XFontStruct
+  static XFontStruct
     *font_info;
 
-  XPixelInfo
+  static XPixelInfo
     pixel;
 
-  XResourceInfo
+  static XResourceInfo
     resource_info;
 
-  XrmDatabase
+  static XrmDatabase
     resource_database;
 
-  XStandardColormap
+  static XStandardColormap
     *map_info;
 
-  XVisualInfo
+  static XVisualInfo
     *visual_info;
 
-  /*
-    Open X server connection.
-  */
-  display=XOpenDisplay(draw_info->server_name);
   if (display == (Display *) NULL)
     {
-      ThrowXWindowException(XServerError,"UnableToOpenXServer",
-        draw_info->server_name);
-      return(MagickFalse);
+      const char
+        *client_name;
+
+      ImageInfo
+        *image_info;
+
+      /*
+        Open X server connection.
+      */
+      display=XOpenDisplay(draw_info->server_name);
+      if (display == (Display *) NULL)
+        {
+          ThrowXWindowException(XServerError,"UnableToOpenXServer",
+            draw_info->server_name);
+          return(MagickFalse);
+        }
+      /*
+        Get user defaults from X resource database.
+      */
+      (void) XSetErrorHandler(XError);
+      image_info=AcquireImageInfo();
+      client_name=GetClientName();
+      resource_database=XGetResourceDatabase(display,client_name);
+      XGetResourceInfo(image_info,resource_database,client_name,&resource_info);
+      resource_info.close_server=MagickFalse;
+      resource_info.colormap=PrivateColormap;
+      resource_info.font=AcquireString(draw_info->font);
+      resource_info.background_color=AcquireString("#ffffffffffff");
+      resource_info.foreground_color=AcquireString("#000000000000");
+      map_info=XAllocStandardColormap();
+      visual_info=(XVisualInfo *) NULL;
+      font_info=(XFontStruct *) NULL;
+      pixel.pixels=(unsigned long *) NULL;
+      if (map_info == (XStandardColormap *) NULL)
+        {
+          ThrowXWindowException(ResourceLimitError,"MemoryAllocationFailed",
+            image->filename);
+          return(MagickFalse);
+        }
+      /*
+        Initialize visual info.
+      */
+      visual_info=XBestVisualInfo(display,map_info,&resource_info);
+      if (visual_info == (XVisualInfo *) NULL)
+        {
+          XFreeResources(display,visual_info,map_info,&pixel,font_info,
+            &resource_info,(XWindowInfo *) NULL);
+          ThrowXWindowException(XServerError,"UnableToGetVisual",
+            image->filename);
+          return(MagickFalse);
+        }
+      map_info->colormap=(Colormap) NULL;
+      /*
+        Initialize Standard Colormap info.
+      */
+      XGetMapInfo(visual_info,XDefaultColormap(display,visual_info->screen),
+        map_info);
+      XGetPixelInfo(display,visual_info,map_info,&resource_info,(Image *) NULL,
+        &pixel);
+      pixel.annotate_context=XDefaultGC(display,visual_info->screen);
+      /*
+        Initialize font info.
+      */
+      font_info=XBestFont(display,&resource_info,MagickFalse);
+      if (font_info == (XFontStruct *) NULL)
+        {
+          XFreeResources(display,visual_info,map_info,&pixel,font_info,
+            &resource_info,(XWindowInfo *) NULL);
+          ThrowXWindowException(XServerError,"UnableToLoadFont",
+            draw_info->font);
+          return(MagickFalse);
+        }
+      cache_info=(*draw_info);
     }
-  /*
-    Get user defaults from X resource database.
-  */
-  (void) XSetErrorHandler(XError);
-  image_info=AcquireImageInfo();
-  client_name=GetClientName();
-  resource_database=XGetResourceDatabase(display,client_name);
-  XGetResourceInfo(image_info,resource_database,client_name,&resource_info);
-  resource_info.close_server=MagickFalse;
-  resource_info.colormap=PrivateColormap;
-  resource_info.font=AcquireString(draw_info->font);
-  resource_info.background_color=AcquireString("#ffffffffffff");
-  resource_info.foreground_color=AcquireString("#000000000000");
-  map_info=XAllocStandardColormap();
-  visual_info=(XVisualInfo *) NULL;
-  font_info=(XFontStruct *) NULL;
-  pixel.pixels=(unsigned long *) NULL;
-  if (map_info == (XStandardColormap *) NULL)
-    {
-      ThrowXWindowException(ResourceLimitError,"MemoryAllocationFailed",
-        image->filename);
-      return(MagickFalse);
-    }
-  /*
-    Initialize visual info.
-  */
-  visual_info=XBestVisualInfo(display,map_info,&resource_info);
-  if (visual_info == (XVisualInfo *) NULL)
-    {
-      XFreeResources(display,visual_info,map_info,&pixel,font_info,
-        &resource_info,(XWindowInfo *) NULL);
-      ThrowXWindowException(XServerError,"UnableToGetVisual",image->filename);
-      return(MagickFalse);
-    }
-  map_info->colormap=(Colormap) NULL;
-  /*
-    Initialize Standard Colormap info.
-  */
-  XGetMapInfo(visual_info,XDefaultColormap(display,visual_info->screen),
-    map_info);
-  XGetPixelInfo(display,visual_info,map_info,&resource_info,(Image *) NULL,
-    &pixel);
-  pixel.annotate_context=XDefaultGC(display,visual_info->screen);
-  /*
-    Initialize font info.
-  */
-  font_info=XBestFont(display,&resource_info,MagickFalse);
-  if (font_info == (XFontStruct *) NULL)
-    {
-      XFreeResources(display,visual_info,map_info,&pixel,font_info,
-        &resource_info,(XWindowInfo *) NULL);
-      ThrowXWindowException(XServerError,"UnableToLoadFont",draw_info->font);
-      return(MagickFalse);
-    }
-  cache_info=(*draw_info);
   /*
     Initialize annotate info.
   */
@@ -9095,7 +9143,7 @@ MagickPrivate MagickBooleanType XRenderImage(Image *image,
           return(MagickFalse);
         }
     }
-  if (image->debug != MagickFalse)
+  if (draw_info->debug != MagickFalse)
     (void) LogMagickEvent(AnnotateEvent,GetMagickModule(),
       "Font %s; pointsize %g",draw_info->font != (char *) NULL ?
       draw_info->font : "none",draw_info->pointsize);
@@ -9104,7 +9152,7 @@ MagickPrivate MagickBooleanType XRenderImage(Image *image,
   annotate_info.text=(char *) draw_info->text;
   annotate_info.width=(unsigned int) XTextWidth(font_info,draw_info->text,(int)
     strlen(draw_info->text));
-  annotate_info.height=(unsigned int) font_info->ascent+font_info->descent;
+  annotate_info.height=(unsigned int) (font_info->ascent+font_info->descent);
   metrics->pixels_per_em.x=(double) font_info->max_bounds.width;
   metrics->pixels_per_em.y=(double) font_info->ascent+font_info->descent;
   metrics->ascent=(double) font_info->ascent+4;
@@ -9120,7 +9168,7 @@ MagickPrivate MagickBooleanType XRenderImage(Image *image,
   metrics->underline_thickness=1.0;
   if (draw_info->render == MagickFalse)
     return(MagickTrue);
-  if (draw_info->fill.alpha == TransparentAlpha)
+  if (draw_info->fill.alpha == (double) TransparentAlpha)
     return(MagickTrue);
   /*
     Render fill color.
@@ -9192,9 +9240,10 @@ MagickExport void XRetainWindowColors(Display *display,const Window window)
   /*
     Put property on the window.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (Window) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   property=XInternAtom(display,"_XSETROOT_ID",MagickFalse);
   if (property == (Atom) NULL)
     {
@@ -9274,9 +9323,10 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
   /*
     Initialize graphic context.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(crop_info != (RectangleInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   root_window=XRootWindow(display,XDefaultScreen(display));
   context_values.background=XBlackPixel(display,XDefaultScreen(display));
   context_values.foreground=XWhitePixel(display,XDefaultScreen(display));
@@ -9287,7 +9337,7 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
   annotate_context=XCreateGC(display,root_window,(size_t) (GCBackground |
     GCForeground | GCFunction | GCSubwindowMode),&context_values);
   if (annotate_context == (GC) NULL)
-    return(MagickFalse);
+    return((Window) NULL);
   /*
     Grab the pointer using target cursor.
   */
@@ -9390,6 +9440,8 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
     }
   if ((crop_info->width != 0) && (crop_info->height != 0))
     target_window=root_window;
+  if (event.xbutton.button == Button3)
+    target_window=(Window) NULL;
   return(target_window);
 }
 
@@ -9425,9 +9477,10 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
 MagickPrivate void XSetCursorState(Display *display,XWindows *windows,
   const MagickStatusType state)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(windows != (XWindows *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (state)
     {
       (void) XCheckDefineCursor(display,windows->image.id,
@@ -9694,7 +9747,7 @@ MagickPrivate Window XWindowByID(Display *display,const Window root_window,
   RectangleInfo
     rectangle_info;
 
-  register int
+  int
     i;
 
   Status
@@ -9708,9 +9761,10 @@ MagickPrivate Window XWindowByID(Display *display,const Window root_window,
     *children,
     window;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(root_window != (Window) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (id == 0)
     return(XSelectWindow(display,&rectangle_info));
   if (root_window == id)
@@ -9769,7 +9823,7 @@ MagickPrivate Window XWindowByID(Display *display,const Window root_window,
 MagickPrivate Window XWindowByName(Display *display,const Window root_window,
   const char *name)
 {
-  register int
+  int
     i;
 
   Status
@@ -9789,7 +9843,8 @@ MagickPrivate Window XWindowByName(Display *display,const Window root_window,
   assert(display != (Display *) NULL);
   assert(root_window != (Window) NULL);
   assert(name != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
   if (XGetWMName(display,root_window,&window_name) != 0)
     if (LocaleCompare((char *) window_name.value,name) == 0)
       return(root_window);
@@ -9872,10 +9927,11 @@ MagickPrivate Window XWindowByProperty(Display *display,const Window window,
     parent,
     root;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(display != (Display *) NULL);
   assert(window != (Window) NULL);
   assert(property != (Atom) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   status=XQueryTree(display,window,&root,&parent,&children,&number_children);
   if (status == False)
     return((Window) NULL);
@@ -9930,12 +9986,12 @@ MagickExport Image *XImportImage(const ImageInfo *image_info,
 {
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(ximage_info != (XImportInfo *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   (void) ximage_info;
   (void) exception;
   return((Image *) NULL);

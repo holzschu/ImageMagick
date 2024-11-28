@@ -1,4 +1,4 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -15,7 +15,6 @@
 #  Makefile for building ImageMagick m4 macros.
 
 M4_EXTRA_DIST =  \
-  ac_func_fseeko.m4  \
   ax_append_flag.m4  \
   ax_c___attribute__.m4  \
   ax_cflags_warn_all.m4  \
@@ -39,4 +38,5 @@ M4_EXTRA_DIST =  \
   ltsugar.m4  \
   ltversion.m4  \
   magick_check_pthread_lib.m4  \
-  pkg.m4
+  pkg.m4 \
+  version.m4

@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003, 2008
-// Copyright Dirk Lemstra 2013-2018
+//
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Color Implementation
 //
@@ -36,12 +38,12 @@ namespace Magick
   public:
 
     // PixelType specifies the interpretation of PixelInfo members
-    // CYMKPixel:
+    // CMYKPixel:
     //   Cyan     = red
     //   Magenta  = green
     //   Yellow   = blue
     //   Black(K) = black
-    // CYMKPixel:
+    // CMYKPixel:
     //   Cyan     = red
     //   Magenta  = green
     //   Yellow   = blue

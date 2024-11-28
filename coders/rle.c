@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -149,11 +149,11 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
   int
     opcode,
-    operand,
-    status;
+    operand;
 
   MagickStatusType
-    flags;
+    flags,
+    status;
 
   MagickSizeType
     number_pixels;
@@ -162,19 +162,8 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
     *pixel_info;
 
   Quantum
-    index;
-
-  register ssize_t
-    x;
-
-  register Quantum
+    index,
     *q;
-
-  register ssize_t
-    i;
-
-  register unsigned char
-    *p;
 
   size_t
     bits_per_pixel,
@@ -187,12 +176,15 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
   ssize_t
     count,
+    i,
     offset,
+    x,
     y;
 
   unsigned char
-    background_color[256],
+    background_color[256] = { 0 },
     *colormap,
+    *p,
     pixel,
     plane,
     *pixels;
@@ -202,11 +194,11 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -348,8 +340,8 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
     */
     number_planes_filled=(number_planes % 2 == 0) ? number_planes :
       number_planes+1;
-    if ((number_pixels*number_planes_filled) != (size_t) (number_pixels*
-         number_planes_filled))
+    if ((number_pixels*number_planes_filled) !=
+        (MagickSizeType) (((size_t) number_pixels*number_planes_filled)))
       ThrowRLEException(ResourceLimitError,"MemoryAllocationFailed");
     pixel_info=AcquireVirtualMemory(image->columns,image->rows*
       MagickMax(number_planes_filled,4)*sizeof(*pixels));
@@ -370,7 +362,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
         p=pixels;
         for (i=0; i < (ssize_t) number_pixels; i++)
         {
-          if (image->alpha_trait == UndefinedPixelTrait)
+          if ((image->alpha_trait & BlendPixelTrait) == 0)
             for (j=0; j < (ssize_t) number_planes; j++)
               *p++=background_color[j];
           else
@@ -449,11 +441,12 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
               if (operand == EOF)
                 ThrowRLEException(CorruptImageError,"UnexpectedEndOfFile");
             }
-          offset=(ssize_t) (((image->rows-y-1)*image->columns*number_planes)+x*
+          offset=(ssize_t) ((((ssize_t) image->rows-y-1)*(ssize_t)
+            image->columns*(ssize_t) number_planes)+x*(ssize_t)
             number_planes+plane);
           operand++;
           if ((offset < 0) ||
-              ((size_t) (offset+operand*number_planes) > pixel_info_length))
+              ((size_t) (offset+operand*(ssize_t) number_planes) > pixel_info_length))
             ThrowRLEException(CorruptImageError,"UnableToReadImageData");
           p=pixels+offset;
           for (i=0; i < (ssize_t) operand; i++)
@@ -462,7 +455,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             if ((y < (ssize_t) image->rows) &&
                 ((x+i) < (ssize_t) image->columns))
               *p=pixel;
-            p+=number_planes;
+            p+=(ptrdiff_t) number_planes;
           }
           if (operand & 0x01)
             (void) ReadBlobByte(image);
@@ -482,11 +475,11 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             }
           pixel=(unsigned char) ReadBlobByte(image);
           (void) ReadBlobByte(image);
-          offset=(ssize_t) (((image->rows-y-1)*image->columns*number_planes)+x*
-            number_planes+plane);
+          offset=(((ssize_t) image->rows-y-1)*(ssize_t) image->columns*
+            (ssize_t) number_planes)+x*(ssize_t) number_planes+plane;
           operand++;
           if ((offset < 0) ||
-              ((size_t) (offset+operand*number_planes) > pixel_info_length))
+              ((size_t) (offset+operand*(ssize_t) number_planes) > pixel_info_length))
             ThrowRLEException(CorruptImageError,"UnableToReadImageData");
           p=pixels+offset;
           for (i=0; i < (ssize_t) operand; i++)
@@ -494,7 +487,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             if ((y < (ssize_t) image->rows) &&
                 ((x+i) < (ssize_t) image->columns))
               *p=pixel;
-            p+=number_planes;
+            p+=(ptrdiff_t) number_planes;
           }
           x+=operand;
           break;
@@ -529,8 +522,8 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             for (i=0; i < (ssize_t) number_pixels; i++)
               for (x=0; x < (ssize_t) number_planes; x++)
               {
-                ValidateColormapValue(image,(ssize_t) (x*map_length+
-                  (*p & mask)),&index,exception);
+                ValidateColormapValue(image,x*(ssize_t) map_length+
+                  (*p & mask),&index,exception);
                 *p=colormap[(ssize_t) index];
                 p++;
               }
@@ -558,7 +551,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             SetPixelBlue(image,ScaleCharToQuantum(*p++),q);
             if (image->alpha_trait != UndefinedPixelTrait)
               SetPixelAlpha(image,ScaleCharToQuantum(*p++),q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -607,7 +600,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
               p++;
             }
         p=pixels;
-        if (image->alpha_trait == UndefinedPixelTrait)
+        if ((image->alpha_trait & BlendPixelTrait) == 0)
           {
             /*
               Convert raster image to PseudoClass pixel packets.
@@ -620,7 +613,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
               for (x=0; x < (ssize_t) image->columns; x++)
               {
                 SetPixelIndex(image,(Quantum) *p++,q);
-                q+=GetPixelChannels(image);
+                q+=(ptrdiff_t) GetPixelChannels(image);
               }
               if (SyncAuthenticPixels(image,exception) == MagickFalse)
                 break;
@@ -656,7 +649,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
                 SetPixelBlue(image,ClampToQuantum(image->colormap[(ssize_t)
                   index].blue),q);
                 SetPixelAlpha(image,ScaleCharToQuantum(*p++),q);
-                q+=GetPixelChannels(image);
+                q+=(ptrdiff_t) GetPixelChannels(image);
               }
               if (x < (ssize_t) image->columns)
                 break;
@@ -676,7 +669,7 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
             image->colors=0;
           }
       }
-    if (number_colormaps != 0)
+    if (colormap != (unsigned char *) NULL)
       colormap=(unsigned char *) RelinquishMagickMemory(colormap);
     pixel_info=RelinquishVirtualMemory(pixel_info);
     if (EOFBlob(image) != MagickFalse)
@@ -711,7 +704,10 @@ static Image *ReadRLEImage(const ImageInfo *image_info,ExceptionInfo *exception)
           break;
       }
   } while ((count != 0) && (memcmp(magick,"\122\314",2) == 0));
-  (void) CloseBlob(image);
+  if (colormap != (unsigned char *) NULL)
+    colormap=(unsigned char *) RelinquishMagickMemory(colormap);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
   return(GetFirstImageInList(image));

@@ -1,6 +1,7 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
-// Copyright Dirk Lemstra 2014-2015
+// Copyright @ 2014 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Definition of channel moments.
 //
@@ -59,7 +60,7 @@ namespace Magick
     bool isValid() const;
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
 
     ChannelMoments(const PixelChannel channel_,
@@ -114,7 +115,7 @@ namespace Magick
     double hclpHuPhash(const size_t index_) const;
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
 
     ChannelPerceptualHash(const PixelChannel channel_,
@@ -191,7 +192,7 @@ namespace Magick
     double variance() const;
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
 
     ChannelStatistics(const PixelChannel channel_,
@@ -232,7 +233,7 @@ namespace Magick
     ChannelMoments channel(const PixelChannel channel_) const;
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
     ImageMoments(const Image &image_);
 
@@ -270,7 +271,7 @@ namespace Magick
       const ImagePerceptualHash &channelPerceptualHash_);
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
     ImagePerceptualHash(const Image &image_);
 
@@ -295,7 +296,7 @@ namespace Magick
     ChannelStatistics channel(const PixelChannel channel_) const;
 
     //
-    // Implemementation methods
+    // Implementation methods
     //
     ImageStatistics(const Image &image_);
 

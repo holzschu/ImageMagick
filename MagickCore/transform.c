@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -41,12 +41,14 @@
 */
 #include "MagickCore/studio.h"
 #include "MagickCore/attribute.h"
+#include "MagickCore/artifact.h"
 #include "MagickCore/cache.h"
 #include "MagickCore/cache-view.h"
 #include "MagickCore/color.h"
 #include "MagickCore/color-private.h"
 #include "MagickCore/colorspace-private.h"
 #include "MagickCore/composite.h"
+#include "MagickCore/composite-private.h"
 #include "MagickCore/distort.h"
 #include "MagickCore/draw.h"
 #include "MagickCore/effect.h"
@@ -109,7 +111,7 @@ MagickExport Image *AutoOrientImage(const Image *image,
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
   orient_image=(Image *) NULL;
-  switch(orientation)
+  switch (orientation)
   {
     case UndefinedOrientation:
     case TopLeftOrientation:
@@ -216,11 +218,11 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
   assert(chop_info != (RectangleInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (((chop_info->x+(ssize_t) chop_info->width) < 0) ||
       ((chop_info->y+(ssize_t) chop_info->height) < 0) ||
       (chop_info->x > (ssize_t) image->columns) ||
@@ -241,6 +243,8 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
       extent.height-=(size_t) (-extent.y);
       extent.y=0;
     }
+  if ((extent.width >= image->columns) || (extent.height >= image->rows))
+    ThrowImageException(OptionWarning,"GeometryDoesNotContainImage");
   chop_image=CloneImage(image,image->columns-extent.width,image->rows-
     extent.height,MagickTrue,exception);
   if (chop_image == (Image *) NULL)
@@ -254,17 +258,17 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
   chop_view=AcquireAuthenticCacheView(chop_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(image,chop_image,extent.y,1)
+    magick_number_threads(image,chop_image,(size_t) extent.y,2)
 #endif
   for (y=0; y < (ssize_t) extent.y; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -279,9 +283,9 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      if ((x < extent.x) || (x >= (ssize_t) (extent.x+extent.width)))
+      if ((x < extent.x) || (x >= (extent.x+(ssize_t) extent.width)))
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -294,9 +298,9 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
               continue;
             SetPixelChannel(chop_image,channel,p[i],q);
           }
-          q+=GetPixelChannels(chop_image);
+          q+=(ptrdiff_t) GetPixelChannels(chop_image);
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncCacheViewAuthenticPixels(chop_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -319,22 +323,22 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
   */
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,chop_image,image->rows-(extent.y+extent.height),1)
+    magick_number_threads(image,chop_image,image->rows-((size_t) extent.y+extent.height),2)
 #endif
-  for (y=0; y < (ssize_t) (image->rows-(extent.y+extent.height)); y++)
+  for (y=0; y < (ssize_t) (image->rows-((size_t) extent.y+extent.height)); y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
       continue;
-    p=GetCacheViewVirtualPixels(image_view,0,extent.y+extent.height+y,
+    p=GetCacheViewVirtualPixels(image_view,0,extent.y+(ssize_t) extent.height+y,
       image->columns,1,exception);
     q=QueueCacheViewAuthenticPixels(chop_view,0,extent.y+y,chop_image->columns,
       1,exception);
@@ -345,9 +349,9 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      if ((x < extent.x) || (x >= (ssize_t) (extent.x+extent.width)))
+      if ((x < extent.x) || (x >= (extent.x+(ssize_t) extent.width)))
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -360,9 +364,9 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
               continue;
             SetPixelChannel(chop_image,channel,p[i],q);
           }
-          q+=GetPixelChannels(chop_image);
+          q+=(ptrdiff_t) GetPixelChannels(chop_image);
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncCacheViewAuthenticPixels(chop_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -424,7 +428,7 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
     *cmyk_image,
     *cmyk_images;
 
-  register ssize_t
+  ssize_t
     j;
 
   ssize_t
@@ -435,14 +439,14 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
   */
   assert(images != (Image *) NULL);
   assert(images->signature == MagickCoreSignature);
-  if (images->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",images->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",images->filename);
   cmyk_images=NewImageList();
   for (j=0; j < (ssize_t) GetImageListLength(images); j+=4)
   {
-    register ssize_t
+    ssize_t
       i;
 
     assert(images != (Image *) NULL);
@@ -459,13 +463,13 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
       cmyk_view=AcquireAuthenticCacheView(cmyk_image,exception);
       for (y=0; y < (ssize_t) images->rows; y++)
       {
-        register const Quantum
+        const Quantum
           *magick_restrict p;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         p=GetCacheViewVirtualPixels(image_view,0,y,images->columns,1,exception);
@@ -478,7 +482,8 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
           Quantum
             pixel;
 
-          pixel=ClampToQuantum(QuantumRange-GetPixelIntensity(images,p));
+          pixel=ClampToQuantum((double) QuantumRange-
+            GetPixelIntensity(images,p));
           switch (i)
           {
             case 0: SetPixelCyan(cmyk_image,pixel,q);  break;
@@ -487,8 +492,8 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
             case 3: SetPixelBlack(cmyk_image,pixel,q);  break;
             default: break;
           }
-          p+=GetPixelChannels(images);
-          q+=GetPixelChannels(cmyk_image);
+          p+=(ptrdiff_t) GetPixelChannels(images);
+          q+=(ptrdiff_t) GetPixelChannels(cmyk_image);
         }
         if (SyncCacheViewAuthenticPixels(cmyk_view,exception) == MagickFalse)
           break;
@@ -567,11 +572,11 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(geometry != (const RectangleInfo *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   bounding_box=image->page;
   if ((bounding_box.width == 0) || (bounding_box.height == 0))
     {
@@ -583,16 +588,18 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
     page.width=bounding_box.width;
   if (page.height == 0)
     page.height=bounding_box.height;
-  if (((bounding_box.x-page.x) >= (ssize_t) page.width) ||
-      ((bounding_box.y-page.y) >= (ssize_t) page.height) ||
-      ((page.x-bounding_box.x) > (ssize_t) image->columns) ||
-      ((page.y-bounding_box.y) > (ssize_t) image->rows))
+  if ((((double) bounding_box.x-page.x) >= (double) page.width) ||
+      (((double) bounding_box.y-page.y) >= (double) page.height) ||
+      (((double) page.x-bounding_box.x) > (double) image->columns) ||
+      (((double) page.y-bounding_box.y) > (double) image->rows))
     {
       /*
         Crop is not within virtual canvas, return 1 pixel transparent image.
       */
       (void) ThrowMagickException(exception,GetMagickModule(),OptionWarning,
-        "GeometryDoesNotContainImage","`%s'",image->filename);
+        "GeometryDoesNotContainImage","(\"%.20gx%.20g%+.20g%+.20g\") `%s'",
+        (double) geometry->width,(double) geometry->height,
+        (double) geometry->x,(double) geometry->y,image->filename);
       crop_image=CloneImage(image,1,1,MagickTrue,exception);
       if (crop_image == (Image *) NULL)
         return((Image *) NULL);
@@ -608,34 +615,34 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
     }
   if ((page.x < 0) && (bounding_box.x >= 0))
     {
-      page.width+=page.x-bounding_box.x;
+      page.width=(size_t) ((ssize_t) page.width+page.x-bounding_box.x);
       page.x=0;
     }
   else
     {
-      page.width-=bounding_box.x-page.x;
+      page.width=(size_t) ((ssize_t) page.width-(bounding_box.x-page.x));
       page.x-=bounding_box.x;
       if (page.x < 0)
         page.x=0;
     }
   if ((page.y < 0) && (bounding_box.y >= 0))
     {
-      page.height+=page.y-bounding_box.y;
+      page.height=(size_t) ((ssize_t) page.height+page.y-bounding_box.y);
       page.y=0;
     }
   else
     {
-      page.height-=bounding_box.y-page.y;
+      page.height=(size_t) ((ssize_t) page.height-(bounding_box.y-page.y));
       page.y-=bounding_box.y;
       if (page.y < 0)
         page.y=0;
     }
   if ((page.x+(ssize_t) page.width) > (ssize_t) image->columns)
-    page.width=image->columns-page.x;
+    page.width=(size_t) ((ssize_t) image->columns-page.x);
   if ((geometry->width != 0) && (page.width > geometry->width))
     page.width=geometry->width;
   if ((page.y+(ssize_t) page.height) > (ssize_t) image->rows)
-    page.height=image->rows-page.y;
+    page.height=(size_t) ((ssize_t) image->rows-page.y);
   if ((geometry->height != 0) && (page.height > geometry->height))
     page.height=geometry->height;
   bounding_box.x+=page.x;
@@ -654,8 +661,8 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
     return((Image *) NULL);
   crop_image->page.width=image->page.width;
   crop_image->page.height=image->page.height;
-  offset.x=(ssize_t) (bounding_box.x+bounding_box.width);
-  offset.y=(ssize_t) (bounding_box.y+bounding_box.height);
+  offset.x=bounding_box.x+(ssize_t) bounding_box.width;
+  offset.y=bounding_box.y+(ssize_t) bounding_box.height;
   if ((offset.x > (ssize_t) image->page.width) ||
       (offset.y > (ssize_t) image->page.height))
     {
@@ -673,17 +680,17 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
   crop_view=AcquireAuthenticCacheView(crop_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(image,crop_image,crop_image->rows,1)
+    magick_number_threads(image,crop_image,crop_image->rows,2)
 #endif
   for (y=0; y < (ssize_t) crop_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -699,7 +706,7 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
       }
     for (x=0; x < (ssize_t) crop_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -712,8 +719,8 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
           continue;
         SetPixelChannel(crop_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(crop_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(crop_image);
     }
     if (SyncCacheViewAuthenticPixels(crop_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -755,7 +762,7 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 %  all the normal geometry flags for Crop.
 %
 %      Image *CropImageToTiles(const Image *image,
-%         const RectangleInfo *crop_geometry, ExceptionInfo *exception)
+%        const RectangleInfo *crop_geometry, ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -767,23 +774,14 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 %
 */
 
-static inline double ConstrainPixelOffset(double x)
-{
-  if (x < (double) -(SSIZE_MAX-512))
-    return((double) -(SSIZE_MAX-512));
-  if (x > (double) (SSIZE_MAX-512))
-    return((double) (SSIZE_MAX-512));
-  return(x);
-}
-
 static inline ssize_t PixelRoundOffset(double x)
 {
   /*
     Round the fraction to nearest integer.
   */
   if ((x-floor(x)) < (ceil(x)-x))
-    return((ssize_t) floor(ConstrainPixelOffset(x)));
-  return((ssize_t) ceil(ConstrainPixelOffset(x)));
+    return(CastDoubleToLong(floor(x)));
+  return(CastDoubleToLong(ceil(x)));
 }
 
 MagickExport Image *CropImageToTiles(const Image *image,
@@ -801,10 +799,8 @@ MagickExport Image *CropImageToTiles(const Image *image,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-  crop_image=NewImageList();
-  next=NewImageList();
   flags=ParseGravityGeometry(image,crop_geometry,&geometry,exception);
   if ((flags & AreaValue) != 0)
     {
@@ -822,6 +818,7 @@ MagickExport Image *CropImageToTiles(const Image *image,
       /*
         Crop into NxM tiles (@ flag).
       */
+      crop_image=NewImageList();
       width=image->columns;
       height=image->rows;
       if (geometry.width == 0)
@@ -830,13 +827,15 @@ MagickExport Image *CropImageToTiles(const Image *image,
         geometry.height=1;
       if ((flags & AspectValue) == 0)
         {
-          width-=(geometry.x < 0 ? -1 : 1)*geometry.x;
-          height-=(geometry.y < 0 ? -1 : 1)*geometry.y;
+          width=(size_t) ((ssize_t) width-(geometry.x < 0 ? -1 : 1)*geometry.x);
+          height=(size_t) ((ssize_t) height-(geometry.y < 0 ? -1 : 1)*
+            geometry.y);
         }
       else
         {
-          width+=(geometry.x < 0 ? -1 : 1)*geometry.x;
-          height+=(geometry.y < 0 ? -1 : 1)*geometry.y;
+          width=(size_t) ((ssize_t) width+(geometry.x < 0 ? -1 : 1)*geometry.x);
+          height=(size_t) ((ssize_t) height+(geometry.y < 0 ? -1 : 1)*
+            geometry.y);
         }
       delta.x=(double) width/geometry.width;
       delta.y=(double) height/geometry.height;
@@ -862,7 +861,7 @@ MagickExport Image *CropImageToTiles(const Image *image,
             crop.height=(size_t) PixelRoundOffset((double)
               (offset.y+(geometry.y < -1 ? geometry.y : 0)));
           }
-        crop.height-=crop.y;
+        crop.height=(size_t) ((ssize_t) crop.height-crop.y);
         crop.y+=image->page.y;
         for (offset.x=0; offset.x < (double) width; )
         {
@@ -882,7 +881,7 @@ MagickExport Image *CropImageToTiles(const Image *image,
               crop.width=(size_t) PixelRoundOffset((double) (offset.x+
                 (geometry.x < 0 ? geometry.x : 0)));
             }
-          crop.width-=crop.x;
+          crop.width=(size_t) ((ssize_t) crop.width-crop.x);
           crop.x+=image->page.x;
           next=CropImage(image,&crop,exception);
           if (next != (Image *) NULL)
@@ -935,7 +934,8 @@ MagickExport Image *CropImageToTiles(const Image *image,
       height=geometry.height;
       if (height == 0)
         height=page.height;
-      next=NewImageList();
+      next=(Image *) NULL;
+      crop_image=NewImageList();
       for (y=0; y < (ssize_t) page.height; y+=(ssize_t) height)
       {
         for (x=0; x < (ssize_t) page.width; x+=(ssize_t) width)
@@ -1011,11 +1011,11 @@ MagickExport Image *ExcerptImage(const Image *image,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(geometry != (const RectangleInfo *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   excerpt_image=CloneImage(image,geometry->width,geometry->height,MagickTrue,
     exception);
   if (excerpt_image == (Image *) NULL)
@@ -1029,17 +1029,17 @@ MagickExport Image *ExcerptImage(const Image *image,
   excerpt_view=AcquireAuthenticCacheView(excerpt_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,excerpt_image,excerpt_image->rows,1)
+    magick_number_threads(image,excerpt_image,excerpt_image->rows,2)
 #endif
   for (y=0; y < (ssize_t) excerpt_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1055,7 +1055,7 @@ MagickExport Image *ExcerptImage(const Image *image,
       }
     for (x=0; x < (ssize_t) excerpt_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1068,8 +1068,8 @@ MagickExport Image *ExcerptImage(const Image *image,
           continue;
         SetPixelChannel(excerpt_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(excerpt_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(excerpt_image);
     }
     if (SyncCacheViewAuthenticPixels(excerpt_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -1139,11 +1139,11 @@ MagickExport Image *ExtentImage(const Image *image,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(geometry != (const RectangleInfo *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   extent_image=CloneImage(image,geometry->width,geometry->height,MagickTrue,
     exception);
   if (extent_image == (Image *) NULL)
@@ -1154,6 +1154,7 @@ MagickExport Image *ExtentImage(const Image *image,
       extent_image=DestroyImage(extent_image);
       return((Image *) NULL);
     }
+  DisableCompositeClampUnlessSpecified(extent_image);
   status=CompositeImage(extent_image,image,image->compose,MagickTrue,
     -geometry->x,-geometry->y,exception);
   if (status != MagickFalse)
@@ -1211,10 +1212,10 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   flip_image=CloneImage(image,0,0,MagickTrue,exception);
   if (flip_image == (Image *) NULL)
     return((Image *) NULL);
@@ -1228,23 +1229,23 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
   flip_view=AcquireAuthenticCacheView(flip_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(image,flip_image,flip_image->rows,1)
+    magick_number_threads(image,flip_image,flip_image->rows,2)
 #endif
   for (y=0; y < (ssize_t) flip_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
       continue;
     p=GetCacheViewVirtualPixels(image_view,0,y,image->columns,1,exception);
-    q=QueueCacheViewAuthenticPixels(flip_view,0,(ssize_t) (flip_image->rows-y-
+    q=QueueCacheViewAuthenticPixels(flip_view,0,((ssize_t) flip_image->rows-y-
       1),flip_image->columns,1,exception);
     if ((p == (const Quantum *) NULL) || (q == (Quantum *) NULL))
       {
@@ -1253,7 +1254,7 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
       }
     for (x=0; x < (ssize_t) flip_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1266,8 +1267,8 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
           continue;
         SetPixelChannel(flip_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(flip_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(flip_image);
     }
     if (SyncCacheViewAuthenticPixels(flip_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -1289,7 +1290,7 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
   image_view=DestroyCacheView(image_view);
   flip_image->type=image->type;
   if (page.height != 0)
-    page.y=(ssize_t) (page.height-flip_image->rows-page.y);
+    page.y=((ssize_t) page.height-(ssize_t) flip_image->rows-page.y);
   flip_image->page=page;
   if (status == MagickFalse)
     flip_image=DestroyImage(flip_image);
@@ -1346,10 +1347,10 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   flop_image=CloneImage(image,0,0,MagickTrue,exception);
   if (flop_image == (Image *) NULL)
     return((Image *) NULL);
@@ -1363,17 +1364,17 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
   flop_view=AcquireAuthenticCacheView(flop_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(image,flop_image,flop_image->rows,1)
+    magick_number_threads(image,flop_image,flop_image->rows,2)
 #endif
   for (y=0; y < (ssize_t) flop_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1386,10 +1387,10 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
         status=MagickFalse;
         continue;
       }
-    q+=GetPixelChannels(flop_image)*flop_image->columns;
+    q+=(ptrdiff_t) GetPixelChannels(flop_image)*flop_image->columns;
     for (x=0; x < (ssize_t) flop_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       q-=GetPixelChannels(flop_image);
@@ -1403,7 +1404,7 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
           continue;
         SetPixelChannel(flop_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncCacheViewAuthenticPixels(flop_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -1425,7 +1426,7 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
   image_view=DestroyCacheView(image_view);
   flop_image->type=image->type;
   if (page.width != 0)
-    page.x=(ssize_t) (page.width-flop_image->columns-page.x);
+    page.x=((ssize_t) page.width-(ssize_t) flop_image->columns-page.x);
   flop_image->page=page;
   if (status == MagickFalse)
     flop_image=DestroyImage(flop_image);
@@ -1482,20 +1483,20 @@ static MagickBooleanType CopyImageRegion(Image *destination,const Image *source,
   destination_view=AcquireAuthenticCacheView(destination,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(source,destination,rows,1)
+    magick_number_threads(source,destination,rows,2)
 #endif
   for (y=0; y < (ssize_t) rows; y++)
   {
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     /*
@@ -1512,7 +1513,7 @@ static MagickBooleanType CopyImageRegion(Image *destination,const Image *source,
       }
     for (x=0; x < (ssize_t) columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(source); i++)
@@ -1526,8 +1527,8 @@ static MagickBooleanType CopyImageRegion(Image *destination,const Image *source,
           continue;
         SetPixelChannel(destination,channel,p[i],q);
       }
-      p+=GetPixelChannels(source);
-      q+=GetPixelChannels(destination);
+      p+=(ptrdiff_t) GetPixelChannels(source);
+      q+=(ptrdiff_t) GetPixelChannels(destination);
     }
     sync=SyncCacheViewAuthenticPixels(destination_view,exception);
     if (sync == MagickFalse)
@@ -1557,10 +1558,10 @@ MagickExport Image *RollImage(const Image *image,const ssize_t x_offset,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   roll_image=CloneImage(image,0,0,MagickTrue,exception);
   if (roll_image == (Image *) NULL)
     return((Image *) NULL);
@@ -1581,15 +1582,17 @@ MagickExport Image *RollImage(const Image *image,const ssize_t x_offset,
     (size_t) offset.y,(ssize_t) image->columns-offset.x,(ssize_t) image->rows-
     offset.y,0,0,exception);
   (void) SetImageProgress(image,RollImageTag,0,3);
-  status&=CopyImageRegion(roll_image,image,image->columns-offset.x,
-    (size_t) offset.y,0,(ssize_t) image->rows-offset.y,offset.x,0,
-    exception);
+  status&=(MagickStatusType) CopyImageRegion(roll_image,image,(size_t)
+    ((ssize_t) image->columns-offset.x),(size_t) offset.y,0,(ssize_t)
+    image->rows-offset.y,offset.x,0,exception);
   (void) SetImageProgress(image,RollImageTag,1,3);
-  status&=CopyImageRegion(roll_image,image,(size_t) offset.x,image->rows-
-    offset.y,(ssize_t) image->columns-offset.x,0,0,offset.y,exception);
+  status&=(MagickStatusType) CopyImageRegion(roll_image,image,(size_t)
+    offset.x,(size_t) ((ssize_t) image->rows-offset.y),(ssize_t)
+    image->columns-offset.x,0,0,offset.y,exception);
   (void) SetImageProgress(image,RollImageTag,2,3);
-  status&=CopyImageRegion(roll_image,image,image->columns-offset.x,image->rows-
-    offset.y,0,0,offset.x,offset.y,exception);
+  status&=(MagickStatusType) CopyImageRegion(roll_image,image,(size_t)
+    ((ssize_t) image->columns-offset.x),(size_t) ((ssize_t) image->rows-
+    offset.y),0,0,offset.x,offset.y,exception);
   (void) SetImageProgress(image,RollImageTag,3,3);
   roll_image->type=image->type;
   if (status == MagickFalse)
@@ -1642,7 +1645,7 @@ MagickExport Image *ShaveImage(const Image *image,
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (((2*shave_info->width) >= image->columns) ||
       ((2*shave_info->height) >= image->rows))
@@ -1721,7 +1724,7 @@ MagickExport Image *SpliceImage(const Image *image,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(geometry != (const RectangleInfo *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
@@ -1807,17 +1810,17 @@ MagickExport Image *SpliceImage(const Image *image,
   splice_view=AcquireAuthenticCacheView(splice_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,splice_image,splice_geometry.y,1)
+    magick_number_threads(image,splice_image,(size_t) splice_geometry.y,2)
 #endif
   for (y=0; y < (ssize_t) splice_geometry.y; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1833,7 +1836,7 @@ MagickExport Image *SpliceImage(const Image *image,
       }
     for (x=0; x < columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1850,14 +1853,14 @@ MagickExport Image *SpliceImage(const Image *image,
       SetPixelGreen(splice_image,GetPixelGreen(image,p),q);
       SetPixelBlue(splice_image,GetPixelBlue(image,p),q);
       SetPixelAlpha(splice_image,GetPixelAlpha(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(splice_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     }
-    for ( ; x < (ssize_t) (splice_geometry.x+splice_geometry.width); x++)
-      q+=GetPixelChannels(splice_image);
+    for ( ; x < (splice_geometry.x+(ssize_t) splice_geometry.width); x++)
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     for ( ; x < (ssize_t) splice_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1874,8 +1877,8 @@ MagickExport Image *SpliceImage(const Image *image,
       SetPixelGreen(splice_image,GetPixelGreen(image,p),q);
       SetPixelBlue(splice_image,GetPixelBlue(image,p),q);
       SetPixelAlpha(splice_image,GetPixelAlpha(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(splice_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     }
     if (SyncCacheViewAuthenticPixels(splice_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -1898,21 +1901,20 @@ MagickExport Image *SpliceImage(const Image *image,
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(image,splice_image,splice_image->rows,2)
 #endif
-  for (y=(ssize_t) (splice_geometry.y+splice_geometry.height);
-       y < (ssize_t) splice_image->rows; y++)
+  for (y=splice_geometry.y+(ssize_t) splice_geometry.height; y < (ssize_t) splice_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
       continue;
-    if ((y < 0) || (y >= (ssize_t)splice_image->rows))
+    if ((y < 0) || (y >= (ssize_t) splice_image->rows))
       continue;
     p=GetCacheViewVirtualPixels(image_view,0,y-(ssize_t) splice_geometry.height,
       splice_image->columns,1,exception);
@@ -1925,7 +1927,7 @@ MagickExport Image *SpliceImage(const Image *image,
       }
     for (x=0; x < columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1942,14 +1944,14 @@ MagickExport Image *SpliceImage(const Image *image,
       SetPixelGreen(splice_image,GetPixelGreen(image,p),q);
       SetPixelBlue(splice_image,GetPixelBlue(image,p),q);
       SetPixelAlpha(splice_image,GetPixelAlpha(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(splice_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     }
-    for ( ; x < (ssize_t) (splice_geometry.x+splice_geometry.width); x++)
-      q+=GetPixelChannels(splice_image);
+    for ( ; x < (splice_geometry.x+(ssize_t) splice_geometry.width); x++)
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     for ( ; x < (ssize_t) splice_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1966,8 +1968,8 @@ MagickExport Image *SpliceImage(const Image *image,
       SetPixelGreen(splice_image,GetPixelGreen(image,p),q);
       SetPixelBlue(splice_image,GetPixelBlue(image,p),q);
       SetPixelAlpha(splice_image,GetPixelAlpha(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(splice_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(splice_image);
     }
     if (SyncCacheViewAuthenticPixels(splice_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -2052,7 +2054,7 @@ MagickPrivate MagickBooleanType TransformImage(Image **image,
 
   assert(image != (Image **) NULL);
   assert((*image)->signature == MagickCoreSignature);
-  if ((*image)->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",(*image)->filename);
   transform_image=(*image);
   if (crop_geometry != (const char *) NULL)
@@ -2143,10 +2145,10 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   transpose_image=CloneImage(image,image->rows,image->columns,MagickTrue,
     exception);
   if (transpose_image == (Image *) NULL)
@@ -2160,24 +2162,24 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
   transpose_view=AcquireAuthenticCacheView(transpose_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,transpose_image,image->rows,1)
+    magick_number_threads(image,transpose_image,image->rows,2)
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
       continue;
     p=GetCacheViewVirtualPixels(image_view,0,(ssize_t) image->rows-y-1,
       image->columns,1,exception);
-    q=QueueCacheViewAuthenticPixels(transpose_view,(ssize_t) (image->rows-y-1),
+    q=QueueCacheViewAuthenticPixels(transpose_view,(ssize_t) image->rows-y-1,
       0,1,transpose_image->rows,exception);
     if ((p == (const Quantum *) NULL) || (q == (Quantum *) NULL))
       {
@@ -2186,7 +2188,7 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -2200,8 +2202,8 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
           continue;
         SetPixelChannel(transpose_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(transpose_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(transpose_image);
     }
     if (SyncCacheViewAuthenticPixels(transpose_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -2281,10 +2283,10 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   transverse_image=CloneImage(image,image->rows,image->columns,MagickTrue,
     exception);
   if (transverse_image == (Image *) NULL)
@@ -2298,36 +2300,36 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
   transverse_view=AcquireAuthenticCacheView(transverse_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,transverse_image,image->rows,1)
+    magick_number_threads(image,transverse_image,image->rows,2)
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
       continue;
     p=GetCacheViewVirtualPixels(image_view,0,y,image->columns,1,exception);
-    q=QueueCacheViewAuthenticPixels(transverse_view,(ssize_t) (image->rows-y-1),
+    q=QueueCacheViewAuthenticPixels(transverse_view,(ssize_t) image->rows-y-1,
       0,1,transverse_image->rows,exception);
     if ((p == (const Quantum *) NULL) || (q == (Quantum *) NULL))
       {
         status=MagickFalse;
         continue;
       }
-    q+=GetPixelChannels(transverse_image)*image->columns;
+    q+=(ptrdiff_t) GetPixelChannels(transverse_image)*image->columns;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       q-=GetPixelChannels(transverse_image);
@@ -2342,7 +2344,7 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
           continue;
         SetPixelChannel(transverse_image,channel,p[i],q);
       }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     sync=SyncCacheViewAuthenticPixels(transverse_view,exception);
     if (sync == MagickFalse)
@@ -2368,9 +2370,9 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
   Swap(page.width,page.height);
   Swap(page.x,page.y);
   if (page.width != 0)
-    page.x=(ssize_t) (page.width-transverse_image->columns-page.x);
+    page.x=(ssize_t) page.width-(ssize_t) transverse_image->columns-page.x;
   if (page.height != 0)
-    page.y=(ssize_t) (page.height-transverse_image->rows-page.y);
+    page.y=(ssize_t) page.height-(ssize_t) transverse_image->rows-page.y;
   transverse_image->page=page;
   if (status == MagickFalse)
     transverse_image=DestroyImage(transverse_image);
@@ -2405,15 +2407,19 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
 */
 MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
 {
+  const char
+    *artifact;
+
   Image
     *trim_image;
 
   RectangleInfo
-    geometry;
+    geometry,
+    page;
 
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   geometry=GetImageBoundingBox(image,exception);
   if ((geometry.width == 0) || (geometry.height == 0))
@@ -2431,6 +2437,69 @@ MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
       crop_image->page.x=(-1);
       crop_image->page.y=(-1);
       return(crop_image);
+    }
+  page=geometry;
+  artifact=GetImageArtifact(image,"trim:minSize");
+  if (artifact != (const char *) NULL)
+    (void) ParseAbsoluteGeometry(artifact,&page);
+  if ((geometry.width < page.width) && (geometry.height < page.height))
+    {
+      /*
+        Limit trim to a minimum size.
+      */
+      switch (image->gravity)
+      {
+        case CenterGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width)/2;
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height)/2;
+          break;
+        }
+        case NorthWestGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width);
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height);
+          break;
+        }
+        case NorthGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width)/2;
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height);
+          break;
+        }
+        case NorthEastGravity:
+        {
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height);
+          break;
+        }
+        case EastGravity:
+        {
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height)/2;
+          break;
+        }
+        case SouthEastGravity:
+          break;
+        case SouthGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width)/2;
+          break;
+        }
+        case SouthWestGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width);
+          break;
+        }
+        case WestGravity:
+        {
+          geometry.x-=((ssize_t) page.width-(ssize_t) geometry.width);
+          geometry.y-=((ssize_t) page.height-(ssize_t) geometry.height)/2;
+          break;
+        }
+        default:
+          break;
+      }
+      geometry.width=page.width;
+      geometry.height=page.height;
     }
   geometry.x+=image->page.x;
   geometry.y+=image->page.y;

@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002
-// Copyright Dirk Lemstra 2014-2015
+//
+// Copyright @ 2014 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Implementation of ImageRef
 //
@@ -58,7 +60,7 @@ size_t Magick::ImageRef::decrease()
         "Invalid call to decrease");
       return(0);
     }
-  count=--_refCount;
+  count=(size_t) (--_refCount);
   _mutexLock.unlock();
   return(count);
 }

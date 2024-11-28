@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  MagickCore pribate image profile methods.
+  MagickCore private image profile methods.
 */
 #ifndef MAGICKCORE_PROFILE_PRIVATE_H
 #define MAGICKCORE_PROFILE_PRIVATE_H
@@ -24,12 +24,18 @@
 extern "C" {
 #endif
 
-extern MagickPrivate MagickBooleanType
-  SyncImageProfiles(Image *);
+extern MagickExport MagickBooleanType
+  SetImageProfilePrivate(Image *,StringInfo *,ExceptionInfo *);
+
+extern MagickExport StringInfo
+  *AcquireProfileStringInfo(const char *,const size_t length,ExceptionInfo *),
+  *BlobToProfileStringInfo(const char *,const void *blob,const size_t length,
+    ExceptionInfo *exception);
 
 extern MagickPrivate void
   Update8BIMClipPath(const Image *,const size_t,const size_t,
-    const RectangleInfo *);
+    const RectangleInfo *),
+  SyncImageProfiles(Image *);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

@@ -1,6 +1,7 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
-// Copyright Dirk Lemstra 2018
+// Copyright @ 2018 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Implementation of the security policy.
 //
@@ -12,6 +13,7 @@
 #include "Magick++/Exception.h"
 #include <string>
 #include <sstream>
+
 
 using namespace std;
 
@@ -41,6 +43,15 @@ bool Magick::SecurityPolicy::maxMemoryRequest(const MagickSizeType limit_)
 
   value=toString(limit_);
   return(setValue(SystemPolicyDomain,"max-memory-request",value));
+}
+
+bool Magick::SecurityPolicy::maxProfileSize(const MagickSizeType limit_)
+{
+  string
+    value;
+
+  value=toString(limit_);
+  return(setValue(SystemPolicyDomain,"max-profile-size",value));
 }
 
 bool Magick::SecurityPolicy::shred(const int passes_)

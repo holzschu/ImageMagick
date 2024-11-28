@@ -17,7 +17,7 @@
 %                                 April 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -140,11 +140,11 @@ static Image *ReadMVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -157,7 +157,7 @@ static Image *ReadMVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
       char
         primitive[MagickPathExtent];
 
-      register char
+      char
         *p;
 
       SegmentInfo
@@ -177,8 +177,8 @@ static Image *ReadMVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
           &bounds.x2,&bounds.y2);
         if (count != 4)
           continue;
-        image->columns=(size_t) floor((bounds.x2-bounds.x1)+0.5);
-        image->rows=(size_t) floor((bounds.y2-bounds.y1)+0.5);
+        image->columns=CastDoubleToUnsigned(floor((bounds.x2-bounds.x1)+0.5));
+        image->rows=CastDoubleToUnsigned(floor((bounds.y2-bounds.y1)+0.5));
         break;
       }
     }
@@ -191,8 +191,8 @@ static Image *ReadMVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     96.0;
   draw_info->affine.sy=image->resolution.y == 0.0 ? 1.0 : image->resolution.y/
     96.0;
-  image->columns=(size_t) (draw_info->affine.sx*image->columns);
-  image->rows=(size_t) (draw_info->affine.sy*image->rows);
+  image->columns=CastDoubleToUnsigned(draw_info->affine.sx*image->columns);
+  image->rows=CastDoubleToUnsigned(draw_info->affine.sy*image->rows);
   status=SetImageExtent(image,image->columns,image->rows,exception);
   if (status == MagickFalse)
     {
@@ -239,7 +239,10 @@ static Image *ReadMVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) DrawImage(image,draw_info,exception);
   (void) SetImageArtifact(image,"mvg:vector-graphics",draw_info->primitive);
   draw_info=DestroyDrawInfo(draw_info);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -276,6 +279,7 @@ ModuleExport size_t RegisterMVGImage(void)
   entry->encoder=(EncodeImageHandler *) WriteMVGImage;
   entry->magick=(IsImageFormatHandler *) IsMVG;
   entry->format_type=ImplicitFormatType;
+  entry->flags|=CoderDecoderSeekableStreamFlag;
   entry->flags^=CoderAdjoinFlag;
   (void) RegisterMagickInfo(entry);
   return(MagickImageCoderSignature);
@@ -348,7 +352,7 @@ static MagickBooleanType WriteMVGImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   value=GetImageArtifact(image,"mvg:vector-graphics");
   if (value == (const char *) NULL)
@@ -357,6 +361,7 @@ static MagickBooleanType WriteMVGImage(const ImageInfo *image_info,Image *image,
   if (status == MagickFalse)
     return(status);
   (void) WriteBlob(image,strlen(value),(const unsigned char *) value);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

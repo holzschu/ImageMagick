@@ -17,7 +17,7 @@
 %                               August 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the license.  You may  %
@@ -37,7 +37,7 @@
 */
 
 /*
-  include declarations.
+  Include declarations.
 */
 #include "MagickCore/studio.h"
 #include "MagickCore/blob.h"
@@ -52,7 +52,9 @@
 #include "MagickCore/memory-private.h"
 #include "MagickCore/nt-base-private.h"
 #include "MagickCore/property.h"
+#include "MagickCore/policy.h"
 #include "MagickCore/resource_.h"
+#include "MagickCore/resource-private.h"
 #include "MagickCore/signature-private.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
@@ -80,7 +82,7 @@
 %  An extended string is the string length, plus an extra MagickPathExtent space
 %  to allow for the string to be actively worked on.
 %
-%  The returned string shoud be freed using DestoryString().
+%  The returned string should be freed using DestroyString().
 %
 %  The format of the AcquireString method is:
 %
@@ -137,7 +139,7 @@ MagickExport char *AcquireString(const char *source)
 %
 */
 
-static StringInfo *AcquireStringInfoContainer()
+static StringInfo *AcquireStringInfoContainer(void)
 {
   StringInfo
     *string_info;
@@ -233,7 +235,7 @@ MagickExport StringInfo *BlobToStringInfo(const void *blob,const size_t length)
 %  If source is a NULL pointer the destination string will be freed and set to
 %  a NULL pointer.  A pointer to the stored in the destination is also returned.
 %
-%  When finished the non-NULL string should be freed using DestoryString()
+%  When finished the non-NULL string should be freed using DestroyString()
 %  or using CloneString() with a NULL pointed for the source.
 %
 %  The format of the CloneString method is:
@@ -392,17 +394,15 @@ MagickExport int CompareStringInfo(const StringInfo *target,
 MagickExport size_t ConcatenateMagickString(char *magick_restrict destination,
   const char *magick_restrict source,const size_t length)
 {
-  register char
+  char
     *magick_restrict q;
 
-  register const char
+  const char
     *magick_restrict p;
 
-  register size_t
-    i;
-
   size_t
-    count;
+    count,
+    i;
 
   assert(destination != (char *) NULL);
   assert(source != (const char *) NULL);
@@ -426,7 +426,7 @@ MagickExport size_t ConcatenateMagickString(char *magick_restrict destination,
     p++;
   }
   *q='\0';
-  return(count+(p-source));
+  return(count+(size_t) (p-source));
 }
 
 /*
@@ -479,8 +479,8 @@ MagickExport MagickBooleanType ConcatenateString(
   length+=source_length;
   if (~length < MagickPathExtent)
     ThrowFatalException(ResourceLimitFatalError,"UnableToConcatenateString");
-  *destination=(char *) ResizeQuantumMemory(*destination,length+
-    MagickPathExtent,sizeof(**destination));
+  *destination=(char *) ResizeQuantumMemory(*destination,
+    OverAllocateMemory(length+MagickPathExtent),sizeof(**destination));
   if (*destination == (char *) NULL)
     ThrowFatalException(ResourceLimitFatalError,"UnableToConcatenateString");
   if (source_length != 0)
@@ -527,8 +527,21 @@ MagickExport void ConcatenateStringInfo(StringInfo *string_info,
   length=string_info->length;
   if (~length < source->length)
     ThrowFatalException(ResourceLimitFatalError,"UnableToConcatenateString");
-  SetStringInfoLength(string_info,length+source->length);
-  (void) memcpy(string_info->datum+length,source->datum,source->length);
+  length+=source->length;
+  if (~length < MagickPathExtent)
+    ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
+  if (string_info->datum == (unsigned char *) NULL)
+    string_info->datum=(unsigned char *) AcquireQuantumMemory(length+
+      MagickPathExtent,sizeof(*string_info->datum));
+  else
+    string_info->datum=(unsigned char *) ResizeQuantumMemory(
+      string_info->datum,OverAllocateMemory(length+MagickPathExtent),
+      sizeof(*string_info->datum));
+  if (string_info->datum == (unsigned char *) NULL)
+    ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
+  (void) memcpy(string_info->datum+string_info->length,source->datum,
+    source->length);
+  string_info->length=length;
 }
 
 /*
@@ -603,17 +616,17 @@ MagickExport StringInfo *ConfigureFileToStringInfo(const char *filename)
     }
   else
     {
-      register size_t
+      size_t
         i;
 
       ssize_t
         count;
 
       (void) lseek(file,0,SEEK_SET);
-      for (i=0; i < length; i+=count)
+      for (i=0; i < length; i+=(size_t) count)
       {
         count=read(file,string+i,(size_t) MagickMin(length-i,(size_t)
-          SSIZE_MAX));
+          MagickMaxBufferExtent));
         if (count <= 0)
           {
             count=0;
@@ -652,7 +665,7 @@ MagickExport StringInfo *ConfigureFileToStringInfo(const char *filename)
 %  copies the source string to that memory location.  A NULL string pointer
 %  will allocate an empty string containing just the NUL character.
 %
-%  When finished the string should be freed using DestoryString()
+%  When finished the string should be freed using DestroyString()
 %
 %  The format of the ConstantString method is:
 %
@@ -719,13 +732,13 @@ MagickExport char *ConstantString(const char *source)
 MagickExport size_t CopyMagickString(char *magick_restrict destination,
   const char *magick_restrict source,const size_t length)
 {
-  register char
+  char
     *magick_restrict q;
 
-  register const char
+  const char
     *magick_restrict p;
 
-  register size_t
+  size_t
     n;
 
   p=source;
@@ -840,7 +853,7 @@ MagickExport StringInfo *DestroyStringInfo(StringInfo *string_info)
 */
 MagickExport char **DestroyStringList(char **list)
 {
-  register ssize_t
+  ssize_t
     i;
 
   assert(list != (char **) NULL);
@@ -884,10 +897,10 @@ MagickExport char *EscapeString(const char *source,const char escape)
   char
     *destination;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
   size_t
@@ -953,13 +966,33 @@ MagickExport char *EscapeString(const char *source,const char escape)
 MagickExport char *FileToString(const char *filename,const size_t extent,
   ExceptionInfo *exception)
 {
+  const char
+    *p;
+
   size_t
     length;
 
   assert(filename != (const char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
   assert(exception != (ExceptionInfo *) NULL);
-  return((char *) FileToBlob(filename,extent,&length,exception));
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
+  p=filename;
+  if ((*filename == '@') && (strlen(filename) > 1))
+    {
+      MagickBooleanType
+        status;
+
+      status=IsRightsAuthorized(PathPolicyDomain,ReadPolicyRights,filename);
+      if (status == MagickFalse)
+        {
+          errno=EPERM;
+          (void) ThrowMagickException(exception,GetMagickModule(),PolicyError,
+            "NotAuthorized","`%s'",filename);
+          return((char *) NULL);
+        }
+      p=filename+1;
+    }
+  return((char *) FileToBlob(p,extent,&length,exception));
 }
 
 /*
@@ -996,8 +1029,9 @@ MagickExport StringInfo *FileToStringInfo(const char *filename,
     *string_info;
 
   assert(filename != (const char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
   assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",filename);
   string_info=AcquireStringInfoContainer();
   string_info->path=ConstantString(filename);
   string_info->datum=(unsigned char *) FileToBlob(filename,extent,
@@ -1047,10 +1081,6 @@ MagickExport ssize_t FormatMagickSize(const MagickSizeType size,
   const MagickBooleanType bi,const char *suffix,const size_t length,
   char *format)
 {
-  char
-    p[MagickPathExtent],
-    q[MagickPathExtent];
-
   const char
     **units;
 
@@ -1058,7 +1088,7 @@ MagickExport ssize_t FormatMagickSize(const MagickSizeType size,
     bytes,
     extent;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -1067,11 +1097,11 @@ MagickExport ssize_t FormatMagickSize(const MagickSizeType size,
   static const char
     *bi_units[] =
     {
-      "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi", (char *) NULL
+      "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi", "Ri", "Qi", (char *) NULL
     },
     *traditional_units[] =
     {
-      "", "K", "M", "G", "T", "P", "E", "Z", "Y", (char *) NULL
+      "", "K", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q", (char *) NULL
     };
 
   bytes=1000.0;
@@ -1081,15 +1111,10 @@ MagickExport ssize_t FormatMagickSize(const MagickSizeType size,
       bytes=1024.0;
       units=bi_units;
     }
-#if defined(_MSC_VER) && (_MSC_VER == 1200)
-  extent=(double) ((MagickOffsetType) size);
-#else
   extent=(double) size;
-#endif
-  (void) FormatLocaleString(p,MagickPathExtent,"%.*g",GetMagickPrecision(),
-    extent);
-  (void) FormatLocaleString(q,MagickPathExtent,"%.20g",extent);
-  if (strtod(p,(char **) NULL) == strtod(q,(char **) NULL))
+  (void) FormatLocaleString(format,MagickFormatExtent,"%.*g",
+    GetMagickPrecision(),extent);
+  if (strstr(format,"e+") == (char *) NULL)
     {
       if (suffix == (const char *) NULL)
         count=FormatLocaleString(format,length,"%.20g%s",extent,units[0]);
@@ -1134,6 +1159,9 @@ MagickExport ssize_t FormatMagickSize(const MagickSizeType size,
 */
 MagickExport char *GetEnvironmentValue(const char *name)
 {
+#if defined(MAGICKCORE_WINDOWS_SUPPORT)
+  return(NTGetEnvironmentValue(name));
+#else
   const char
     *environment;
 
@@ -1141,6 +1169,7 @@ MagickExport char *GetEnvironmentValue(const char *name)
   if (environment == (const char *) NULL)
     return((char *) NULL);
   return(ConstantString(environment));
+#endif
 }
 
 /*
@@ -1276,18 +1305,18 @@ MagickExport const char *GetStringInfoPath(const StringInfo *string_info)
 %
 %  The format of the InterpretSiPrefixValue method is:
 %
-%      double InterpretSiPrefixValue(const char *value,char **sentinal)
+%      double InterpretSiPrefixValue(const char *value,char **sentinel)
 %
 %  A description of each parameter follows:
 %
 %    o value: the string value.
 %
-%    o sentinal:  if sentinal is not NULL, return a pointer to the character
+%    o sentinel:  if sentinel is not NULL, return a pointer to the character
 %      after the last character used in the conversion.
 %
 */
 MagickExport double InterpretSiPrefixValue(const char *magick_restrict string,
-  char **magick_restrict sentinal)
+  char **magick_restrict sentinel)
 {
   char
     *q;
@@ -1305,6 +1334,8 @@ MagickExport double InterpretSiPrefixValue(const char *magick_restrict string,
 
           switch ((int) ((unsigned char) *q))
           {
+            case 'q': e=(-30.0); break;
+            case 'r': e=(-27.0); break;
             case 'y': e=(-24.0); break;
             case 'z': e=(-21.0); break;
             case 'a': e=(-18.0); break;
@@ -1325,6 +1356,8 @@ MagickExport double InterpretSiPrefixValue(const char *magick_restrict string,
             case 'E': e=18.0; break;
             case 'Z': e=21.0; break;
             case 'Y': e=24.0; break;
+            case 'R': e=27.0; break;
+            case 'Q': e=30.0; break;
             default: e=0.0; break;
           }
           if (e >= MagickEpsilon)
@@ -1332,7 +1365,7 @@ MagickExport double InterpretSiPrefixValue(const char *magick_restrict string,
               if (q[1] == 'i')
                 {
                   value*=pow(2.0,e/0.3);
-                  q+=2;
+                  q+=(ptrdiff_t) 2;
                 }
               else
                 {
@@ -1344,8 +1377,8 @@ MagickExport double InterpretSiPrefixValue(const char *magick_restrict string,
       if ((*q == 'B') || (*q == 'P'))
         q++;
     }
-  if (sentinal != (char **) NULL)
-    *sentinal=q;
+  if (sentinel != (char **) NULL)
+    *sentinel=q;
   return(value);
 }
 
@@ -1461,10 +1494,10 @@ MagickExport MagickBooleanType IsStringFalse(const char *value)
 MagickExport void PrintStringInfo(FILE *file,const char *id,
   const StringInfo *string_info)
 {
-  register const char
+  const char
     *p;
 
-  register size_t
+  size_t
     i,
     j;
 
@@ -1560,7 +1593,7 @@ MagickExport void ResetStringInfo(StringInfo *string_info)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  SanitizeString() returns n new string removes all characters except
+%  SanitizeString() returns a new string with all characters removed except
 %  letters, digits and !#$%&'*+-=?^_`{|}~@.[].
 %
 %  Free the sanitized string with DestroyString().
@@ -1582,7 +1615,7 @@ MagickExport char *SanitizeString(const char *source)
   const char
     *q;
 
-  register char
+  char
     *p;
 
   static char
@@ -1593,7 +1626,7 @@ MagickExport char *SanitizeString(const char *source)
   sanitize_source=AcquireString(source);
   p=sanitize_source;
   q=sanitize_source+strlen(sanitize_source);
-  for (p+=strspn(p,allowlist); p != q; p+=strspn(p,allowlist))
+  for (p+=strspn(p,allowlist); p != q; p+=(ptrdiff_t) strspn(p,allowlist))
     *p='_';
   return(sanitize_source);
 }
@@ -1824,41 +1857,37 @@ MagickExport StringInfo *SplitStringInfo(StringInfo *string_info,
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%   S t r i n g I n f o T o S t r i n g                                       %
+%   S t r i n g I n f o T o D i g e s t                                       %
 %                                                                             %
 %                                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  StringInfoToString() converts a string info string to a C string.
+%  StringInfoToDigest() converts a string info string to a hex digest.
 %
 %  The format of the StringInfoToString method is:
 %
-%      char *StringInfoToString(const StringInfo *string_info)
+%      char *StringInfoToDigest(const StringInfo *signature)
 %
 %  A description of each parameter follows:
 %
 %    o string_info: the string.
 %
 */
-MagickExport char *StringInfoToString(const StringInfo *string_info)
+MagickExport char *StringInfoToDigest(const StringInfo *signature)
 {
   char
-    *string;
+    *digest;
 
-  size_t
-    length;
+  SignatureInfo
+    *signature_info;
 
-  string=(char *) NULL;
-  length=string_info->length;
-  if (~length >= (MagickPathExtent-1))
-    string=(char *) AcquireQuantumMemory(length+MagickPathExtent,
-      sizeof(*string));
-  if (string == (char *) NULL)
-    return((char *) NULL);
-  (void) memcpy(string,(char *) string_info->datum,length*sizeof(*string));
-  string[length]='\0';
-  return(string);
+  signature_info=AcquireSignatureInfo();
+  UpdateSignature(signature_info,signature);
+  FinalizeSignature(signature_info);
+  digest=StringInfoToHexString(GetSignatureDigest(signature_info));
+  signature_info=DestroySignatureInfo(signature_info);
+  return(digest);
 }
 
 /*
@@ -1888,13 +1917,13 @@ MagickExport char *StringInfoToHexString(const StringInfo *string_info)
   char
     *string;
 
-  register const unsigned char
+  const unsigned char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register unsigned char
+  unsigned char
     *q;
 
   size_t
@@ -1943,6 +1972,48 @@ MagickExport char *StringInfoToHexString(const StringInfo *string_info)
 %                                                                             %
 %                                                                             %
 %                                                                             %
+%   S t r i n g I n f o T o S t r i n g                                       %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  StringInfoToString() converts a string info string to a C string.
+%
+%  The format of the StringInfoToString method is:
+%
+%      char *StringInfoToString(const StringInfo *string_info)
+%
+%  A description of each parameter follows:
+%
+%    o string_info: the string.
+%
+*/
+MagickExport char *StringInfoToString(const StringInfo *string_info)
+{
+  char
+    *string;
+
+  size_t
+    length;
+
+  string=(char *) NULL;
+  length=string_info->length;
+  if (~length >= (MagickPathExtent-1))
+    string=(char *) AcquireQuantumMemory(length+MagickPathExtent,
+      sizeof(*string));
+  if (string == (char *) NULL)
+    return((char *) NULL);
+  (void) memcpy(string,(char *) string_info->datum,length*sizeof(*string));
+  string[length]='\0';
+  return(string);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
 %  S t r i n g T o A r g v                                                    %
 %                                                                             %
 %                                                                             %
@@ -1977,11 +2048,11 @@ MagickExport char **StringToArgv(const char *text,int *argc)
   char
     **argv;
 
-  register const char
+  const char
     *p,
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
   *argc=0;
@@ -2005,7 +2076,7 @@ MagickExport char **StringToArgv(const char *text,int *argc)
       p++;
   }
   (*argc)++;
-  argv=(char **) AcquireQuantumMemory((size_t) (*argc+1UL),sizeof(*argv));
+  argv=(char **) AcquireQuantumMemory((size_t) *argc+1UL,sizeof(*argv));
   if (argv == (char **) NULL)
     ThrowFatalException(ResourceLimitFatalError,"UnableToConvertStringToARGV");
   /*
@@ -2065,7 +2136,7 @@ MagickExport char **StringToArgv(const char *text,int *argc)
 %
 %  StringToArrayOfDoubles() converts a string of space or comma separated
 %  numbers into array of floating point numbers (doubles). Any number that
-%  failes to parse properly will produce a syntax error. As will two commas
+%  fails to parse properly will produce a syntax error. As will two commas
 %  without a  number between them.  However a final comma at the end will
 %  not be regarded as an error so as to simplify automatic list generation.
 %
@@ -2099,7 +2170,7 @@ MagickExport double *StringToArrayOfDoubles(const char *string,ssize_t *count,
   double
     *array;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -2171,7 +2242,7 @@ MagickExport double *StringToArrayOfDoubles(const char *string,ssize_t *count,
 %  delimiter character found, or NULL.  A pointer to the start of the
 %  string is returned, representing the token before the delimiter.
 %
-%  In may ways this is equivent to the strtok() C library function, but with
+%  StringToken() is similar to the strtok() C library method, but with
 %  multiple delimiter characters rather than a delimiter string.
 %
 %  The format of the StringToken method is:
@@ -2191,13 +2262,13 @@ MagickExport char *StringToken(const char *delimiters,char **string)
   char
     *q;
 
-  register char
+  char
     *p;
 
-  register const char
+  const char
     *r;
 
-  register int
+  int
     c,
     d;
 
@@ -2285,10 +2356,10 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
   char
     **textlist;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -2306,7 +2377,7 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
       break;
   if (*p == '\0')
     {
-      register const char
+      const char
         *q;
 
       /*
@@ -2342,10 +2413,10 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
       char
         hex_string[MagickPathExtent];
 
-      register char
+      char
         *q;
 
-      register ssize_t
+      ssize_t
         j;
 
       /*
@@ -2374,7 +2445,7 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
         {
           (void) FormatLocaleString(hex_string,MagickPathExtent,"%02x",*(p+j));
           (void) CopyMagickString(q,hex_string,MagickPathExtent);
-          q+=2;
+          q+=(ptrdiff_t) 2;
           if ((j % 0x04) == 0)
             *q++=' ';
         }
@@ -2445,27 +2516,33 @@ MagickExport StringInfo *StringToStringInfo(const char *string)
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%   S t r i p S t r i n g                                                     %
+%   S t r i p M a g i c k S t r i n g                                         %
 %                                                                             %
 %                                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  StripString() strips any whitespace or quotes from the beginning and end of
-%  a string of characters.
+%  StripMagickString() strips any whitespace or quotes from the beginning and
+%  end of a string of characters. It returns the stripped string length.
 %
-%  The format of the StripString method is:
+%  The format of the StripMagickString method is:
 %
-%      void StripString(char *message)
+%      size_t StripMagickString(char *message)
 %
 %  A description of each parameter follows:
 %
 %    o message: Specifies an array of characters.
 %
 */
+
 MagickExport void StripString(char *message)
 {
-  register char
+  (void) StripMagickString(message);
+}
+
+MagickExport size_t StripMagickString(char *message)
+{
+  char
     *p,
     *q;
 
@@ -2474,8 +2551,10 @@ MagickExport void StripString(char *message)
 
   assert(message != (char *) NULL);
   if (*message == '\0')
-    return;
+    return(0);
   length=strlen(message);
+  if (length == 1)
+    return(1);
   p=message;
   while (isspace((int) ((unsigned char) *p)) != 0)
     p++;
@@ -2492,6 +2571,7 @@ MagickExport void StripString(char *message)
   for (p=message; *p != '\0'; p++)
     if (*p == '\n')
       *p=' ';
+  return((size_t) (q-p+1));
 }
 
 /*
@@ -2531,7 +2611,7 @@ MagickExport MagickBooleanType SubstituteString(char **string,
   MagickBooleanType
     status;
 
-  register char
+  char
     *p;
 
   size_t
@@ -2564,8 +2644,8 @@ MagickExport MagickBooleanType SubstituteString(char **string,
         */
         offset=(ssize_t) (p-(*string));
         extent=strlen(*string)+replace_extent-search_extent+1;
-        *string=(char *) ResizeQuantumMemory(*string,extent+MagickPathExtent,
-          sizeof(*p));
+        *string=(char *) ResizeQuantumMemory(*string,
+          OverAllocateMemory(extent+MagickPathExtent),sizeof(*p));
         if (*string == (char *) NULL)
           ThrowFatalException(ResourceLimitFatalError,"UnableToAcquireString");
         p=(*string)+offset;
@@ -2577,7 +2657,7 @@ MagickExport MagickBooleanType SubstituteString(char **string,
       (void) memmove(p+replace_extent,p+search_extent,
         strlen(p+search_extent)+1);
     (void) memcpy(p,replace,replace_extent);
-    p+=replace_extent-1;
+    p+=(ptrdiff_t) replace_extent-1;
   }
   return(status);
 }

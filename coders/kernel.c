@@ -17,7 +17,7 @@
 %                                October 2020                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -171,17 +171,18 @@ static MagickBooleanType WriteKERNELImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
   /*
     Write KERNEL header.
   */
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   (void) FormatLocaleString(buffer,MagickPathExtent,"%gx%g:",(double)
     image->columns,(double) image->rows);
   (void) WriteBlobString(image,buffer);
@@ -190,10 +191,10 @@ static MagickBooleanType WriteKERNELImage(const ImageInfo *image_info,
   */
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
@@ -203,7 +204,7 @@ static MagickBooleanType WriteKERNELImage(const ImageInfo *image_info,
     {
       if ((x != 0) || (y != 0))
         (void) WriteBlobString(image,",");
-      if ((image->alpha_trait == BlendPixelTrait) &&
+      if (((image->alpha_trait != BlendPixelTrait) != 0) &&
           (GetPixelAlpha(image,p) < OpaqueAlpha/2))
         (void) WriteBlobString(image,"-");
       else
@@ -212,7 +213,7 @@ static MagickBooleanType WriteKERNELImage(const ImageInfo *image_info,
             GetMagickPrecision(),QuantumScale*GetPixelIntensity(image,p));
           (void) WriteBlobString(image,buffer);
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (image->previous == (Image *) NULL)
       {
@@ -223,6 +224,7 @@ static MagickBooleanType WriteKERNELImage(const ImageInfo *image_info,
       }
   }
   (void) WriteBlobString(image,"\n");
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

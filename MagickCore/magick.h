@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -51,8 +51,7 @@ typedef enum
   CoderStealthFlag = 0x0080,
   CoderUseExtensionFlag = 0x0100,
   CoderDecoderSeekableStreamFlag = 0x0200,
-  CoderEncoderSeekableStreamFlag = 0x0400,
-
+  CoderEncoderSeekableStreamFlag = 0x0400
 } MagickInfoFlag;
 
 typedef Image

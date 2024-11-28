@@ -1,12 +1,12 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
-  
+
   You may not use this file except in compliance with the License.  You may
   obtain a copy of the License at
-  
+
     https://imagemagick.org/script/license.php
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,22 +36,20 @@ extern MagickPrivate unsigned long
 extern MagickPrivate void
   RandomComponentTerminus(void);
 
-static inline RandomInfo **DestroyRandomInfoThreadSet(
-  RandomInfo **random_info)
+static inline RandomInfo **DestroyRandomInfoTLS(RandomInfo **random_info)
 {
-  register ssize_t
+  ssize_t
     i;
 
-  assert(random_info != (RandomInfo **) NULL);
   for (i=0; i < (ssize_t) GetMagickResourceLimit(ThreadResource); i++)
     if (random_info[i] != (RandomInfo *) NULL)
       random_info[i]=DestroyRandomInfo(random_info[i]);
   return((RandomInfo **) RelinquishMagickMemory(random_info));
 }
 
-static inline RandomInfo **AcquireRandomInfoThreadSet(void)
+static inline RandomInfo **AcquireRandomInfoTLS(void)
 {
-  register ssize_t
+  ssize_t
     i;
 
   RandomInfo

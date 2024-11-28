@@ -16,7 +16,7 @@
 %                               March  2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -100,10 +100,10 @@ MagickExport MagickBooleanType CreateMagickThreadKey(MagickThreadKey *key,
     if (*keys != (MagickThreadValue *) NULL)
       {
         (*keys)->number_threads=GetOpenMPMaximumThreads();
-        (*keys)->values=AcquireQuantumMemory((*keys)->number_threads,
+        (*keys)->values=(void **) AcquireQuantumMemory((*keys)->number_threads,
           sizeof(void *));
-        if ((*keys)->values == (void *) NULL)
-          *keys=RelinquishMagickMemory(*keys);
+        if ((*keys)->values == (void **) NULL)
+          *keys=(MagickThreadValue *) RelinquishMagickMemory(*keys);
         else
           (void) memset((*keys)->values,0,(*keys)->number_threads*
             sizeof(void *));
@@ -147,7 +147,7 @@ MagickExport MagickBooleanType DeleteMagickThreadKey(MagickThreadKey key)
     MagickThreadValue
       *keys;
 
-    register ssize_t
+    ssize_t
       i;
 
     keys=(MagickThreadValue *) key;

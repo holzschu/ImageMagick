@@ -17,7 +17,7 @@
 %                               November 2001                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -164,6 +164,8 @@ typedef struct
 
 #define TILE_WIDTH   64
 #define TILE_HEIGHT  64
+#define GIMP_MIN_RESOLUTION  5e-3f
+#define GIMP_MAX_RESOLUTION  65536.0f
 
 typedef struct
 {
@@ -381,7 +383,7 @@ static char *ReadBlobStringWithLongSize(Image *image,char *string,size_t max,
   MagickOffsetType
     offset;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -390,7 +392,7 @@ static char *ReadBlobStringWithLongSize(Image *image,char *string,size_t max,
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
   assert(max != 0);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   length=ReadBlobMSBLong(image);
   for (i=0; i < (ssize_t) MagickMin(length,max-1); i++)
@@ -401,7 +403,7 @@ static char *ReadBlobStringWithLongSize(Image *image,char *string,size_t max,
     string[i]=(char) c;
   }
   string[i]='\0';
-  offset=SeekBlob(image,(MagickOffsetType) (length-i),SEEK_CUR);
+  offset=SeekBlob(image,((MagickOffsetType) length-i),SEEK_CUR);
   if (offset < 0)
     (void) ThrowMagickException(exception,GetMagickModule(),
       CorruptImageError,"ImproperImageHeader","`%s'",image->filename);
@@ -423,10 +425,10 @@ static MagickBooleanType load_tile(Image *image,Image *tile_image,
   ssize_t
     y;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   size_t
@@ -478,7 +480,7 @@ static MagickBooleanType load_tile(Image *image,Image *tile_image,
           SetPixelAlpha(tile_image,ScaleCharToQuantum((unsigned char)
             inLayerInfo->alpha),q);
           graydata++;
-          q+=GetPixelChannels(tile_image);
+          q+=(ptrdiff_t) GetPixelChannels(tile_image);
         }
       }
     else
@@ -492,7 +494,7 @@ static MagickBooleanType load_tile(Image *image,Image *tile_image,
             SetPixelAlpha(tile_image,xcfdata->alpha == 255U ? TransparentAlpha :
               ScaleCharToQuantum((unsigned char) inLayerInfo->alpha),q);
             xcfdata++;
-            q+=GetPixelChannels(tile_image);
+            q+=(ptrdiff_t) GetPixelChannels(tile_image);
           }
         }
      if (SyncAuthenticPixels(tile_image,exception) == MagickFalse)
@@ -513,7 +515,7 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
     alpha,
     data;
 
-  register Quantum
+  Quantum
     *q;
 
   size_t
@@ -536,6 +538,7 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
   if (xcfdata == (unsigned char *) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
       image->filename);
+  (void) memset(xcfdata,0,(size_t) data_length*sizeof(*xcfdata));
   xcfodata=xcfdata;
   count=ReadBlob(image, (size_t) data_length, xcfdata);
   xcfdatalimit = xcfodata+count-1;
@@ -546,7 +549,7 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
       exception);
     if (q == (Quantum *) NULL)
       continue;
-    size=(MagickOffsetType) tile_image->rows*tile_image->columns;
+    size=(MagickOffsetType) (tile_image->rows*tile_image->columns);
     while (size > 0)
     {
       if (xcfdata > xcfdatalimit)
@@ -560,11 +563,13 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
             {
               if (xcfdata >= xcfdatalimit)
                 goto bogus_rle;
-              length=(size_t) ((*xcfdata << 8) + xcfdata[1]);
+              length=(size_t) ((*xcfdata << 8) + xcfdata[1]) & 0xffff;
               xcfdata+=2;
             }
-          size-=length;
+          size-=(MagickOffsetType) length;
           if (size < 0)
+            goto bogus_rle;
+          if ((length < 1) || (length > data_length))
             goto bogus_rle;
           if (&xcfdata[length-1] > xcfdatalimit)
             goto bogus_rle;
@@ -605,7 +610,7 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
                 break;
               }
             }
-            q+=GetPixelChannels(tile_image);
+            q+=(ptrdiff_t) GetPixelChannels(tile_image);
           }
         }
       else
@@ -615,10 +620,10 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
             {
               if (xcfdata >= xcfdatalimit)
                 goto bogus_rle;
-              length=(size_t) ((*xcfdata << 8) + xcfdata[1]);
+              length=(size_t) ((*xcfdata << 8) + xcfdata[1]) & 0xffff;
               xcfdata+=2;
             }
-          size-=length;
+          size-=(MagickOffsetType) length;
           if (size < 0)
             goto bogus_rle;
           if (xcfdata > xcfdatalimit)
@@ -661,7 +666,7 @@ static MagickBooleanType load_tile_rle(Image *image,Image *tile_image,
                 break;
               }
             }
-            q+=GetPixelChannels(tile_image);
+            q+=(ptrdiff_t) GetPixelChannels(tile_image);
           }
         }
     }
@@ -695,7 +700,7 @@ static MagickBooleanType load_level(Image *image,XCFDocInfo *inDocInfo,
     offset,
     offset2;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1011,7 +1016,7 @@ static MagickBooleanType ReadOneLayer(const ImageInfo *image_info,Image* image,
       ssize_t
         scene;
 
-      scene=inDocInfo->number_layers-layer-1;
+      scene=(ssize_t) inDocInfo->number_layers-layer-1;
       if (scene > (ssize_t) (image_info->scene+image_info->number_scenes-1))
         {
           outLayer->image=CloneImage(image,0,0,MagickTrue,exception);
@@ -1029,7 +1034,7 @@ static MagickBooleanType ReadOneLayer(const ImageInfo *image_info,Image* image,
   status=SetImageExtent(outLayer->image,outLayer->image->columns,
     outLayer->image->rows,exception);
   if (status != MagickFalse)
-    status=ResetImagePixels(image,exception);
+    status=ResetImagePixels(outLayer->image,exception);
   if (status == MagickFalse)
     {
       outLayer->image=DestroyImageList(outLayer->image);
@@ -1146,7 +1151,7 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickOffsetType
     offset;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1165,11 +1170,11 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -1296,25 +1301,19 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
     case PROP_RESOLUTION:
       {
-        /* float xres = (float) */ (void) ReadBlobMSBLong(image);
-        /* float yres = (float) */ (void) ReadBlobMSBLong(image);
+        float
+          x,
+          y;
 
-        /*
-        if (xres < GIMP_MIN_RESOLUTION || xres > GIMP_MAX_RESOLUTION ||
-            yres < GIMP_MIN_RESOLUTION || yres > GIMP_MAX_RESOLUTION)
-        {
-        g_message ("Warning, resolution out of range in XCF file");
-        xres = gimage->gimp->config->default_xresolution;
-        yres = gimage->gimp->config->default_yresolution;
-        }
-        */
-
-
-        /* BOGUS: we don't write these yet because we aren't
-              reading them properly yet :(
-              image->resolution.x = xres;
-              image->resolution.y = yres;
-        */
+        x=ReadBlobFloat(image);
+        y=ReadBlobFloat(image);
+        if ((x >= GIMP_MIN_RESOLUTION) && (x <= GIMP_MAX_RESOLUTION) &&
+            (y >= GIMP_MIN_RESOLUTION) && (y <= GIMP_MAX_RESOLUTION))
+          {
+            image->resolution.x=(double) x;
+            image->resolution.y=(double) y;
+            image->units=PixelsPerInchResolution;
+          }
       }
       break;
 
@@ -1407,13 +1406,17 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
     }
   else
     {
-      int
-        current_layer = 0,
-        foundAllLayers = MagickFalse,
-        number_layers = 0;
+      MagickBooleanType
+        foundAllLayers = MagickFalse;
 
       MagickOffsetType
-        oldPos=TellBlob(image);
+        oldPos = TellBlob(image);
+
+      size_t
+        number_layers = 0;
+
+      ssize_t
+        current_layer = 0;
 
       XCFLayerInfo
         *layer_info;
@@ -1427,7 +1430,11 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
         if (offset == 0)
           foundAllLayers=MagickTrue;
         else
-          number_layers++;
+          {
+            number_layers++;
+            if (AcquireMagickResource(ListLengthResource,number_layers) == MagickFalse)
+              ThrowReaderException(ResourceLimitError,"ListLengthExceedsLimit");
+          }
         if (EOFBlob(image) != MagickFalse)
           {
             ThrowFileException(exception,CorruptImageError,
@@ -1435,8 +1442,6 @@ static Image *ReadXCFImage(const ImageInfo *image_info,ExceptionInfo *exception)
             break;
           }
     } while (foundAllLayers == MagickFalse);
-    if (AcquireMagickResource(ListLengthResource,number_layers) == MagickFalse)
-      ThrowReaderException(ResourceLimitError,"ListLengthExceedsLimit");
     doc_info.number_layers=number_layers;
     offset=SeekBlob(image,oldPos,SEEK_SET); /* restore the position! */
     if (offset < 0)

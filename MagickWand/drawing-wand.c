@@ -23,7 +23,7 @@
 %                                March 2002                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -50,6 +50,7 @@
 #include "MagickWand/MagickWand.h"
 #include "MagickWand/magick-wand-private.h"
 #include "MagickWand/wand.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/string-private.h"
 
 /*
@@ -220,7 +221,7 @@ static int MVGPrintf(DrawingWand *wand,const char *format,...)
     }
     wand->mvg[wand->mvg_length]='\0';
     count=(-1);
-    offset=(ssize_t) wand->mvg_alloc-wand->mvg_length-1;
+    offset=(ssize_t) (wand->mvg_alloc-wand->mvg_length-1);
     if (offset > 0)
       {
         va_start(argp,format);
@@ -235,8 +236,8 @@ static int MVGPrintf(DrawingWand *wand,const char *format,...)
       ThrowDrawException(DrawError,"UnableToPrint",format)
     else
       {
-        wand->mvg_length+=count;
-        wand->mvg_width+=count;
+        wand->mvg_length+=(size_t) count;
+        wand->mvg_width+=(size_t) count;
       }
     wand->mvg[wand->mvg_length]='\0';
     if ((wand->mvg_length > 1) && (wand->mvg[wand->mvg_length-1] == '\n'))
@@ -269,7 +270,7 @@ static int MVGAutoWrapPrintf(DrawingWand *wand,const char *format,...)
     ThrowDrawException(DrawError,"UnableToPrint",format)
   else
     {
-      if (((wand->mvg_width + count) > 78) && (buffer[count-1] != '\n'))
+      if (((wand->mvg_width+(size_t) count) > 78) && (buffer[count-1] != '\n'))
         (void) MVGPrintf(wand, "\n");
       (void) MVGPrintf(wand,"%s",buffer);
     }
@@ -286,18 +287,8 @@ static void MVGAppendColor(DrawingWand *wand,const PixelInfo *packet)
       char
         tuple[MagickPathExtent];
 
-      PixelInfo
-        pixel;
-
-      GetPixelInfo(wand->image,&pixel);
-      pixel.colorspace=sRGBColorspace;
-      pixel.alpha_trait=packet->alpha != OpaqueAlpha ? BlendPixelTrait :
-        UndefinedPixelTrait;
-      pixel.red=(double) packet->red;
-      pixel.green=(double) packet->green;
-      pixel.blue=(double) packet->blue;
-      pixel.alpha=(double) packet->alpha;
-      GetColorTuple(&pixel,MagickTrue,tuple);
+      GetColorTuple(packet,packet->colorspace != sRGBColorspace ? MagickFalse :
+        MagickTrue,tuple);
       (void) MVGPrintf(wand,"%s",tuple);
     }
 }
@@ -381,11 +372,9 @@ WandExport DrawingWand *AcquireDrawingWand(const DrawInfo *draw_info,
       CurrentContext=DestroyDrawInfo(CurrentContext);
       CurrentContext=CloneDrawInfo((ImageInfo *) NULL,draw_info);
     }
+  wand->image=DestroyImage(wand->image);
   if (image != (Image *) NULL)
-    {
-      wand->image=DestroyImage(wand->image);
-      wand->destroy=MagickFalse;
-    }
+    wand->destroy=MagickFalse;
   wand->image=image;
   return(wand);
 }
@@ -487,7 +476,7 @@ WandExport DrawingWand *CloneDrawingWand(const DrawingWand *wand)
   DrawingWand
     *clone_wand;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(wand != (DrawingWand *) NULL);
@@ -1013,10 +1002,10 @@ WandExport MagickBooleanType DrawComposite(DrawingWand *wand,
     *clone_image,
     *image;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1068,7 +1057,7 @@ WandExport MagickBooleanType DrawComposite(DrawingWand *wand,
   for (i=(ssize_t) encoded_length; i > 0; i-=76)
   {
     (void) MVGPrintf(wand,"%.76s",p);
-    p+=76;
+    p+=(ptrdiff_t) 76;
     if (i > 76)
       (void) MVGPrintf(wand,"\n");
   }
@@ -1525,7 +1514,7 @@ WandExport FillRule DrawGetFillRule(const DrawingWand *wand)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  DrawGetFont() returns a null-terminaged string specifying the font used
+%  DrawGetFont() returns a null-terminated string specifying the font used
 %  when annotating with text. The value returned must be freed by the user
 %  when no longer needed.
 %
@@ -1617,8 +1606,8 @@ WandExport MagickBooleanType DrawGetFontResolution(const DrawingWand *wand,
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  *x=72.0;
-  *y=72.0;
+  *x=DefaultResolution;
+  *y=DefaultResolution;
   if (CurrentContext->density != (char *) NULL)
     {
       GeometryInfo
@@ -1824,7 +1813,7 @@ WandExport double DrawGetOpacity(const DrawingWand *wand)
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  alpha=(double) QuantumScale*CurrentContext->alpha;
+  alpha=QuantumScale*(double) CurrentContext->alpha;
   return(alpha);
 }
 
@@ -1928,27 +1917,24 @@ WandExport void DrawGetStrokeColor(const DrawingWand *wand,
 WandExport double *DrawGetStrokeDashArray(const DrawingWand *wand,
   size_t *number_elements)
 {
-  double
-    *dasharray;
-
-  register const double
+  const double
     *p;
 
-  register double
+  double
+    *dasharray,
     *q;
 
-  register ssize_t
-    i;
-
   size_t
-    n;
+    n = 0;
+
+  ssize_t
+    i;
 
   assert(wand != (const DrawingWand *) NULL);
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
   assert(number_elements != (size_t *) NULL);
-  n=0;
   p=CurrentContext->dash_pattern;
   if (p != (const double *) NULL)
     while (fabs(*p++) >= MagickEpsilon)
@@ -2538,7 +2524,7 @@ WandExport char *DrawGetVectorGraphics(DrawingWand *wand)
   PixelInfo
     pixel;
 
-  register ssize_t
+  ssize_t
     i;
 
   XMLTreeInfo
@@ -2579,8 +2565,8 @@ WandExport char *DrawGetVectorGraphics(DrawingWand *wand)
   child=AddChildToXMLTree(xml_info,"fill",0);
   if (child != (XMLTreeInfo *) NULL)
     {
-      if (CurrentContext->fill.alpha != OpaqueAlpha)
-        pixel.alpha_trait=CurrentContext->fill.alpha != OpaqueAlpha ?
+      if (CurrentContext->fill.alpha != (double) OpaqueAlpha)
+        pixel.alpha_trait=CurrentContext->fill.alpha != (double) OpaqueAlpha ?
           BlendPixelTrait : UndefinedPixelTrait;
       pixel=CurrentContext->fill;
       GetColorTuple(&pixel,MagickTrue,value);
@@ -2647,8 +2633,8 @@ WandExport char *DrawGetVectorGraphics(DrawingWand *wand)
   child=AddChildToXMLTree(xml_info,"stroke",0);
   if (child != (XMLTreeInfo *) NULL)
     {
-      if (CurrentContext->stroke.alpha != OpaqueAlpha)
-        pixel.alpha_trait=CurrentContext->stroke.alpha != OpaqueAlpha ?
+      if (CurrentContext->stroke.alpha != (double) OpaqueAlpha)
+        pixel.alpha_trait=CurrentContext->stroke.alpha != (double) OpaqueAlpha ?
           BlendPixelTrait : UndefinedPixelTrait;
       pixel=CurrentContext->stroke;
       GetColorTuple(&pixel,MagickTrue,value);
@@ -2741,8 +2727,8 @@ WandExport char *DrawGetVectorGraphics(DrawingWand *wand)
   child=AddChildToXMLTree(xml_info,"text-undercolor",0);
   if (child != (XMLTreeInfo *) NULL)
     {
-      if (CurrentContext->undercolor.alpha != OpaqueAlpha)
-        pixel.alpha_trait=CurrentContext->undercolor.alpha != OpaqueAlpha ?
+      if (CurrentContext->undercolor.alpha != (double) OpaqueAlpha)
+        pixel.alpha_trait=CurrentContext->undercolor.alpha != (double) OpaqueAlpha ?
           BlendPixelTrait : UndefinedPixelTrait;
       pixel=CurrentContext->undercolor;
       GetColorTuple(&pixel,MagickTrue,value);
@@ -3011,7 +2997,7 @@ WandExport void DrawPathCurveToRelative(DrawingWand *wand,const double x1,
 %  The format of the DrawPathCurveToQuadraticBezierAbsolute method is:
 %
 %      void DrawPathCurveToQuadraticBezierAbsolute(DrawingWand *wand,
-%        const double x1,const double y1,onst double x,const double y)
+%        const double x1,const double y1,const double x,const double y)
 %
 %  A description of each parameter follows:
 %
@@ -4284,10 +4270,10 @@ WandExport MagickBooleanType DrawPushPattern(DrawingWand *wand,
     x,y,width,height);
   wand->indent_depth++;
   wand->pattern_id=AcquireString(pattern_id);
-  wand->pattern_bounds.x=(ssize_t) ceil(x-0.5);
-  wand->pattern_bounds.y=(ssize_t) ceil(y-0.5);
-  wand->pattern_bounds.width=(size_t) floor(width+0.5);
-  wand->pattern_bounds.height=(size_t) floor(height+0.5);
+  wand->pattern_bounds.x=CastDoubleToLong(ceil(x-0.5));
+  wand->pattern_bounds.y=CastDoubleToLong(ceil(y-0.5));
+  wand->pattern_bounds.width=(size_t) CastDoubleToLong(floor(width+0.5));
+  wand->pattern_bounds.height=(size_t) CastDoubleToLong(floor(height+0.5));
   wand->pattern_offset=wand->mvg_length;
   return(MagickTrue);
 }
@@ -4456,7 +4442,7 @@ WandExport void DrawRotate(DrawingWand *wand,const double degrees)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  DrawRoundRectangle() draws a rounted rectangle given two coordinates,
+%  DrawRoundRectangle() draws a rounded rectangle given two coordinates,
 %  x & y corner radiuses and using the current stroke, stroke width,
 %  and fill settings.
 %
@@ -4850,7 +4836,7 @@ WandExport void DrawSetFillOpacity(DrawingWand *wand,const double fill_opacity)
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  alpha=(double) ClampToQuantum(QuantumRange*fill_opacity);
+  alpha=(double) ClampToQuantum((double) QuantumRange*fill_opacity);
   if ((wand->filter_off != MagickFalse) ||
       (CurrentContext->fill.alpha != alpha))
     {
@@ -4936,7 +4922,7 @@ WandExport void DrawSetOpacity(DrawingWand *wand,const double opacity)
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  quantum_alpha=ClampToQuantum(QuantumRange*opacity);
+  quantum_alpha=ClampToQuantum((double) QuantumRange*opacity);
   if ((wand->filter_off != MagickFalse) ||
       (CurrentContext->alpha != quantum_alpha))
     {
@@ -5003,7 +4989,7 @@ WandExport MagickBooleanType DrawSetFillPatternURL(DrawingWand *wand,
   DrawPatternPath(wand->image,CurrentContext,pattern_spec,
     &CurrentContext->fill_pattern,wand->exception);
 #endif
-  if (CurrentContext->fill.alpha != (Quantum) TransparentAlpha)
+  if (CurrentContext->fill.alpha != (double) TransparentAlpha)
     CurrentContext->fill.alpha=(double) CurrentContext->alpha;
   (void) MVGPrintf(wand,"fill %s\n",pattern_spec);
   return(MagickTrue);
@@ -5059,7 +5045,7 @@ WandExport void DrawSetFillRule(DrawingWand *wand,const FillRule fill_rule)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  DrawSetFont() sets the fully-sepecified font to use when annotating with
+%  DrawSetFont() sets the fully-specified font to use when annotating with
 %  text.
 %
 %  The format of the DrawSetFont method is:
@@ -5443,7 +5429,7 @@ WandExport MagickBooleanType DrawSetStrokePatternURL(DrawingWand *wand,
   DrawPatternPath(wand->image,CurrentContext,pattern_spec,
     &CurrentContext->stroke_pattern,wand->exception);
 #endif
-  if (CurrentContext->stroke.alpha != (Quantum) TransparentAlpha)
+  if (CurrentContext->stroke.alpha != (double) TransparentAlpha)
     CurrentContext->stroke.alpha=(double) CurrentContext->alpha;
   (void) MVGPrintf(wand,"stroke %s\n",pattern_spec);
   return(MagickTrue);
@@ -5532,13 +5518,13 @@ WandExport MagickBooleanType DrawSetStrokeDashArray(DrawingWand *wand,
   MagickBooleanType
     update;
 
-  register const double
+  const double
     *p;
 
-  register double
+  double
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -5823,7 +5809,7 @@ WandExport void DrawSetStrokeOpacity(DrawingWand *wand,
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  alpha=(double) ClampToQuantum(QuantumRange*opacity);
+  alpha=(double) ClampToQuantum((double) QuantumRange*opacity);
   if ((wand->filter_off != MagickFalse) ||
       (CurrentContext->stroke.alpha != alpha))
     {
@@ -6356,8 +6342,8 @@ WandExport MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
     {
       value=GetXMLTreeContent(child);
       if (value != (const char *) NULL)
-        CurrentContext->fill.alpha=(double) ClampToQuantum(QuantumRange*
-          (1.0-StringToDouble(value,(char **) NULL)));
+        CurrentContext->fill.alpha=(double) ClampToQuantum((double)
+          QuantumRange*(1.0-StringToDouble(value,(char **) NULL)));
     }
   child=GetXMLTreeChild(xml_info,"fill-rule");
   if (child != (XMLTreeInfo *) NULL)
@@ -6444,7 +6430,7 @@ WandExport MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
       const char
         *q;
 
-      register ssize_t
+      ssize_t
         x;
 
       ssize_t
@@ -6473,7 +6459,7 @@ WandExport MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
                   (void) GetNextToken(p,&p,MagickPathExtent,token);
               }
               CurrentContext->dash_pattern=(double *) AcquireQuantumMemory(
-                (size_t) (2UL*x)+1UL,sizeof(*CurrentContext->dash_pattern));
+                (size_t) (2*x)+1UL,sizeof(*CurrentContext->dash_pattern));
               if (CurrentContext->dash_pattern == (double *) NULL)
                 ThrowWandFatalException(ResourceLimitFatalError,
                   "MemoryAllocationFailed",wand->name);
@@ -6528,8 +6514,8 @@ WandExport MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,
     {
       value=GetXMLTreeContent(child);
       if (value != (const char *) NULL)
-        CurrentContext->stroke.alpha=(double) ClampToQuantum(QuantumRange*
-          (1.0-StringToDouble(value,(char **) NULL)));
+        CurrentContext->stroke.alpha=(double) ClampToQuantum((double)
+          QuantumRange*(1.0-StringToDouble(value,(char **) NULL)));
     }
   child=GetXMLTreeChild(xml_info,"stroke-width");
   if (child != (XMLTreeInfo *) NULL)
@@ -6786,18 +6772,10 @@ WandExport MagickBooleanType IsDrawingWand(const DrawingWand *wand)
 */
 WandExport DrawingWand *NewDrawingWand(void)
 {
-  const char
-    *quantum;
-
   DrawingWand
     *wand;
 
-  size_t
-    depth;
-
-  quantum=GetMagickQuantumDepth(&depth);
-  if (depth != MAGICKCORE_QUANTUM_DEPTH)
-    ThrowWandFatalException(WandError,"QuantumDepthMismatch",quantum);
+  CheckMagickCoreCompatibility();
   wand=(DrawingWand *) AcquireMagickMemory(sizeof(*wand));
   if (wand == (DrawingWand *) NULL)
     ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",

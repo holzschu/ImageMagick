@@ -9,6 +9,9 @@ jobs:
     name: 'Linux Q${{matrix.quantum}}-x64 hdri=${{matrix.hdri}} (${{matrix.modules}})'
     runs-on: ubuntu-latest
 
+    permissions:
+      security-events: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -17,7 +20,7 @@ jobs:
         modules: [ 'with-modules', 'without-modules' ]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 2
 
@@ -28,7 +31,7 @@ jobs:
         echo "" > config.status
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v3
       with:
         languages: cpp
 
@@ -37,4 +40,4 @@ jobs:
         make
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v3

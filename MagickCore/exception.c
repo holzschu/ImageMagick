@@ -17,7 +17,7 @@
 %                                July 1993                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -70,7 +70,8 @@ extern "C" {
 
 static void
   DefaultErrorHandler(const ExceptionType,const char *,const char *),
-  DefaultFatalErrorHandler(const ExceptionType,const char *,const char *),
+  DefaultFatalErrorHandler(const ExceptionType,const char *,const char *)
+    magick_attribute((__noreturn__)),
   DefaultWarningHandler(const ExceptionType,const char *,const char *);
 
 #if defined(__cplusplus) || defined(c_plusplus)
@@ -150,7 +151,7 @@ MagickExport ExceptionInfo *AcquireExceptionInfo(void)
 
 static void *DestroyExceptionElement(void *exception)
 {
-  register ExceptionInfo
+  ExceptionInfo
     *p;
 
   p=(ExceptionInfo *) exception;
@@ -206,11 +207,8 @@ MagickExport void CatchException(ExceptionInfo *exception)
   LinkedListInfo
     *exceptions;
 
-  register const ExceptionInfo
+  const ExceptionInfo
     *p;
-
-  ssize_t
-    i;
 
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
@@ -220,7 +218,7 @@ MagickExport void CatchException(ExceptionInfo *exception)
   exceptions=(LinkedListInfo *) exception->exceptions;
   ResetLinkedListIterator(exceptions);
   p=(const ExceptionInfo *) GetNextValueInLinkedList(exceptions);
-  for (i=0; p != (const ExceptionInfo *) NULL; i++)
+  while (p != (const ExceptionInfo *) NULL)
   {
     if ((p->severity >= WarningException) && (p->severity < ErrorException))
       MagickWarning(p->severity,p->reason,p->description);
@@ -341,9 +339,9 @@ static void DefaultErrorHandler(const ExceptionType magick_unused(severity),
 static void DefaultFatalErrorHandler(const ExceptionType severity,
   const char *reason,const char *description)
 {
-  if (reason == (char *) NULL)
-    return;
-  (void) FormatLocaleFile(thread_stderr,"%s: %s",GetClientName(),reason);
+  (void) FormatLocaleFile(thread_stderr,"%s:",GetClientName());
+  if (reason != (char *) NULL)
+    (void) FormatLocaleFile(thread_stderr," %s",reason);
   if (description != (char *) NULL)
     (void) FormatLocaleFile(thread_stderr," (%s)",description);
   (void) FormatLocaleFile(thread_stderr,".\n");
@@ -688,7 +686,7 @@ MagickExport const char *GetLocaleExceptionMessage(const ExceptionType severity,
 MagickExport void InheritException(ExceptionInfo *exception,
   const ExceptionInfo *relative)
 {
-  register const ExceptionInfo
+  const ExceptionInfo
     *p;
 
   assert(exception != (ExceptionInfo *) NULL);
@@ -810,8 +808,10 @@ MagickExport void MagickError(const ExceptionType error,const char *reason,
 MagickExport void MagickFatalError(const ExceptionType error,const char *reason,
   const char *description)
 {
-  if (fatal_error_handler != (ErrorHandler) NULL)
+  if (fatal_error_handler != (FatalErrorHandler) NULL)
     (*fatal_error_handler)(error,reason,description);
+  MagickCoreTerminus();
+  exit(1);
 }
 
 /*
@@ -996,7 +996,7 @@ MagickExport MagickBooleanType ThrowException(ExceptionInfo *exception,
   LinkedListInfo
     *exceptions;
 
-  register ExceptionInfo
+  ExceptionInfo
     *p;
 
   assert(exception != (ExceptionInfo *) NULL);

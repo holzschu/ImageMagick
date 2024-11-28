@@ -16,7 +16,7 @@
 %                               March  2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -59,6 +59,7 @@
 #include "MagickCore/splay-tree.h"
 #include "MagickCore/statistic.h"
 #include "MagickCore/string_.h"
+#include "MagickCore/timer-private.h"
 
 #if defined(MAGICKCORE_CIPHER_SUPPORT)
 /*
@@ -80,7 +81,9 @@ typedef struct _AESInfo
     *decipher_key;
 
   ssize_t
-    rounds,
+    rounds;
+
+  time_t
     timestamp;
 
   size_t
@@ -203,7 +206,7 @@ static AESInfo *AcquireAESInfo(void)
       (aes_info->encipher_key == (unsigned int *) NULL) ||
       (aes_info->decipher_key == (unsigned int *) NULL))
     ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
-  aes_info->timestamp=(ssize_t) time(0);
+  aes_info->timestamp=GetMagickTime();
   aes_info->signature=MagickCoreSignature;
   return(aes_info);
 }
@@ -232,9 +235,10 @@ static AESInfo *AcquireAESInfo(void)
 */
 static AESInfo *DestroyAESInfo(AESInfo *aes_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(aes_info != (AESInfo *) NULL);
   assert(aes_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (aes_info->decipher_key != (unsigned int *) NULL)
     aes_info->decipher_key=(unsigned int *) RelinquishMagickMemory(
       aes_info->decipher_key);
@@ -280,7 +284,7 @@ static AESInfo *DestroyAESInfo(AESInfo *aes_info)
 static inline void AddRoundKey(const unsigned int *ciphertext,
   const unsigned int *key,unsigned int *plaintext)
 {
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -320,10 +324,10 @@ static inline unsigned int ByteSubTransform(unsigned int x,
 static void FinalizeRoundKey(const unsigned int *ciphertext,
   const unsigned int *key,unsigned char *plaintext)
 {
-  register unsigned char
+  unsigned char
     *p;
 
-  register unsigned int
+  unsigned int
     i,
     j;
 
@@ -349,10 +353,10 @@ static void FinalizeRoundKey(const unsigned int *ciphertext,
 static void InitializeRoundKey(const unsigned char *ciphertext,
   const unsigned int *key,unsigned int *plaintext)
 {
-  register const unsigned char
+  const unsigned char
     *p;
 
-  register unsigned int
+  unsigned int
     i,
     j;
 
@@ -381,7 +385,7 @@ static inline unsigned int RotateLeft(const unsigned int x)
 static void EncipherAESBlock(AESInfo *aes_info,const unsigned char *plaintext,
   unsigned char *ciphertext)
 {
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -484,8 +488,8 @@ static void EncipherAESBlock(AESInfo *aes_info,const unsigned char *plaintext,
     Reset registers.
   */
   alpha=0;
-  (void) memset(key,0,sizeof(key));
-  (void) memset(text,0,sizeof(text));
+  (void) ResetMagickMemory(key,0,sizeof(key));
+  (void) ResetMagickMemory(text,0,sizeof(text));
 }
 
 /*
@@ -523,7 +527,7 @@ static void EncipherAESBlock(AESInfo *aes_info,const unsigned char *plaintext,
 static inline void IncrementCipherNonce(const size_t length,
   unsigned char *nonce)
 {
-  register ssize_t
+  ssize_t
     i;
 
   for (i=(ssize_t) (length-1); i >= 0; i--)
@@ -583,7 +587,7 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
   SignatureInfo
     *signature_info;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -606,10 +610,10 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (passkey == (const StringInfo *) NULL)
     return(MagickTrue);
   aes_info=AcquireAESInfo();
@@ -658,11 +662,11 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       i,
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,exception);
@@ -679,7 +683,7 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
       EncipherAESBlock(aes_info,output_block,output_block);
       for (i=0; i < AESBlocksize; i++)
         p[i]^=output_block[i];
-      p+=AESBlocksize;
+      p+=(ptrdiff_t) AESBlocksize;
     }
     (void) memcpy(output_block,input_block,AESBlocksize*
       sizeof(*output_block));
@@ -708,8 +712,8 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
   */
   quantum_info=DestroyQuantumInfo(quantum_info);
   aes_info=DestroyAESInfo(aes_info);
-  (void) memset(input_block,0,sizeof(input_block));
-  (void) memset(output_block,0,sizeof(output_block));
+  (void) ResetMagickMemory(input_block,0,sizeof(input_block));
+  (void) ResetMagickMemory(output_block,0,sizeof(output_block));
   return(y == (ssize_t) image->rows ? MagickTrue : MagickFalse);
 }
 
@@ -793,7 +797,7 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
   QuantumType
     quantum_type;
 
-  register unsigned char
+  unsigned char
     *p;
 
   SignatureInfo
@@ -819,10 +823,10 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (passkey == (const StringInfo *) NULL)
     return(MagickTrue);
   if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
@@ -878,11 +882,11 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       i,
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,exception);
@@ -899,7 +903,7 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
       EncipherAESBlock(aes_info,output_block,output_block);
       for (i=0; i < AESBlocksize; i++)
         p[i]^=output_block[i];
-      p+=AESBlocksize;
+      p+=(ptrdiff_t) AESBlocksize;
     }
     (void) memcpy(output_block,input_block,AESBlocksize*
       sizeof(*output_block));
@@ -925,8 +929,8 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
   */
   quantum_info=DestroyQuantumInfo(quantum_info);
   aes_info=DestroyAESInfo(aes_info);
-  (void) memset(input_block,0,sizeof(input_block));
-  (void) memset(output_block,0,sizeof(output_block));
+  (void) ResetMagickMemory(input_block,0,sizeof(input_block));
+  (void) ResetMagickMemory(output_block,0,sizeof(output_block));
   return(y == (ssize_t) image->rows ? MagickTrue : MagickFalse);
 }
 
@@ -960,7 +964,7 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
 static inline void InverseAddRoundKey(const unsigned int *alpha,
   unsigned int *beta)
 {
-  register unsigned int
+  unsigned int
     i,
     j;
 
@@ -993,7 +997,7 @@ static inline unsigned int RotateRight(const unsigned int x)
 
 static void SetAESKey(AESInfo *aes_info,const StringInfo *key)
 {
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -1010,10 +1014,11 @@ static void SetAESKey(AESInfo *aes_info,const StringInfo *key)
   /*
     Determine the number of rounds based on the number of bits in key.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(aes_info != (AESInfo *) NULL);
   assert(aes_info->signature == MagickCoreSignature);
   assert(key != (StringInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   n=4;
   aes_info->rounds=10;
   if ((8*GetStringInfoLength(key)) >= 256)
@@ -1055,7 +1060,7 @@ static void SetAESKey(AESInfo *aes_info,const StringInfo *key)
     aes_info->encipher_key[i]=aes_info->encipher_key[i-n] ^ alpha;
   }
   /*
-    Generate deciper key (in reverse order).
+    Generate decipher key (in reverse order).
   */
   for (i=0; i < 4; i++)
   {
@@ -1111,10 +1116,10 @@ MagickExport MagickBooleanType DecipherImage(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   (void) passphrase;
   ThrowBinaryException(ImageError,"CipherSupportNotEnabled",image->filename);
 }
@@ -1124,10 +1129,10 @@ MagickExport MagickBooleanType PasskeyDecipherImage(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   (void) passkey;
   ThrowBinaryException(ImageError,"CipherSupportNotEnabled",image->filename);
 }
@@ -1167,10 +1172,10 @@ MagickExport MagickBooleanType EncipherImage(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   (void) passphrase;
   ThrowBinaryException(ImageError,"CipherSupportNotEnabled",image->filename);
 }
@@ -1180,10 +1185,10 @@ MagickExport MagickBooleanType PasskeyEncipherImage(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   (void) passkey;
   ThrowBinaryException(ImageError,"CipherSupportNotEnabled",image->filename);
 }

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -35,7 +35,7 @@
 %
 %
 %   20071202 TS * rewrote RLE decoder - old version could cause buffer overflows
-%               * failure of RLE decoding now thows error RLEDecoderError
+%               * failure of RLE decoding now throws error RLEDecoderError
 %               * fixed bug in RLE decoding - now all rows are decoded, not just
 %     the first one
 %   * fixed bug in reader - record offsets now handled correctly
@@ -88,10 +88,12 @@ typedef struct _PDBInfo
     attributes,
     version;
 
-  size_t
+  ssize_t
     create_time,
     modify_time,
-    archive_time,
+    archive_time;
+
+  size_t
     modify_number,
     application_info,
     sort_info;
@@ -288,13 +290,13 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Quantum
     index;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -317,11 +319,11 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -476,7 +478,7 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
         {
           index=(Quantum) (*p & (0x80 >> bit) ? 0x00 : 0x01);
           SetPixelIndex(image,index,q);
-          q+=GetPixelChannels(image);
+          q+=(ptrdiff_t) GetPixelChannels(image);
           bit++;
           if (bit == 8)
             {
@@ -514,7 +516,7 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
           index=ConstrainColormapIndex(image,3UL-((*p >> shift) & 0x03),
             exception);
           SetPixelIndex(image,index,q);
-          q+=GetPixelChannels(image);
+          q+=(ptrdiff_t) GetPixelChannels(image);
           if (shift == 0)
             {
               shift=8;
@@ -551,7 +553,7 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
           index=ConstrainColormapIndex(image,15UL-((*p >> shift) & 0x0f),
             exception);
           SetPixelIndex(image,index,q);
-          q+=GetPixelChannels(image);
+          q+=(ptrdiff_t) GetPixelChannels(image);
           if (shift == 0)
             {
               shift=8;
@@ -586,8 +588,8 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
       int
         c;
 
-      register char
-        *p;
+      char
+        *r;
 
       size_t
         length;
@@ -595,9 +597,6 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
       num_pad_bytes = (size_t) (comment_offset - TellBlob( image ));
       while (num_pad_bytes-- != 0)
       {
-        int
-          c;
-
         c=ReadBlobByte(image);
         if (c == EOF)
           break;
@@ -609,29 +608,32 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
       c=ReadBlobByte(image);
       length=MagickPathExtent;
       comment=AcquireString((char *) NULL);
-      for (p=comment; c != EOF; p++)
+      for (r=comment; c != EOF; r++)
       {
-        if ((size_t) (p-comment+MagickPathExtent) >= length)
+        if ((size_t) (r-comment+MagickPathExtent) >= length)
           {
-            *p='\0';
+            *r='\0';
             length<<=1;
             length+=MagickPathExtent;
             comment=(char *) ResizeQuantumMemory(comment,length+
               MagickPathExtent,sizeof(*comment));
             if (comment == (char *) NULL)
               break;
-            p=comment+strlen(comment);
+            r=comment+strlen(comment);
           }
-        *p=c;
+        *r=c;
         c=ReadBlobByte(image);
       }
-      *p='\0';
+      *r='\0';
       if (comment == (char *) NULL)
         ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
       (void) SetImageProperty(image,"comment",comment,exception);
       comment=DestroyString(comment);
     }
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -762,13 +764,13 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   QuantumInfo
     *quantum_info;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register unsigned char
+  unsigned char
     *q;
 
   size_t
@@ -793,14 +795,15 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   if (SetImageMonochrome(image,exception) != MagickFalse) {
     bits_per_pixel=1;
   } else if (image->colors <= 4) {
@@ -883,7 +886,8 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   (void) memset(buffer,0,512*sizeof(*buffer));
   (void) memset(scanline,0,image->columns*packet_size*sizeof(*scanline));
   if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
-    (void) TransformImageColorspace(image,sRGBColorspace,exception);
+    if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+      (void) TransformImageColorspace(image,sRGBColorspace,exception);
   /*
     Convert to GRAY raster scanline.
   */
@@ -914,8 +918,8 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
     for (x=0; x < (ssize_t) pdb_image.width; x++)
     {
       if (x < (ssize_t) image->columns)
-        buffer[literal+repeat]|=(0xff-scanline[x*packet_size]) >>
-          (8-bits_per_pixel) << bits*bits_per_pixel;
+        buffer[literal+repeat]|=(0xff-scanline[x*(ssize_t) packet_size]) >>
+          (8-bits_per_pixel) << bits*(ssize_t) bits_per_pixel;
       bits--;
       if (bits < 0)
         {
@@ -1008,6 +1012,7 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   runlength=(unsigned char *) RelinquishMagickMemory(runlength);
   if (comment != (const char *) NULL)
     (void) WriteBlobString(image,comment);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

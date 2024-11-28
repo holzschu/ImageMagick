@@ -2,18 +2,22 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
 %                                                                             %
+%                                                                             %
 %                             IIIII  PPPP   L                                 %
 %                               I    P   P  L                                 %
 %                               I    PPPP   L                                 %
 %                               I    P      L                                 %
 %                             IIIII  P      LLLLL                             %
 %                                                                             %
-%                 Read/Write Scanalytics IPLab Image Format                   %
-%                                Sean Burke                                   %
-%                                2008.05.07                                   %
-%                                   v 0.9                                     %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%                 Read/Write Scanalytics IPLab Image Format                   %
+%                                                                             %
+%                              Software Design                                %
+%                                Sean Burke                                   %
+%                                 May 2008                                    %
+%                                                                             %
+%                                                                             %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -34,7 +38,7 @@
 
 /*
  Include declarations.
- */
+*/
 #include "MagickCore/studio.h"
 #include "MagickCore/blob.h"
 #include "MagickCore/blob-private.h"
@@ -58,7 +62,7 @@
 #include "MagickCore/module.h"
 
 /* 
-Tyedef declarations
+Typedef declarations
  */
 
 typedef struct _IPLInfo
@@ -175,7 +179,7 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Image *image;
 
   MagickBooleanType status;
-  register Quantum *q;
+  Quantum *q;
   unsigned char magick[12], *pixels;
   ssize_t count;
   ssize_t y;
@@ -199,11 +203,11 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if ( image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent, GetMagickModule(), "%s",
-                image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -246,13 +250,16 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if((ipl_info.width == 0UL) || (ipl_info.height == 0UL))
     ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   ipl_info.colors=ReadBlobLong(image); 
-  if(ipl_info.colors == 3){ SetImageColorspace(image,sRGBColorspace,exception);}
-  else { image->colorspace = GRAYColorspace; }
+  if (ipl_info.colors == 3)
+    {
+      if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)      
+        SetImageColorspace(image,sRGBColorspace,exception);
+    }
+  else
+    image->colorspace = GRAYColorspace;
   ipl_info.z=ReadBlobLong(image); 
   ipl_info.time=ReadBlobLong(image); 
-
   ipl_info.byteType=ReadBlobLong(image); 
-
 
   /* Initialize Quantum Info */
 
@@ -515,14 +522,14 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
   MagickOffsetType
     scene;
   
-  register const Quantum
+  const Quantum
     *p;
 
   QuantumInfo
     *quantum_info;
 
   size_t
-    imageListLength;
+    number_scenes;
 
   ssize_t
     y;
@@ -537,10 +544,10 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
@@ -580,13 +587,14 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
     break;
     
   }
-  imageListLength=GetImageListLength(image);
-  ipl_info.z = (unsigned int) imageListLength;
+  number_scenes=GetImageListLength(image);
+  ipl_info.z = (unsigned int) number_scenes;
   /* There is no current method for detecting whether we have T or Z stacks */
   ipl_info.time = 1;
   ipl_info.width = (unsigned int) image->columns;
   ipl_info.height = (unsigned int) image->rows;
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+      (void) TransformImageColorspace(image,sRGBColorspace,exception);
   if(IssRGBCompatibleColorspace(image->colorspace) != MagickFalse) { ipl_info.colors = 3; }
   else{ ipl_info.colors = 1; }
   
@@ -680,7 +688,7 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
   if (GetNextImageInList(image) == (Image *) NULL)
     break;
       image=SyncNextImageInList(image);
-      status=SetImageProgress(image,SaveImagesTag,scene++,imageListLength);
+      status=SetImageProgress(image,SaveImagesTag,scene++,number_scenes);
       if (status == MagickFalse)
         break;
     }while (image_info->adjoin != MagickFalse);

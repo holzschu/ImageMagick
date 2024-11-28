@@ -17,7 +17,7 @@
 %                                 July 2016                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -166,11 +166,11 @@ static Image *ReadPGXImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -213,7 +213,7 @@ static Image *ReadPGXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     const void
       *stream;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
@@ -234,7 +234,10 @@ static Image *ReadPGXImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -339,7 +342,7 @@ static MagickBooleanType WritePGXImage(const ImageInfo *image_info,Image *image,
   QuantumInfo
     *quantum_info;
 
-  register const Quantum
+  const Quantum
     *p;
 
   size_t
@@ -359,17 +362,18 @@ static MagickBooleanType WritePGXImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
   (void) FormatLocaleString(buffer,MagickPathExtent,"PG ML + %g %g %g\n",
     (double) image->depth,(double) image->columns,(double) image->rows);
   (void) WriteBlob(image,strlen(buffer),(unsigned char *) buffer);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   quantum_info=AcquireQuantumInfo(image_info,image);
   if (quantum_info == (QuantumInfo *) NULL)
     ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
@@ -393,6 +397,7 @@ static MagickBooleanType WritePGXImage(const ImageInfo *image_info,Image *image,
   quantum_info=DestroyQuantumInfo(quantum_info);
   if (y < (ssize_t) image->rows)
     ThrowWriterException(CorruptImageError,"UnableToWriteImageData");
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   return(status);
 }

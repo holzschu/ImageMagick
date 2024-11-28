@@ -17,7 +17,7 @@
 %                                October 2001                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -99,9 +99,9 @@ MagickExport double GetImageTotalInkDensity(Image *image,
     y;
 
   assert(image != (Image *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(image->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (image->colorspace != CMYKColorspace)
     {
       (void) ThrowMagickException(exception,GetMagickModule(),ImageError,
@@ -120,10 +120,10 @@ MagickExport double GetImageTotalInkDensity(Image *image,
     double
       density;
 
-    register const Quantum
+    const Quantum
       *p;
 
-    register ssize_t
+    ssize_t
       x;
 
     p=GetCacheViewVirtualPixels(image_view,0,y,image->columns,1,exception);
@@ -134,8 +134,8 @@ MagickExport double GetImageTotalInkDensity(Image *image,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      density=(double) GetPixelRed(image,p)+GetPixelGreen(image,p)+
-        GetPixelBlue(image,p)+GetPixelBlack(image,p);
+      density=(double) GetPixelRed(image,p)+(double) GetPixelGreen(image,p)+
+        (double) GetPixelBlue(image,p)+(double) GetPixelBlack(image,p);
       if (density > total_ink_density)
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
         #pragma omp critical (MagickCore_GetImageTotalInkDensity)
@@ -144,7 +144,7 @@ MagickExport double GetImageTotalInkDensity(Image *image,
           if (density > total_ink_density)
             total_ink_density=density;
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
   }
   image_view=DestroyCacheView(image_view);

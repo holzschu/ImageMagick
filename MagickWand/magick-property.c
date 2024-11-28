@@ -23,7 +23,7 @@
 %                                 August 2003                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -50,6 +50,8 @@
 #include "MagickWand/MagickWand.h"
 #include "MagickWand/magick-wand-private.h"
 #include "MagickWand/wand.h"
+#include "MagickCore/image-private.h"
+#include "MagickCore/profile-private.h"
 #include "MagickCore/string-private.h"
 
 /*
@@ -454,6 +456,47 @@ WandExport char *MagickGetFormat(MagickWand *wand)
 %                                                                             %
 %                                                                             %
 %                                                                             %
+%   M a g i c k G e t F i l t e r                                             %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  MagickGetFilter() gets the wand filter.
+%
+%  The format of the MagickGetFilter method is:
+%
+%      FilterType MagickGetFilter(MagickWand *wand)
+%
+%  A description of each parameter follows:
+%
+%    o wand: the magick wand.
+%
+*/
+WandExport FilterType MagickGetFilter(MagickWand *wand)
+{
+  const char
+    *option;
+
+  FilterType
+    type;
+
+  assert(wand != (MagickWand *) NULL);
+  assert(wand->signature == MagickWandSignature);
+  if (wand->debug != MagickFalse)
+    (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
+  option=GetImageOption(wand->image_info,"filter");
+  if (option == (const char *) NULL)
+    return(UndefinedFilter);
+  type=(FilterType) ParseCommandOption(MagickFilterOptions,MagickFalse,option);
+  return(type);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
 %   M a g i c k G e t G r a v i t y                                           %
 %                                                                             %
 %                                                                             %
@@ -566,7 +609,7 @@ WandExport char *MagickGetImageArtifact(MagickWand *wand,const char *artifact)
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%   M a g i c k G e t I m a g e P r o p e r t i e s                           %
+%   M a g i c k G e t I m a g e A r t i f a c t s                             %
 %                                                                             %
 %                                                                             %
 %                                                                             %
@@ -600,11 +643,11 @@ WandExport char **MagickGetImageArtifacts(MagickWand *wand,
   const char
     *artifact;
 
-  register ssize_t
-    i;
-
   size_t
     length;
+
+  ssize_t
+    i;
 
   assert(wand != (MagickWand *) NULL);
   assert(wand->signature == MagickWandSignature);
@@ -616,13 +659,13 @@ WandExport char **MagickGetImageArtifacts(MagickWand *wand,
         "ContainsNoImages","`%s'",wand->name);
       return((char **) NULL);
     }
-  (void) GetImageProperty(wand->images,"exif:*",wand->exception);
+  (void) GetImageArtifact(wand->images,"exif:*");
   length=1024;
   artifacts=(char **) AcquireQuantumMemory(length,sizeof(*artifacts));
   if (artifacts == (char **) NULL)
     return((char **) NULL);
-  ResetImagePropertyIterator(wand->images);
-  artifact=GetNextImageProperty(wand->images);
+  ResetImageArtifactIterator(wand->images);
+  artifact=GetNextImageArtifact(wand->images);
   for (i=0; artifact != (const char *) NULL; )
   {
     if ((*artifact != '[') &&
@@ -644,7 +687,7 @@ WandExport char **MagickGetImageArtifacts(MagickWand *wand,
         artifacts[i]=ConstantString(artifact);
         i++;
       }
-    artifact=GetNextImageProperty(wand->images);
+    artifact=GetNextImageArtifact(wand->images);
   }
   artifacts[i]=(char *) NULL;
   *number_artifacts=(size_t) i;
@@ -707,8 +750,7 @@ WandExport unsigned char *MagickGetImageProfile(MagickWand *wand,
     sizeof(*datum));
   if (datum == (unsigned char *) NULL)
     return((unsigned char *) NULL);
-  (void) memcpy(datum,GetStringInfoDatum(profile),
-    GetStringInfoLength(profile));
+  (void) memcpy(datum,GetStringInfoDatum(profile),GetStringInfoLength(profile));
   *length=(size_t) GetStringInfoLength(profile);
   return(datum);
 }
@@ -752,7 +794,7 @@ WandExport char **MagickGetImageProfiles(MagickWand *wand,const char *pattern,
   const char
     *property;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -889,7 +931,7 @@ WandExport char **MagickGetImageProperties(MagickWand *wand,
   const char
     *property;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1091,7 +1133,7 @@ WandExport char **MagickGetOptions(MagickWand *wand,const char *pattern,
   const char
     *option;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1393,8 +1435,8 @@ WandExport MagickBooleanType MagickGetResolution(const MagickWand *wand,
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  *x=72.0;
-  *y=72.0;
+  *x=DefaultResolution;
+  *y=DefaultResolution;
   if (wand->image_info->density != (char *) NULL)
     {
       GeometryInfo
@@ -1497,10 +1539,10 @@ WandExport double *MagickGetSamplingFactors(MagickWand *wand,
   double
     *sampling_factors;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(wand != (MagickWand *) NULL);
@@ -1512,10 +1554,10 @@ WandExport double *MagickGetSamplingFactors(MagickWand *wand,
   if (wand->image_info->sampling_factor == (char *) NULL)
     return(sampling_factors);
   i=0;
-  for (p=wand->image_info->sampling_factor; p != (char *) NULL; p=strchr(p,','))
+  for (p=wand->image_info->sampling_factor; p != (char *) NULL; p=strchr(p,':'))
   {
     while (((int) *p != 0) && ((isspace((int) ((unsigned char) *p)) != 0) ||
-           (*p == ',')))
+           (*p == ':')))
       p++;
     i++;
   }
@@ -1525,10 +1567,10 @@ WandExport double *MagickGetSamplingFactors(MagickWand *wand,
     ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
       wand->image_info->filename);
   i=0;
-  for (p=wand->image_info->sampling_factor; p != (char *) NULL; p=strchr(p,','))
+  for (p=wand->image_info->sampling_factor; p != (char *) NULL; p=strchr(p,':'))
   {
     while (((int) *p != 0) && ((isspace((int) ((unsigned char) *p)) != 0) ||
-           (*p == ',')))
+           (*p == ':')))
       p++;
     sampling_factors[i]=StringToDouble(p,(char **) NULL);
     i++;
@@ -1798,7 +1840,7 @@ WandExport unsigned char *MagickRemoveImageProfile(MagickWand *wand,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  MagickSetAntialias() sets the antialias propery of the wand.
+%  MagickSetAntialias() sets the antialias property of the wand.
 %
 %  The format of the MagickSetAntialias method is:
 %
@@ -2170,6 +2212,46 @@ WandExport MagickBooleanType MagickSetFormat(MagickWand *wand,
 %                                                                             %
 %                                                                             %
 %                                                                             %
+%   M a g i c k S e t F i l t e r                                             %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  MagickSetFilter() sets the filter type.
+%
+%  The format of the MagickSetFilter type is:
+%
+%      MagickBooleanType MagickSetFilter(MagickWand *wand,
+%        const FilterType type)
+%
+%  A description of each parameter follows:
+%
+%    o wand: the magick wand.
+%
+%    o type: the filter type.
+%
+*/
+WandExport MagickBooleanType MagickSetFilter(MagickWand *wand,
+  const FilterType type)
+{
+  MagickBooleanType
+    status;
+
+  assert(wand != (MagickWand *) NULL);
+  assert(wand->signature == MagickWandSignature);
+  if (wand->debug != MagickFalse)
+    (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
+  status=SetImageOption(wand->image_info,"filter",CommandOptionToMnemonic(
+    MagickFilterOptions,(ssize_t) type));
+  return(status);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
 %   M a g i c k S e t G r a v i t y                                           %
 %                                                                             %
 %                                                                             %
@@ -2210,13 +2292,17 @@ WandExport MagickBooleanType MagickSetGravity(MagickWand *wand,
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%   M a g i c k S e t I m a g e A r t i f r c t                               %
+%   M a g i c k S e t I m a g e A r t i f a c t                               %
 %                                                                             %
 %                                                                             %
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  MagickSetImageArtifact() associates a artifact with an image.
+%  MagickSetImageArtifact() sets a key-value pair in the image artifact
+%  namespace.  Artifacts differ from properties.  Properties are public and are
+%  generally exported to an external image format if the format supports it.
+%  Artifacts are private and are utilized by the internal ImageMagick API to
+%  modify the behavior of certain algorithms.
 %
 %  The format of the MagickSetImageArtifact method is:
 %
@@ -2291,10 +2377,8 @@ WandExport MagickBooleanType MagickSetImageProfile(MagickWand *wand,
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
   if (wand->images == (Image *) NULL)
     ThrowWandException(WandError,"ContainsNoImages",wand->name);
-  profile_info=AcquireStringInfo((size_t) length);
-  SetStringInfoDatum(profile_info,(unsigned char *) profile);
-  status=SetImageProfile(wand->images,name,profile_info,wand->exception);
-  profile_info=DestroyStringInfo(profile_info);
+  profile_info=BlobToProfileStringInfo(name,profile,length,wand->exception);
+  status=SetImageProfilePrivate(wand->images,profile_info,wand->exception);
   return(status);
 }
 
@@ -2430,7 +2514,7 @@ WandExport MagickBooleanType MagickSetInterpolateMethod(MagickWand *wand,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  MagickSetOption() associates one or options with the wand (.e.g
-%  MagickSetOption(wand,"jpeg:perserve","yes")).
+%  MagickSetOption(wand,"jpeg:preserve","yes")).
 %
 %  The format of the MagickSetOption method is:
 %
@@ -2763,7 +2847,7 @@ WandExport MagickBooleanType MagickSetResolution(MagickWand *wand,
 %
 %    o wand: the magick wand.
 %
-%    o number_factoes: the number of factors.
+%    o number_factors: the number of factors.
 %
 %    o sampling_factors: An array of doubles representing the sampling factor
 %      for each color component (in RGB order).
@@ -2775,7 +2859,7 @@ WandExport MagickBooleanType MagickSetSamplingFactors(MagickWand *wand,
   char
     sampling_factor[MagickPathExtent];
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(wand != (MagickWand *) NULL);
@@ -2789,7 +2873,7 @@ WandExport MagickBooleanType MagickSetSamplingFactors(MagickWand *wand,
     return(MagickTrue);
   for (i=0; i < (ssize_t) (number_factors-1); i++)
   {
-    (void) FormatLocaleString(sampling_factor,MagickPathExtent,"%g,",
+    (void) FormatLocaleString(sampling_factor,MagickPathExtent,"%g:",
       sampling_factors[i]);
     (void) ConcatenateString(&wand->image_info->sampling_factor,
       sampling_factor);
@@ -2812,7 +2896,7 @@ WandExport MagickBooleanType MagickSetSamplingFactors(MagickWand *wand,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  MagickSetSeed() sets the pseudo-random number generator seed.  Use it to
-%  generate a pedictable sequence of random numbers.
+%  generate a predictable sequence of random numbers.
 %
 %  The format of the MagickSetSeed method is:
 %

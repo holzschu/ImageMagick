@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  MAgickWand pixel wand private methods.
+  MagickWand pixel wand private methods.
 */
 #ifndef MAGICKWAND_PIXEL_WAND_PRIVATE_H
 #define MAGICKWAND_PIXEL_WAND_PRIVATE_H

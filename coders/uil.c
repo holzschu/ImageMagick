@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -179,10 +179,10 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
   PixelInfo
     pixel;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -205,14 +205,15 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   transparent=MagickFalse;
   i=0;
   p=(const Quantum *) NULL;
@@ -251,7 +252,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
               if (matte_image[i] != 0)
                 transparent=MagickTrue;
               i++;
-              p+=GetPixelChannels(image);
+              p+=(ptrdiff_t) GetPixelChannels(image);
             }
           }
         }
@@ -259,7 +260,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
       colors=image->colors;
       if (transparent != MagickFalse)
         {
-          register Quantum
+          Quantum
             *q;
 
           i=0;
@@ -274,7 +275,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
               if (matte_image[i] != 0)
                 SetPixelIndex(image,(Quantum) image->colors,q);
               i++;
-              q+=GetPixelChannels(image);
+              q+=(ptrdiff_t) GetPixelChannels(image);
             }
           }
         }
@@ -329,7 +330,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
       (void) FormatLocaleString(buffer,MagickPathExtent,
         "    color('%s',%s) = '%s'",name,
         GetPixelInfoIntensity(image,image->colormap+i) <
-        (QuantumRange/2.0) ? "background" : "foreground",symbol);
+        ((double) QuantumRange/2.0) ? "background" : "foreground",symbol);
     (void) WriteBlobString(image,buffer);
     (void) FormatLocaleString(buffer,MagickPathExtent,"%s",
       (i == (ssize_t) (colors-1) ? ");\n" : ",\n"));
@@ -361,7 +362,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
       symbol[j]='\0';
       (void) CopyMagickString(buffer,symbol,MagickPathExtent);
       (void) WriteBlobString(image,buffer);
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     (void) FormatLocaleString(buffer,MagickPathExtent,"\"%s\n",
       (y == (ssize_t) (image->rows-1) ? ");" : ","));
@@ -372,6 +373,7 @@ static MagickBooleanType WriteUILImage(const ImageInfo *image_info,Image *image,
       break;
   }
   symbol=DestroyString(symbol);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

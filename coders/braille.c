@@ -15,7 +15,7 @@
 %                                February 2008                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -180,9 +180,13 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
 #define do_cell(dx,dy,bit) \
 { \
   if (image->storage_class == PseudoClass) \
-    cell|=(GetPixelIndex(image,p+x+dx+dy*image->columns) == polarity) << bit; \
+    cell|=(GetPixelIndex(image,p+(x+(ssize_t) (dx))*(ssize_t) \
+      GetImageChannels(image)+(dy)*(ssize_t) (image->columns* \
+      GetImageChannels(image))) == polarity) << bit; \
   else \
-    cell|=(GetPixelGreen(image,p+x+dx+dy*image->columns) == 0) << bit; \
+    cell|=(GetPixelGreen(image,p+(x+(ssize_t) (dx))*(ssize_t) \
+      GetImageChannels(image)+(dy)*((ssize_t) image->columns*(ssize_t) \
+      GetImageChannels(image))) == 0) << bit; \
 }
 
   char
@@ -190,6 +194,9 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
 
   const char
     *value;
+
+  const Quantum
+    *p;
 
   int
     unicode = 0,
@@ -201,16 +208,11 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
   Quantum
     polarity;
 
-  register const Quantum
-    *p;
-
-  register ssize_t
-    x;
-
   size_t
     cell_height = 4;
 
   ssize_t
+    x,
     y;
 
   /*
@@ -220,32 +222,33 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (LocaleCompare(image_info->magick,"UBRL") == 0)
-    unicode=1;
-  else if (LocaleCompare(image_info->magick,"UBRL6") == 0)
-    {
-      unicode=1;
-      cell_height=3;
-    }
-  else
-    if (LocaleCompare(image_info->magick,"ISOBRL") == 0)
-      iso_11548_1=1;
-    else
-      if (LocaleCompare(image_info->magick,"ISOBRL6") == 0)
-        {
-          iso_11548_1=1;
-          cell_height=3;
-        }
-      else
-        cell_height=3;
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  if (LocaleCompare(image_info->magick,"UBRL") == 0)
+    unicode=1;
+  else
+    if (LocaleCompare(image_info->magick,"UBRL6") == 0)
+      {
+        unicode=1;
+        cell_height=3;
+      }
+    else
+      if (LocaleCompare(image_info->magick,"ISOBRL") == 0)
+        iso_11548_1=1;
+      else
+        if (LocaleCompare(image_info->magick,"ISOBRL6") == 0)
+          {
+            iso_11548_1=1;
+            cell_height=3;
+          }
+        else
+          cell_height=3;
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  if (!iso_11548_1)
+  if (iso_11548_1 == 0)
     {
       value=GetImageProperty(image,"label",exception);
       if (value != (const char *) NULL)
@@ -279,15 +282,15 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
   if (image->storage_class == PseudoClass)
     {
       polarity=(Quantum) (GetPixelInfoIntensity(image,&image->colormap[0]) >=
-        (QuantumRange/2.0));
+        ((double) QuantumRange/2.0));
       if (image->colors == 2)
         polarity=(Quantum) (GetPixelInfoIntensity(image,&image->colormap[0]) >=
           GetPixelInfoIntensity(image,&image->colormap[1]));
     }
   for (y=0; y < (ssize_t) image->rows; y+=(ssize_t) cell_height)
   {
-    if ((y+cell_height) > image->rows)
-      cell_height=(size_t) (image->rows-y);
+    if ((size_t) (y+(ssize_t) cell_height) > image->rows)
+      cell_height=(size_t) ((ssize_t) image->rows-y);
     p=GetVirtualPixels(image,0,y,image->columns,cell_height,exception);
     if (p == (const Quantum *) NULL)
       break;
@@ -299,7 +302,7 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
       unsigned char
         cell = 0;
 
-      two_columns=(x+1 < (ssize_t) image->columns) ? MagickTrue : MagickFalse;
+      two_columns=(x+1) < (ssize_t) image->columns ? MagickTrue : MagickFalse;
       do_cell(0,0,0)
       if (two_columns != MagickFalse)
         do_cell(1,0,3)
@@ -329,38 +332,39 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
           /*
             Unicode text.
           */
-          utf8[0]=(unsigned char) (0xe0|((0x28 >> 4) & 0x0f));
-          utf8[1]=0x80|((0x28<<2) & 0x3f)|(cell >> 6);
-          utf8[2]=0x80|(cell & 0x3f);
+          utf8[0]=(unsigned char) (0xe0 | ((0x28 >> 4) & 0x0f));
+          utf8[1]=0x80| ((0x28 << 2) & 0x3f) | (cell >> 6);
+          utf8[2]=0x80| (cell & 0x3f);
           (void) WriteBlob(image,3,utf8);
         }
-      else if (iso_11548_1)
-        {
-          /*
-            ISO/TR 11548-1 binary.
-          */
-          (void) WriteBlobByte(image,cell);
-        }
       else
-        {
-          static const unsigned char
-            iso_to_brf[64] =
-            {
-              ' ', 'A', '1', 'B', '\'', 'K', '2', 'L',
-              '@', 'C', 'I', 'F', '/', 'M', 'S', 'P',
-              '"', 'E', '3', 'H', '9', 'O', '6', 'R',
-              '^', 'D', 'J', 'G', '>', 'N', 'T', 'Q',
-              ',', '*', '5', '<', '-', 'U', '8', 'V',
-              '.', '%', '[', '$', '+', 'X', '!', '&',
-              ';', ':', '4', '\\', '0', 'Z', '7', '(',
-              '_', '?', 'W', ']', '#', 'Y', ')', '='
-            };
+        if (iso_11548_1 != 0)
+          {
+            /*
+              ISO/TR 11548-1 binary.
+            */
+            (void) WriteBlobByte(image,cell);
+          }
+        else
+          {
+            static const unsigned char
+              iso_to_brf[64] =
+              {
+                ' ', 'A', '1', 'B', '\'', 'K', '2', 'L',
+                '@', 'C', 'I', 'F', '/', 'M', 'S', 'P',
+                '"', 'E', '3', 'H', '9', 'O', '6', 'R',
+                '^', 'D', 'J', 'G', '>', 'N', 'T', 'Q',
+                ',', '*', '5', '<', '-', 'U', '8', 'V',
+                '.', '%', '[', '$', '+', 'X', '!', '&',
+                ';', ':', '4', '\\', '0', 'Z', '7', '(',
+                '_', '?', 'W', ']', '#', 'Y', ')', '='
+              };
 
-          /*
-            BRF.
-          */
-          (void) WriteBlobByte(image,iso_to_brf[cell]);
-        }
+            /*
+              BRF.
+            */
+            (void) WriteBlobByte(image,iso_to_brf[cell]);
+          }
     }
     if (iso_11548_1 == 0)
       (void) WriteBlobByte(image,'\n');
@@ -369,6 +373,7 @@ static MagickBooleanType WriteBRAILLEImage(const ImageInfo *image_info,
     if (status == MagickFalse)
       break;
   }
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

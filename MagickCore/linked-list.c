@@ -17,7 +17,7 @@
 %                               December 2002                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -46,6 +46,7 @@
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
 #include "MagickCore/linked-list.h"
+#include "MagickCore/linked-list-private.h"
 #include "MagickCore/locale_.h"
 #include "MagickCore/memory_.h"
 #include "MagickCore/memory-private.h"
@@ -56,15 +57,6 @@
 /*
   Typedef declarations.
 */
-typedef struct _ElementInfo
-{
-  void
-    *value;
-
-  struct _ElementInfo
-    *next;
-} ElementInfo;
-
 struct _LinkedListInfo
 {
   size_t
@@ -111,7 +103,7 @@ struct _LinkedListInfo
 MagickExport MagickBooleanType AppendValueToLinkedList(
   LinkedListInfo *list_info,const void *value)
 {
-  register ElementInfo
+  ElementInfo
     *next;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -168,7 +160,7 @@ MagickExport void ClearLinkedList(LinkedListInfo *list_info,
   ElementInfo
     *element;
 
-  register ElementInfo
+  ElementInfo
     *next;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -222,7 +214,7 @@ MagickExport LinkedListInfo *DestroyLinkedList(LinkedListInfo *list_info,
   ElementInfo
     *entry;
 
-  register ElementInfo
+  ElementInfo
     *next;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -241,6 +233,36 @@ MagickExport LinkedListInfo *DestroyLinkedList(LinkedListInfo *list_info,
   RelinquishSemaphoreInfo(&list_info->semaphore);
   list_info=(LinkedListInfo *) RelinquishMagickMemory(list_info);
   return(list_info);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   G e t H e a d E l e m e n t I n L i n k e d L i s t                       %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  GetHeadElementInLinkedList() gets the head element in the linked-list.
+%
+%  The format of the GetHeadElementInLinkedList method is:
+%
+%      ElementInfo *GetHeadElementInLinkedList(LinkedListInfo *list_info)
+%
+%  A description of each parameter follows:
+%
+%    o list_info: the linked_list info.
+%
+*/
+MagickPrivate ElementInfo *GetHeadElementInLinkedList(
+  LinkedListInfo *list_info)
+{
+  assert(list_info != (LinkedListInfo *) NULL);
+  assert(list_info->signature == MagickCoreSignature);
+  return(list_info->head);
 }
 
 /*
@@ -382,10 +404,10 @@ MagickExport size_t GetNumberOfElementsInLinkedList(
 MagickExport void *GetValueFromLinkedList(LinkedListInfo *list_info,
   const size_t index)
 {
-  register ElementInfo
+  ElementInfo
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   void
@@ -447,10 +469,10 @@ MagickExport void *GetValueFromLinkedList(LinkedListInfo *list_info,
 MagickExport MagickBooleanType InsertValueInLinkedList(
   LinkedListInfo *list_info,const size_t index,const void *value)
 {
-  register ElementInfo
+  ElementInfo
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -552,10 +574,10 @@ MagickExport MagickBooleanType InsertValueInSortedLinkedList(
   ElementInfo
     *element;
 
-  register ElementInfo
+  ElementInfo
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -666,10 +688,10 @@ MagickExport MagickBooleanType IsLinkedListEmpty(
 MagickExport MagickBooleanType LinkedListToArray(LinkedListInfo *list_info,
   void **array)
 {
-  register ElementInfo
+  ElementInfo
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(list_info != (LinkedListInfo *) NULL);
@@ -831,7 +853,7 @@ MagickExport void *RemoveElementFromLinkedList(LinkedListInfo *list_info,
   ElementInfo
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   void
@@ -963,4 +985,56 @@ MagickExport void ResetLinkedListIterator(LinkedListInfo *list_info)
   LockSemaphoreInfo(list_info->semaphore);
   list_info->next=list_info->head;
   UnlockSemaphoreInfo(list_info->semaphore);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   S e t H e a d E l e m e n t I n L i n k e d L i s t                       %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SetHeadElementInLinkedList() sets the head element of the linked-list.
+%
+%  The format of the SetHeadElementInLinkedList method is:
+%
+%      SetHeadElementInLinkedList(LinkedListInfo *list_info,
+%        ElementInfo *element)
+%
+%  A description of each parameter follows:
+%
+%    o list_info: the linked-list info.
+%
+%    o element: the element to set as the head.
+%
+*/
+MagickPrivate void SetHeadElementInLinkedList(LinkedListInfo *list_info,
+  ElementInfo *element)
+{
+  ElementInfo
+    *prev;
+
+  assert(list_info != (LinkedListInfo *) NULL);
+  assert(list_info->signature == MagickCoreSignature);
+  assert(element != (ElementInfo *) NULL);
+  if (element == list_info->head)
+    return;
+  prev=list_info->head;
+  while (prev != (ElementInfo *) NULL)
+  {
+    if (prev->next == element)
+      {
+        prev->next=element->next;
+        element->next=list_info->head;
+        if (list_info->head == list_info->next)
+          list_info->next=element;
+        list_info->head=element;
+        break;
+      }
+    prev=prev->next;
+  }
 }

@@ -10,7 +10,7 @@
 %                            EEEEE  M   M  F                                  %
 %                                                                             %
 %                                                                             %
-%                  Read Windows Enahanced Metafile Format                     %
+%                   Read Windows Enhanced Metafile Format                     %
 %                                                                             %
 %                              Software Design                                %
 %                              Bill Radcliffe                                 %
@@ -18,7 +18,7 @@
 %                               Dirk Lemstra                                  %
 %                               January 2014                                  %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -71,6 +71,7 @@
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/module.h"
+#include "MagickCore/utility-private.h"
 #include "coders/emf.h"
 
 /*
@@ -177,12 +178,12 @@ static MagickBooleanType IsWMF(const unsigned char *magick,const size_t length)
 #    if defined(MAGICKCORE_HAVE__WFOPEN)
 static size_t UTF8ToUTF16(const unsigned char *utf8,wchar_t *utf16)
 {
-  register const unsigned char
+  const unsigned char
     *p;
 
   if (utf16 != (wchar_t *) NULL)
     {
-      register wchar_t
+      wchar_t
         *q;
 
       wchar_t
@@ -269,7 +270,7 @@ static wchar_t *ConvertUTF8ToUTF16(const unsigned char *source)
   length=UTF8ToUTF16(source,(wchar_t *) NULL);
   if (length == 0)
     {
-      register ssize_t
+      ssize_t
         i;
 
       /*
@@ -414,7 +415,8 @@ static HENHMETAFILE ReadEnhMetaFile(const char *path,ssize_t *width,
     }
   ReadFile(hFile,pBits,dwSize,&dwSize,NULL);
   CloseHandle(hFile);
-  if (((PAPMHEADER) pBits)->dwKey != 0x9ac6cdd7l)
+  if ((((PAPMHEADER) pBits)->dwKey != 0x9ac6cdd7l) ||
+      (((PAPMHEADER) pBits)->wInch == 0))
     {
       pBits=(BYTE *) DestroyString((char *) pBits);
       return((HENHMETAFILE) NULL);
@@ -463,10 +465,10 @@ static Image *ReadEMFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   RECT
     rect;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   RGBQUAD
@@ -521,7 +523,7 @@ static Image *ReadEMFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       char
         *geometry;
 
-      register char
+      char
         *p;
 
       MagickStatusType
@@ -631,7 +633,7 @@ static Image *ReadEMFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       SetPixelBlue(image,ScaleCharToQuantum(pBits->rgbBlue),q);
       SetPixelAlpha(image,OpaqueAlpha,q);
       pBits++;
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -651,7 +653,7 @@ static inline void EMFSetDimensions(Image * image,Gdiplus::Image *source)
 
   image->columns=(size_t) floor((Gdiplus::REAL) source->GetWidth()/
     source->GetHorizontalResolution()*image->resolution.x+0.5);
-  image->rows=(size_t)floor((Gdiplus::REAL) source->GetHeight()/
+  image->rows=(size_t) floor((Gdiplus::REAL) source->GetHeight()/
     source->GetVerticalResolution()*image->resolution.y+0.5);
 }
 
@@ -685,10 +687,10 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
   MagickStatusType
     flags;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -701,27 +703,30 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
     *p;
 
   wchar_t
-    fileName[MagickPathExtent];
+    *path;
 
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
-  assert(exception != (ExceptionInfo *) NULL);
-
   image=AcquireImage(image_info,exception);
   if (Gdiplus::GdiplusStartup(&token,&startup_input,NULL) != 
     Gdiplus::Status::Ok)
     ThrowReaderException(CoderError, "GdiplusStartupFailed");
-  MultiByteToWideChar(CP_UTF8,0,image->filename,-1,fileName,MagickPathExtent);
-  source=Gdiplus::Image::FromFile(fileName);
+  source=(Gdiplus::Image *) NULL;
+  path=create_wchar_path(image->filename);
+  if (path != (wchar_t *) NULL)
+    {
+      source=Gdiplus::Image::FromFile(path);
+      path=(wchar_t *) RelinquishMagickMemory(path);
+    }
   if (source == (Gdiplus::Image *) NULL)
     {
       Gdiplus::GdiplusShutdown(token);
       ThrowReaderException(FileOpenError,"UnableToOpenFile");
     }
-
   image->resolution.x=source->GetHorizontalResolution();
   image->resolution.y=source->GetVerticalResolution();
   image->columns=(size_t) source->GetWidth();
@@ -746,10 +751,11 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
   else if (image_info->density != (char *) NULL)
     {
       flags=ParseGeometry(image_info->density,&geometry_info);
-      image->resolution.x=geometry_info.rho;
-      image->resolution.y=geometry_info.sigma;
-      if ((flags & SigmaValue) == 0)
-        image->resolution.y=image->resolution.x;
+      if ((flags & RhoValue) != 0)
+        image->resolution.x=geometry_info.rho;
+      image->resolution.y=image->resolution.x;
+      if ((flags & SigmaValue) != 0)
+        image->resolution.y=geometry_info.sigma;
       EMFSetDimensions(image,source);
     }
   if (SetImageExtent(image,image->columns,image->rows,exception) == MagickFalse)
@@ -765,7 +771,6 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
       Gdiplus::GdiplusShutdown(token);
       return(image);
     }
-
   bitmap=new Gdiplus::Bitmap((INT) image->columns,(INT) image->rows,
     PixelFormat32bppARGB);
   graphics=Gdiplus::Graphics::FromImage(bitmap);
@@ -780,16 +785,14 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
   graphics->DrawImage(source,0,0,(INT) image->columns,(INT) image->rows);
   delete graphics;
   delete source;
-
   rect=Gdiplus::Rect(0,0,(INT) image->columns,(INT) image->rows);
   if (bitmap->LockBits(&rect,Gdiplus::ImageLockModeRead,PixelFormat32bppARGB,
-    &bitmap_data) != Gdiplus::Ok)
-  {
-    delete bitmap;
-    Gdiplus::GdiplusShutdown(token);
-    ThrowReaderException(FileOpenError,"UnableToReadImageData");
-  }
-
+        &bitmap_data) != Gdiplus::Ok)
+    {
+      delete bitmap;
+      Gdiplus::GdiplusShutdown(token);
+      ThrowReaderException(FileOpenError,"UnableToReadImageData");
+    }
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     p=(unsigned char *) bitmap_data.Scan0+(y*abs(bitmap_data.Stride));
@@ -806,13 +809,12 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
       SetPixelGreen(image,ScaleCharToQuantum(*p++),q);
       SetPixelRed(image,ScaleCharToQuantum(*p++),q);
       SetPixelAlpha(image,ScaleCharToQuantum(*p++),q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
 
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
   }
-
   bitmap->UnlockBits(&bitmap_data);
   delete bitmap;
   Gdiplus::GdiplusShutdown(token);

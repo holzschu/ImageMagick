@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -110,11 +110,11 @@ static inline MagickSizeType GetQuantumRange(const size_t depth)
 static inline float HalfToSinglePrecision(const unsigned short half)
 {
 #define ExponentBias  (127-15)
-#define ExponentMask  0x7c00
+#define ExponentMask  (0x7c00U)
 #define ExponentShift  23
 #define SignBitShift  31
 #define SignificandShift  13
-#define SignificandMask  0x00000400
+#define SignificandMask  (0x00000400U)
 
   typedef union _SinglePrecision
   {
@@ -125,15 +125,13 @@ static inline float HalfToSinglePrecision(const unsigned short half)
       single_precision;
   } SinglePrecision;
 
-  register unsigned int
-    exponent,
-    significand,
-    sign_bit;
-
   SinglePrecision
     map;
 
   unsigned int
+    exponent,
+    significand,
+    sign_bit,
     value;
 
   /*
@@ -192,7 +190,7 @@ static inline unsigned char *PopCharPixel(const unsigned char pixel,
 static inline unsigned char *PopLongPixel(const EndianType endian,
   const unsigned int pixel,unsigned char *magick_restrict pixels)
 {
-  register unsigned int
+  unsigned int
     quantum;
 
   quantum=(unsigned int) pixel;
@@ -214,7 +212,7 @@ static inline unsigned char *PopLongPixel(const EndianType endian,
 static inline unsigned char *PopShortPixel(const EndianType endian,
   const unsigned short pixel,unsigned char *magick_restrict pixels)
 {
-  register unsigned int
+  unsigned int
     quantum;
 
   quantum=pixel;
@@ -241,7 +239,7 @@ static inline const unsigned char *PushLongPixel(const EndianType endian,
   const unsigned char *magick_restrict pixels,
   unsigned int *magick_restrict pixel)
 {
-  register unsigned int
+  unsigned int
     quantum;
 
   if (endian == LSBEndian)
@@ -265,7 +263,7 @@ static inline const unsigned char *PushShortPixel(const EndianType endian,
   const unsigned char *magick_restrict pixels,
   unsigned short *magick_restrict pixel)
 {
-  register unsigned int
+  unsigned int
     quantum;
 
   if (endian == LSBEndian)
@@ -331,11 +329,11 @@ static inline QuantumAny ScaleQuantumToAny(const Quantum quantum,
 #if !defined(MAGICKCORE_HDRI_SUPPORT)
   return((QuantumAny) ((double) range*quantum/QuantumRange));
 #else
-  if ((IsNaN(quantum) != 0) || (quantum <= 0.0))
+  if ((IsNaN(quantum) != 0) || (quantum <= 0.0f))
     return((QuantumAny) 0UL);
-  if (((double) range*quantum/QuantumRange) >= 18446744073709551615.0)
+  if ((range*(double) quantum/(double) QuantumRange) >= 18446744073709551615.0)
     return((QuantumAny) MagickULLConstant(18446744073709551615));
-  return((QuantumAny) ((double) range*quantum/QuantumRange+0.5));
+  return((QuantumAny) (range*(double) quantum/(double) QuantumRange+0.5));
 #endif
 }
 
@@ -398,7 +396,7 @@ static inline MagickSizeType ScaleQuantumToLongLong(const Quantum quantum)
     return(0UL);
   if ((72340172838076673.0*quantum) >= 18446744073709551615.0)
     return(MagickULLConstant(18446744073709551615));
-  return((MagickSizeType) (72340172838076673*quantum+0.5));
+  return((MagickSizeType) (72340172838076673.0*quantum+0.5));
 #endif
 }
 
@@ -482,11 +480,11 @@ static inline unsigned int ScaleQuantumToLong(const Quantum quantum)
 #if !defined(MAGICKCORE_HDRI_SUPPORT)
   return((unsigned int) (65537UL*quantum));
 #else
-  if ((IsNaN(quantum) != 0) || (quantum <= 0.0))
+  if ((IsNaN(quantum) != 0) || (quantum <= 0.0f))
     return(0U);
-  if ((65537.0*quantum) >= 4294967295.0)
+  if ((65537.0*(double) quantum) >= 4294967295.0)
     return(4294967295U);
-  return((unsigned int) (65537.0*quantum+0.5));
+  return((unsigned int) (65537.0*(double) quantum+0.5));
 #endif
 }
 
@@ -495,11 +493,11 @@ static inline MagickSizeType ScaleQuantumToLongLong(const Quantum quantum)
 #if !defined(MAGICKCORE_HDRI_SUPPORT)
   return((MagickSizeType) (MagickULLConstant(281479271743489)*quantum));
 #else
-  if ((IsNaN(quantum) != 0) || (quantum <= 0.0))
+  if ((IsNaN(quantum) != 0) || (quantum <= 0.0f))
     return(0UL);
-  if ((281479271743489.0*quantum) >= 18446744073709551615.0)
+  if ((281479271743489.0*(double) quantum) >= 18446744073709551615.0)
     return(MagickULLConstant(18446744073709551615));
-  return((MagickSizeType) (281479271743489.0*quantum+0.5));
+  return((MagickSizeType) (281479271743489.0*(double) quantum+0.5));
 #endif
 }
 
@@ -510,9 +508,9 @@ static inline unsigned int ScaleQuantumToMap(const Quantum quantum)
 #if !defined(MAGICKCORE_HDRI_SUPPORT)
   return((unsigned int) quantum);
 #else
-  if ((IsNaN(quantum) != 0) || (quantum <= 0.0))
+  if ((IsNaN(quantum) != 0) || (quantum <= 0.0f))
     return(0U);
-  return((unsigned int) (quantum+0.5));
+  return((unsigned int) (quantum+0.5f));
 #endif
 }
 
@@ -521,11 +519,11 @@ static inline unsigned short ScaleQuantumToShort(const Quantum quantum)
 #if !defined(MAGICKCORE_HDRI_SUPPORT)
   return((unsigned short) quantum);
 #else
-  if ((IsNaN(quantum) != 0) || (quantum <= 0.0))
+  if ((IsNaN(quantum) != 0) || (quantum <= 0.0f))
     return(0);
-  if (quantum >= 65535.0)
+  if (quantum >= 65535.0f)
     return(65535);
-  return((unsigned short) (quantum+0.5));
+  return((unsigned short) (quantum+0.5f));
 #endif
 }
 
@@ -710,15 +708,15 @@ static inline unsigned short SinglePrecisionToHalf(const float value)
       single_precision;
   } SinglePrecision;
 
-  register int
+  int
     exponent;
-
-  register unsigned int
-    significand,
-    sign_bit;
 
   SinglePrecision
     map;
+
+  unsigned int
+    significand,
+    sign_bit;
 
   unsigned short
     half;
@@ -743,7 +741,7 @@ static inline unsigned short SinglePrecisionToHalf(const float value)
         return((unsigned short) sign_bit);
       significand=significand | 0x00800000;
       shift=(int) (14-exponent);
-      significand=(unsigned int) ((significand+((1 << (shift-1))-1)+
+      significand=(unsigned int) ((significand+((1U << (shift-1))-1)+
         ((significand >> shift) & 0x01)) >> shift);
       return((unsigned short) (sign_bit | significand));
     }
@@ -771,7 +769,7 @@ static inline unsigned short SinglePrecisionToHalf(const float value)
       float
         alpha;
 
-      register int
+      int
         i;
 
       /*
@@ -782,7 +780,7 @@ static inline unsigned short SinglePrecisionToHalf(const float value)
         alpha*=alpha;
       return((unsigned short) (sign_bit | ExponentMask));
     }
-  half=(unsigned short) (sign_bit | (exponent << 10) |
+  half=(unsigned short) (sign_bit | ((unsigned int) exponent << 10) |
     (significand >> SignificandShift));
   return(half);
 }

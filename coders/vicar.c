@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -53,11 +53,13 @@
 #include "MagickCore/image.h"
 #include "MagickCore/image-private.h"
 #include "MagickCore/list.h"
+#include "MagickCore/locale_.h"
 #include "MagickCore/magick.h"
 #include "MagickCore/memory_.h"
 #include "MagickCore/module.h"
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
+#include "MagickCore/property.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/static.h"
@@ -146,6 +148,7 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   ExceptionInfo *exception)
 {
   char
+    format[MagickPathExtent] = "byte",
     keyword[MagickPathExtent],
     value[MagickPathExtent];
 
@@ -165,7 +168,7 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   QuantumType
     quantum_type;
 
-  register Quantum
+  Quantum
     *q;
 
   size_t
@@ -183,11 +186,11 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -208,71 +211,141 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   length=0;
   image->columns=0;
   image->rows=0;
-  while (isgraph(c) && ((image->columns == 0) || (image->rows == 0)))
+  while ((isgraph((int) ((unsigned char) c)) != 0) &&
+         ((image->columns == 0) || (image->rows == 0)))
   {
-    if (isalnum(c) == MagickFalse)
+    if (isalnum((int) ((unsigned char) c)) == 0)
       {
         c=ReadBlobByte(image);
         count++;
       }
     else
       {
-        register char
-          *p;
+        MagickOffsetType
+          offset;
+
+        char
+          *p,
+          property[MagickPathExtent];
 
         /*
           Determine a keyword and its value.
         */
+        offset=TellBlob(image)-1;
         p=keyword;
         do
         {
           if ((size_t) (p-keyword) < (MagickPathExtent-1))
             *p++=c;
           c=ReadBlobByte(image);
+          if (c == EOF)
+            break;
           count++;
-        } while (isalnum(c) || (c == '_'));
+        } while (isalnum((int) ((unsigned char) c)) || (c == '_'));
         *p='\0';
         value_expected=MagickFalse;
-        while ((isspace(c) != 0) || (c == '='))
+        while ((isspace((int) ((unsigned char) c)) != 0) || (c == '='))
         {
           if (c == '=')
             value_expected=MagickTrue;
           c=ReadBlobByte(image);
+          if (c == EOF)
+            break;
           count++;
         }
         if (value_expected == MagickFalse)
           continue;
         p=value;
-        while (isalnum(c))
+        switch (c)
         {
-          if ((size_t) (p-value) < (MagickPathExtent-1))
-            *p++=c;
-          c=ReadBlobByte(image);
-          count++;
+          case '\'':
+          {
+            c=ReadBlobByte(image);
+            count++;
+            while (c != '\'')
+            {
+              if ((size_t) (p-value) < (MagickPathExtent-1))
+                *p++=c;
+              c=ReadBlobByte(image);
+              if (c == EOF)
+                break;
+              count++;
+            }
+            break;
+          }
+          case '"':
+          {
+            c=ReadBlobByte(image);
+            count++;
+            while (c != '"')
+            {
+              if ((size_t) (p-value) < (MagickPathExtent-1))
+                *p++=c;
+              c=ReadBlobByte(image);
+              if (c == EOF)
+                break;
+              count++;
+            }
+            break;
+          }
+          case '(':
+          {
+            c=ReadBlobByte(image);
+            count++;
+            while (c != ')')
+            {
+              if ((size_t) (p-value) < (MagickPathExtent-1))
+                *p++=c;
+              c=ReadBlobByte(image);
+              if (c == EOF)
+                break;
+              count++;
+            }
+            break;
+          }
+          default:
+          {
+            while (isalnum((int) ((unsigned char) c)))
+            {
+              if ((size_t) (p-value) < (MagickPathExtent-1))
+                *p++=c;
+              c=ReadBlobByte(image);
+              if (c == EOF)
+                break;
+              count++;
+            }
+            break;
+          }
         }
         *p='\0';
         /*
           Assign a value to the specified keyword.
         */
+        (void) FormatLocaleString(property,MagickPathExtent,"vicar:%s",keyword);
+        LocaleLower(property);
+        (void) SetImageProperty(image,property,value,exception);
+        if (LocaleCompare(keyword,"END") == 0)
+          break;
+        if (LocaleCompare(keyword,"FORMAT") == 0)
+          (void) CopyMagickString(format,value,MagickPathExtent);
         if (LocaleCompare(keyword,"LABEL_RECORDS") == 0)
-          length*=(ssize_t) StringToLong(value);
+          length*=(size_t) StringToLong(value);
         if (LocaleCompare(keyword,"LBLSIZE") == 0)
-          length=(ssize_t) StringToLong(value);
-        if (LocaleCompare(keyword,"RECORD_BYTES") == 0)
-          {
-            image->columns=StringToUnsignedLong(value);
-            length=(ssize_t) image->columns;
-          }
-        if (LocaleCompare(keyword,"NS") == 0)
-          image->columns=StringToUnsignedLong(value);
+          length=(size_t) (StringToLong(value)+offset);
         if (LocaleCompare(keyword,"LINES") == 0)
           image->rows=StringToUnsignedLong(value);
         if (LocaleCompare(keyword,"NL") == 0)
           image->rows=StringToUnsignedLong(value);
+        if (LocaleCompare(keyword,"NS") == 0)
+          image->columns=StringToUnsignedLong(value);
       }
-    while (isspace(c) != 0)
+    if (c == EOF)
+      break;
+    while (isspace((int) ((unsigned char) c)) != 0)
     {
       c=ReadBlobByte(image);
+      if (c == EOF)
+        break;
       count++;
     }
   }
@@ -286,6 +359,17 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   if ((image->columns == 0) || (image->rows == 0))
     ThrowReaderException(CorruptImageError,"NegativeOrZeroImageSize");
   image->depth=8;
+  if (LocaleCompare(format,"byte") == 0)
+    ;
+  else
+    if (LocaleCompare(format,"half") == 0)
+      image->depth=16;
+    else
+      if ((LocaleCompare(format,"full") == 0) ||
+          (LocaleCompare(format,"real") == 0))
+        image->depth=32;
+      else
+        image->depth=64;
   if (image_info->ping != MagickFalse)
     {
       (void) CloseBlob(image);
@@ -304,6 +388,13 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
     ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
   length=GetQuantumExtent(image,quantum_info,quantum_type);
   pixels=GetQuantumPixels(quantum_info);
+  if (LocaleCompare(format,"byte") == 0)
+    ;  
+  else
+    if (LocaleCompare(format,"half") == 0)
+      SetQuantumFormat(image,quantum_info,SignedQuantumFormat);
+    else
+      SetQuantumFormat(image,quantum_info,FloatingPointQuantumFormat);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     const void
@@ -329,7 +420,10 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -361,7 +455,8 @@ ModuleExport size_t RegisterVICARImage(void)
   MagickInfo
     *entry;
 
-  entry=AcquireMagickInfo("VICAR","VICAR","VICAR rasterfile format");
+  entry=AcquireMagickInfo("VICAR","VICAR",
+    "Video Image Communication And Retrieval");
   entry->decoder=(DecodeImageHandler *) ReadVICARImage;
   entry->encoder=(EncodeImageHandler *) WriteVICARImage;
   entry->magick=(IsImageFormatHandler *) IsVICAR;
@@ -442,7 +537,7 @@ static MagickBooleanType WriteVICARImage(const ImageInfo *image_info,
   QuantumInfo
     *quantum_info;
 
-  register const Quantum
+  const Quantum
     *p;
 
   size_t
@@ -461,14 +556,15 @@ static MagickBooleanType WriteVICARImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   /*
     Write header.
   */
@@ -476,8 +572,8 @@ static MagickBooleanType WriteVICARImage(const ImageInfo *image_info,
   (void) FormatLocaleString(header,MagickPathExtent,
     "LBLSIZE=%.20g FORMAT='BYTE' TYPE='IMAGE' BUFSIZE=20000 DIM=2 EOL=0 "
     "RECSIZE=%.20g ORG='BSQ' NL=%.20g NS=%.20g NB=1 N1=0 N2=0 N3=0 N4=0 NBB=0 "
-    "NLB=0 TASK='ImageMagick'",(double) MagickPathExtent,(double) image->columns,
-    (double) image->rows,(double) image->columns);
+    "NLB=0 TASK='ImageMagick'",(double) MagickPathExtent,(double)
+    image->columns,(double) image->rows,(double) image->columns);
   (void) WriteBlob(image,MagickPathExtent,(unsigned char *) header);
   /*
     Write VICAR pixels.
@@ -503,6 +599,7 @@ static MagickBooleanType WriteVICARImage(const ImageInfo *image_info,
       break;
   }
   quantum_info=DestroyQuantumInfo(quantum_info);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

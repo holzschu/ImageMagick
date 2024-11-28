@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
-// Copyright Dirk Lemstra 2013-2017
+//
+// Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Implementation of Image
 //
@@ -16,13 +18,13 @@
 #include <errno.h>
 #include <math.h>
 
-using namespace std;
-
 #include "Magick++/Image.h"
 #include "Magick++/Functions.h"
 #include "Magick++/Pixels.h"
 #include "Magick++/Options.h"
 #include "Magick++/ImageRef.h"
+
+using namespace std;
 
 #define AbsoluteValue(x)  ((x) < 0 ? -(x) : (x))
 #define MagickPI  3.14159265358979323846264338327950288419716939937510
@@ -762,7 +764,7 @@ void Magick::Image::fileName(const std::string &fileName_)
   modifyImage();
 
   max_length=sizeof(image()->filename)-1;
-  fileName_.copy(image()->filename,max_length);
+  fileName_.copy(image()->filename,(size_t) max_length);
   if ((ssize_t) fileName_.length() > max_length)
     image()->filename[max_length]=0;
   else
@@ -814,7 +816,7 @@ void Magick::Image::fillPattern(const Image &fillPattern_)
 
 Magick::Image Magick::Image::fillPattern(void) const
 {
-  // FIXME: This is inordinately innefficient
+  // FIXME: This is inordinately inefficient
   const MagickCore::Image
     *tmpTexture;
 
@@ -1352,6 +1354,17 @@ size_t Magick::Image::rows(void) const
   return(constImage()->rows);
 }
 
+void Magick::Image::samplingFactor(const std::string &samplingFactor_)
+{
+  modifyImage();
+  options()->samplingFactor(samplingFactor_);
+}
+
+std::string Magick::Image::samplingFactor(void) const
+{
+  return(constOptions()->samplingFactor());
+}
+
 void Magick::Image::scene(const size_t scene_)
 {
   modifyImage();
@@ -1469,7 +1482,7 @@ void Magick::Image::strokePattern(const Image &strokePattern_)
 
 Magick::Image Magick::Image::strokePattern(void) const
 {
-  // FIXME: This is inordinately innefficient
+  // FIXME: This is inordinately inefficient
   const MagickCore::Image 
     *tmpTexture;
 
@@ -2179,7 +2192,7 @@ void Magick::Image::channel(const ChannelType channel_)
     *newImage;
 
   GetPPException;
-  newImage=SeparateImage(image(),channel_,exceptionInfo);
+  newImage=SeparateImage(constImage(),channel_,exceptionInfo);
   replaceImage(newImage);
   ThrowImageException;
 }
@@ -3122,10 +3135,11 @@ void Magick::Image::fontTypeMetrics(const std::string &text_,
     *drawInfo;
 
   drawInfo=options()->drawInfo();
+  drawInfo->text=DestroyString(drawInfo->text);
   drawInfo->text=const_cast<char *>(text_.c_str());
   GetPPException;
   GetTypeMetrics(image(),drawInfo,&(metrics->_typeMetric),exceptionInfo);
-  drawInfo->text=0;
+  drawInfo->text=(char *) NULL;
   ThrowImageException;
 }
 
@@ -3136,10 +3150,12 @@ void Magick::Image::fontTypeMetricsMultiline(const std::string &text_,
     *drawInfo;
 
   drawInfo=options()->drawInfo();
+  drawInfo->text=DestroyString(drawInfo->text);
   drawInfo->text=const_cast<char *>(text_.c_str());
   GetPPException;
-  GetMultilineTypeMetrics(image(),drawInfo,&(metrics->_typeMetric),exceptionInfo);
-  drawInfo->text=0;
+  (void) GetMultilineTypeMetrics(image(),drawInfo,&(metrics->_typeMetric),
+    exceptionInfo);
+  drawInfo->text=(char *) NULL;
   ThrowImageException;
 }
 
@@ -4194,14 +4210,13 @@ void Magick::Image::roll(const Geometry &roll_)
   ThrowImageException;
 }
 
-void Magick::Image::roll(const size_t columns_,const size_t rows_)
+void Magick::Image::roll(const ssize_t columns_,const ssize_t rows_)
 {
   MagickCore::Image
     *newImage;
 
   GetPPException;
-  newImage=RollImage(constImage(),static_cast<ssize_t>(columns_),
-    static_cast<ssize_t>(rows_),exceptionInfo);
+  newImage=RollImage(constImage(),columns_, rows_,exceptionInfo);
   replaceImage(newImage);
   ThrowImageException;
 }
@@ -5149,8 +5164,7 @@ void Magick::Image::mask(const Magick::Image &mask_,const PixelMask type)
   if (mask_.isValid())
     SetImageMask(image(),type,mask_.constImage(),exceptionInfo);
   else
-    SetImageMask(image(),type,(MagickCore::Image *) NULL,
-      exceptionInfo);
+    SetImageMask(image(),type,(MagickCore::Image *) NULL,exceptionInfo);
   ThrowImageException;
 }
 

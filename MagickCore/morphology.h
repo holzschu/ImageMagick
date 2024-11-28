@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -76,7 +76,7 @@ typedef enum
   ErodeMorphology,              /* Minimum Value in Neighbourhood */
   DilateMorphology,             /* Maximum Value in Neighbourhood */
   ErodeIntensityMorphology,     /* Pixel Pick using GreyScale Erode */
-  DilateIntensityMorphology,    /* Pixel Pick using GreyScale Dialate */
+  DilateIntensityMorphology,    /* Pixel Pick using GreyScale Dilate */
   IterativeDistanceMorphology,  /* Add Kernel Value, take Minimum */
 /* Second-level Morphology methods */
   OpenMorphology,               /* Dilate then Erode */

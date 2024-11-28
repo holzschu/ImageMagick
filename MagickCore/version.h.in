@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.
@@ -26,27 +26,20 @@ extern "C" {
   Define declarations.
 */
 #define MagickPackageName "@PACKAGE_NAME@"
-#define MagickCopyright  "© 1999-2020 ImageMagick Studio LLC"
+#define MagickCopyright  "(C) 1999 ImageMagick Studio LLC"
 #define MagickLibVersion  @PACKAGE_LIB_VERSION@
 #define MagickLibVersionText  "@MAGICK_LIB_VERSION_TEXT@"
 #define MagickLibVersionNumber  @MAGICK_LIB_VERSION_NUMBER@
 #define MagickLibAddendum  "@PACKAGE_VERSION_ADDENDUM@"
 #define MagickLibInterface  @MAGICK_LIBRARY_CURRENT@
 #define MagickLibMinInterface  @MAGICK_LIBRARY_CURRENT_MIN@
-#if defined(_WINDOWS)
-#  if defined(_WIN64)
-#    define MagickPlatform "x64"
-#  else
-#    define MagickPlatform "x86"
-#  endif
-#else
 #define MagickPlatform  "@MAGICK_TARGET_CPU@"
-#endif
 #define MagickppLibVersionText  "@MAGICKPP_LIB_VERSION_TEXT@"
 #define MagickppLibVersionNumber  @MAGICKPP_LIBRARY_VERSION_INFO@
 #define MagickppLibAddendum  "@PACKAGE_VERSION_ADDENDUM@"
 #define MagickppLibInterface  @MAGICKPP_LIBRARY_CURRENT@
 #define MagickppLibMinInterface  @MAGICKPP_LIBRARY_CURRENT_MIN@
+#define MagickGitRevision  "@MAGICK_GIT_REVISION@"
 #define MagickReleaseDate  "@PACKAGE_RELEASE_DATE@"
 #define MagickAuthoritativeLicense  \
   "https://imagemagick.org/script/license.php"
@@ -68,10 +61,15 @@ extern "C" {
 #define MagickQuantumDepth  "Q?"
 #define MagickQuantumRange  "?"
 #endif
+#if defined(MAGICKCORE_HDRI_SUPPORT)
+#define MagickHDRISupport  "-HDRI"
+#else
+#define MagickHDRISupport  ""
+#endif
 #define MagickVersion  \
   MagickPackageName " " MagickLibVersionText MagickLibAddendum " " \
-  MagickQuantumDepth " " MagickPlatform " " MagickReleaseDate " " \
-  MagickAuthoritativeURL
+  MagickQuantumDepth MagickHDRISupport " " MagickPlatform " " \
+  MagickGitRevision " " MagickAuthoritativeURL
 
 extern MagickExport char
   *GetMagickHomeURL(void);

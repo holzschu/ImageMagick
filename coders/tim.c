@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -109,16 +109,16 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -143,11 +143,11 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -235,7 +235,7 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
     if (image_size > GetBlobSize(image))
       ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
     bytes_per_line=width*2;
-    width=(width*16)/bits_per_pixel;
+    width=(size_t) (((ssize_t) width*16)/bits_per_pixel);
     image->columns=width;
     image->rows=height;
     status=SetImageExtent(image,image->columns,image->rows,exception);
@@ -269,20 +269,20 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
           q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
           if (q == (Quantum *) NULL)
             break;
-          p=tim_pixels+y*bytes_per_line;
+          p=tim_pixels+y*(ssize_t) bytes_per_line;
           for (x=0; x < ((ssize_t) image->columns-1); x+=2)
           {
             SetPixelIndex(image,(*p) & 0x0f,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
             SetPixelIndex(image,(*p >> 4) & 0x0f,q);
             p++;
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if ((image->columns % 2) != 0)
             {
               SetPixelIndex(image,(*p >> 4) & 0x0f,q);
               p++;
-              q+=GetPixelChannels(image);
+              q+=(ptrdiff_t) GetPixelChannels(image);
             }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -306,11 +306,11 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
           q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
           if (q == (Quantum *) NULL)
             break;
-          p=tim_pixels+y*bytes_per_line;
+          p=tim_pixels+y*(ssize_t) bytes_per_line;
           for (x=0; x < (ssize_t) image->columns; x++)
           {
             SetPixelIndex(image,*p++,q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -331,7 +331,7 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
         */
         for (y=(ssize_t) image->rows-1; y >= 0; y--)
         {
-          p=tim_pixels+y*bytes_per_line;
+          p=tim_pixels+y*(ssize_t) bytes_per_line;
           q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
           if (q == (Quantum *) NULL)
             break;
@@ -345,7 +345,7 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
               (1UL*word >> 5) & 0x1f)),q);
             SetPixelRed(image,ScaleCharToQuantum(ScaleColor5to8(
               (1UL*word >> 0) & 0x1f)),q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -366,7 +366,7 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
         */
         for (y=(ssize_t) image->rows-1; y >= 0; y--)
         {
-          p=tim_pixels+y*bytes_per_line;
+          p=tim_pixels+y*(ssize_t) bytes_per_line;
           q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
           if (q == (Quantum *) NULL)
             break;
@@ -375,7 +375,7 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
             SetPixelRed(image,ScaleCharToQuantum(*p++),q);
             SetPixelGreen(image,ScaleCharToQuantum(*p++),q);
             SetPixelBlue(image,ScaleCharToQuantum(*p++),q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -429,7 +429,8 @@ static Image *ReadTIMImage(const ImageInfo *image_info,ExceptionInfo *exception)
           break;
       }
   } while (tim_info.id == 0x00000010);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
   return(GetFirstImageInList(image));

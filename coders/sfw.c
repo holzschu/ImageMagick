@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -123,7 +123,7 @@ static MagickBooleanType IsSFW(const unsigned char *magick,const size_t length)
 static unsigned char *SFWScan(const unsigned char *p,const unsigned char *q,
   const unsigned char *target,const size_t length)
 {
-  register ssize_t
+  ssize_t
     i;
 
   while ((p+length) < q)
@@ -216,7 +216,7 @@ static Image *ReadSFWImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register unsigned char
+  unsigned char
     *header,
     *data;
 
@@ -235,11 +235,11 @@ static Image *ReadSFWImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -284,7 +284,7 @@ static Image *ReadSFWImage(const ImageInfo *image_info,ExceptionInfo *exception)
     Translate remaining markers.
   */
   offset=header+2;
-  offset+=(((unsigned int) offset[2]) << 8)+offset[3]+2;
+  offset+=(((size_t) offset[2]) << 8)+(size_t) offset[3]+2;
   for ( ; ; )
   {
     if ((offset+4) > (buffer+count-1))
@@ -295,7 +295,7 @@ static Image *ReadSFWImage(const ImageInfo *image_info,ExceptionInfo *exception)
     TranslateSFWMarker(offset);
     if (offset[1] == 0xda)
       break;
-    offset+=(((unsigned int) offset[2]) << 8)+offset[3]+2;
+    offset+=(((size_t) offset[2]) << 8)+(size_t) offset[3]+2;
   }
   offset--;
   data=SFWScan(offset,buffer+count-1,(const unsigned char *) "\377\311",2);
@@ -325,10 +325,10 @@ static Image *ReadSFWImage(const ImageInfo *image_info,ExceptionInfo *exception)
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
-  extent=fwrite(header,(size_t) (offset-header+1),1,file);
+  extent=fwrite(header,1,(size_t) (offset-header+1),file);
   (void) extent;
   extent=fwrite(HuffmanTable,1,sizeof(HuffmanTable)/sizeof(*HuffmanTable),file);
-  extent=fwrite(offset+1,(size_t) (data-offset),1,file);
+  extent=fwrite(offset+1,1,(size_t) (data-offset),file);
   status=ferror(file) != 0 ? MagickFalse : MagickTrue;
   (void) fclose(file);
   (void) close(unique_file);

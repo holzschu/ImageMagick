@@ -22,7 +22,7 @@
 %                                March 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -241,7 +241,7 @@ MagickExport MagickBooleanType DuplexTransferImageViewIterator(
   status=MagickTrue;
   progress=0;
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  height=source->extent.height-source->extent.y;
+  height=source->extent.height-(size_t) source->extent.y;
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(source_image,destination_image,height,1)
 #endif
@@ -253,11 +253,11 @@ MagickExport MagickBooleanType DuplexTransferImageViewIterator(
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict duplex_pixels,
       *magick_restrict pixels;
 
-    register Quantum
+    Quantum
       *magick_restrict destination_pixels;
 
     if (status == MagickFalse)
@@ -405,8 +405,8 @@ MagickExport char *GetImageViewException(const ImageView *image_view,
   assert(image_view->signature == MagickCoreSignature);
   assert(severity != (ExceptionType *) NULL);
   *severity=image_view->exception->severity;
-  description=(char *) AcquireQuantumMemory(2UL*MagickPathExtent,
-    sizeof(*description));
+  description=(char *) AcquireQuantumMemory(MagickPathExtent,
+    2*sizeof(*description));
   if (description == (char *) NULL)
     ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
   *description='\0';
@@ -554,7 +554,7 @@ MagickExport MagickBooleanType GetImageViewIterator(ImageView *source,
   status=MagickTrue;
   progress=0;
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  height=source->extent.height-source->extent.y;
+  height=source->extent.height-(size_t) source->extent.y;
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(source_image,source_image,height,1)
 #endif
@@ -563,7 +563,7 @@ MagickExport MagickBooleanType GetImageViewIterator(ImageView *source,
     const int
       id = GetOpenMPThreadId();
 
-    register const Quantum
+    const Quantum
       *pixels;
 
     if (status == MagickFalse)
@@ -731,7 +731,8 @@ MagickExport ImageView *NewImageView(Image *image,ExceptionInfo *exception)
   image_view->extent.x=0;
   image_view->extent.y=0;
   image_view->exception=AcquireExceptionInfo();
-  image_view->debug=IsEventLogging();
+  image_view->debug=(GetLogEventMask() & ImageEvent) != 0 ? MagickTrue : 
+    MagickFalse;
   image_view->signature=MagickCoreSignature;
   return(image_view);
 }
@@ -785,7 +786,8 @@ MagickExport ImageView *NewImageViewRegion(Image *image,const ssize_t x,
   image_view->extent.x=x;
   image_view->extent.y=y;
   image_view->exception=AcquireExceptionInfo();
-  image_view->debug=IsEventLogging();
+  image_view->debug=(GetLogEventMask() & ImageEvent) != 0 ? MagickTrue : 
+    MagickFalse;
   image_view->signature=MagickCoreSignature;
   return(image_view);
 }
@@ -837,7 +839,7 @@ MagickExport void SetImageViewDescription(ImageView *image_view,
 %  SetImageViewIterator() iterates over the image view in parallel and calls
 %  your set method for each scanline of the view.  The pixel extent is
 %  confined to the image canvas-- that is no negative offsets or widths or
-%  heights that exceed the image dimension.  The pixels are initiallly
+%  heights that exceed the image dimension.  The pixels are initially
 %  undefined and any settings you make in the callback method are automagically
 %  synced back to your image.
 %
@@ -899,7 +901,7 @@ MagickExport MagickBooleanType SetImageViewIterator(ImageView *destination,
   status=MagickTrue;
   progress=0;
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  height=destination->extent.height-destination->extent.y;
+  height=destination->extent.height-(size_t) destination->extent.y;
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(destination_image,destination_image,height,1)
 #endif
@@ -911,7 +913,7 @@ MagickExport MagickBooleanType SetImageViewIterator(ImageView *destination,
     MagickBooleanType
       sync;
 
-    register Quantum
+    Quantum
       *magick_restrict pixels;
 
     if (status == MagickFalse)
@@ -1028,7 +1030,7 @@ MagickExport MagickBooleanType TransferImageViewIterator(ImageView *source,
   status=MagickTrue;
   progress=0;
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  height=source->extent.height-source->extent.y;
+  height=source->extent.height-(size_t) source->extent.y;
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(source_image,destination_image,height,1)
 #endif
@@ -1040,10 +1042,10 @@ MagickExport MagickBooleanType TransferImageViewIterator(ImageView *source,
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict pixels;
 
-    register Quantum
+    Quantum
       *magick_restrict destination_pixels;
 
     if (status == MagickFalse)
@@ -1160,7 +1162,7 @@ MagickExport MagickBooleanType UpdateImageViewIterator(ImageView *source,
   status=MagickTrue;
   progress=0;
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  height=source->extent.height-source->extent.y;
+  height=source->extent.height-(size_t) source->extent.y;
   #pragma omp parallel for schedule(static) shared(progress,status) \
     magick_number_threads(source_image,source_image,height,1)
 #endif
@@ -1169,7 +1171,7 @@ MagickExport MagickBooleanType UpdateImageViewIterator(ImageView *source,
     const int
       id = GetOpenMPThreadId();
 
-    register Quantum
+    Quantum
       *magick_restrict pixels;
 
     if (status == MagickFalse)
@@ -1184,8 +1186,6 @@ MagickExport MagickBooleanType UpdateImageViewIterator(ImageView *source,
     if (update(source,y,id,context) == MagickFalse)
       status=MagickFalse;
     status=SyncCacheViewAuthenticPixels(source->view,source->exception);
-    if (status == MagickFalse)
-      status=MagickFalse;
     if (source_image->progress_monitor != (MagickProgressMonitor) NULL)
       {
         MagickBooleanType

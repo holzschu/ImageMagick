@@ -18,7 +18,7 @@
 %                             November 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -87,17 +87,13 @@
 #include "MagickCore/string-private.h"
 #include "MagickCore/thread_.h"
 #include "MagickCore/thread-private.h"
+#include "MagickCore/timer-private.h"
 #include "MagickCore/type-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
 #include "MagickCore/xwindow-private.h"
 #if defined(MAGICKCORE_XML_DELEGATE)
-#  if defined(MAGICKCORE_WINDOWS_SUPPORT)
-#    if !defined(__MINGW32__)
-#      include <win32config.h>
-#    endif
-#  endif
 #  include <libxml/parser.h>
 #endif
 #include "ios_error.h"
@@ -186,7 +182,8 @@ MagickExport MagickInfo *AcquireMagickInfo(const char *magick_module,
   assert(magick_module != (const char *) NULL);
   assert(name != (const char *) NULL);
   assert(description != (const char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
   magick_info=(MagickInfo *) AcquireCriticalMemory(sizeof(*magick_info));
   (void) memset(magick_info,0,sizeof(*magick_info));
   magick_info->magick_module=ConstantString(magick_module);
@@ -297,11 +294,12 @@ MagickExport MagickBooleanType GetImageMagick(const unsigned char *magick,
   MagickBooleanType
     status;
 
-  register const MagickInfo
+  const MagickInfo
     *p;
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(magick != (const unsigned char *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   exception=AcquireExceptionInfo();
   p=GetMagickInfo("*",exception);
   exception=DestroyExceptionInfo(exception);
@@ -611,7 +609,7 @@ MagickExport MagickBooleanType GetMagickEndianSupport(
 MagickExport const MagickInfo *GetMagickInfo(const char *name,
   ExceptionInfo *exception)
 {
-  register const MagickInfo
+  const MagickInfo
     *magick_info;
 
   /*
@@ -704,18 +702,19 @@ MagickExport const MagickInfo **GetMagickInfoList(const char *pattern,
   const MagickInfo
     **formats;
 
-  register const MagickInfo
+  const MagickInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
     Allocate magick list.
   */
   assert(pattern != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   assert(number_formats != (size_t *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   *number_formats=0;
   p=GetMagickInfo("*",exception);
   if (p == (const MagickInfo *) NULL)
@@ -778,7 +777,7 @@ extern "C" {
 
 static int MagickCompare(const void *x,const void *y)
 {
-  register const char
+  const char
     **p,
     **q;
 
@@ -797,18 +796,19 @@ MagickExport char **GetMagickList(const char *pattern,
   char
     **formats;
 
-  register const MagickInfo
+  const MagickInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
     Allocate magick list.
   */
   assert(pattern != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   assert(number_formats != (size_t *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   *number_formats=0;
   p=GetMagickInfo("*",exception);
   if (p == (const MagickInfo *) NULL)
@@ -942,7 +942,8 @@ MagickExport const char *GetMagickName(const MagickInfo *magick_info)
 */
 MagickExport int GetMagickPrecision(void)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   return(SetMagickPrecision(0));
 }
 
@@ -976,8 +977,7 @@ MagickExport MagickBooleanType GetMagickRawSupport(
   return(((magick_info->flags & CoderRawSupportFlag) == 0) ? MagickFalse :
     MagickTrue);
 }
-
-
+
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -1007,8 +1007,7 @@ MagickExport MagickBooleanType GetMagickStealth(const MagickInfo *magick_info)
   return(((magick_info->flags & CoderStealthFlag) == 0) ? MagickFalse :
     MagickTrue);
 }
-
-
+
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -1068,7 +1067,7 @@ MagickExport MagickBooleanType GetMagickUseExtension(
 
 static void *DestroyMagickNode(void *magick_info)
 {
-  register MagickInfo
+  MagickInfo
     *p;
 
   p=(MagickInfo *) magick_info;
@@ -1137,9 +1136,7 @@ static MagickBooleanType IsMagickTreeInstantiated(ExceptionInfo *exception)
 MagickPrivate MagickBooleanType IsMagickConflict(const char *magick)
 {
   assert(magick != (char *) NULL);
-#if defined(macintosh)
-  return(MACIsMagickConflict(magick));
-#elif defined(vms)
+#if defined(vms)
   return(VMSIsMagickConflict(magick));
 #elif defined(MAGICKCORE_WINDOWS_SUPPORT)
   return(NTIsMagickConflict(magick));
@@ -1178,7 +1175,7 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
   const MagickInfo
     **magick_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1241,7 +1238,7 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
           {
             for (j=0; text[j] != (char *) NULL; j++)
             {
-              (void) FormatLocaleFile(file,"           %s\n",text[j]);
+              (void) FormatLocaleFile(file,"             %s\n",text[j]);
               text[j]=DestroyString(text[j]);
             }
             text=(char **) RelinquishMagickMemory(text);
@@ -1466,41 +1463,12 @@ static SignalHandler *RegisterMagickSignalHandler(int signal_number)
   return(handler);
 }
 
-MagickExport void MagickCoreGenesis(const char *path,
-  const MagickBooleanType establish_signal_handlers)
+static void SetClientNameAndPath(const char *path)
 {
   char
-    *events,
     execution_path[MagickPathExtent],
     filename[MagickPathExtent];
 
-  /*
-    Initialize the Magick environment.
-  */
-  InitializeMagickMutex();
-  LockMagickMutex();
-  if (magickcore_instantiated != MagickFalse)
-    {
-      UnlockMagickMutex();
-      return;
-    }
-  (void) SemaphoreComponentGenesis();
-  (void) ExceptionComponentGenesis();
-  (void) LogComponentGenesis();
-  (void) LocaleComponentGenesis();
-  (void) RandomComponentGenesis();
-  events=GetEnvironmentValue("MAGICK_DEBUG");
-  if (events != (char *) NULL)
-    {
-      (void) SetLogEventMask(events);
-      events=DestroyString(events);
-    }
-#if defined(MAGICKCORE_WINDOWS_SUPPORT)
-  NTWindowsGenesis();
-#endif
-  /*
-    Set client name and execution path.
-  */
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
   if ((path != (const char *) NULL) && (IsPathAccessible(path) != MagickFalse))
 #else
@@ -1514,6 +1482,44 @@ MagickExport void MagickCoreGenesis(const char *path,
   (void) SetClientName(filename);
   GetPathComponent(execution_path,HeadPath,execution_path);
   (void) SetClientPath(execution_path);
+}
+
+MagickExport void MagickCoreGenesis(const char *path,
+  const MagickBooleanType establish_signal_handlers)
+{
+  char
+    *events;
+
+  /*
+    Initialize the Magick environment.
+  */
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+  (void) putenv("MAGICK_THREAD_LIMIT=1");
+#endif
+#endif
+  InitializeMagickMutex();
+  LockMagickMutex();
+  if (magickcore_instantiated != MagickFalse)
+    {
+      UnlockMagickMutex();
+      return;
+    }
+  (void) SemaphoreComponentGenesis();
+  (void) ExceptionComponentGenesis();
+  SetClientNameAndPath(path);
+  (void) LogComponentGenesis();
+  (void) LocaleComponentGenesis();
+  (void) RandomComponentGenesis();
+  events=GetEnvironmentValue("MAGICK_DEBUG");
+  if (events != (char *) NULL)
+    {
+      (void) SetLogEventMask(events);
+      events=DestroyString(events);
+    }
+#if defined(MAGICKCORE_WINDOWS_SUPPORT)
+  NTWindowsGenesis();
+#endif
   if (establish_signal_handlers != MagickFalse)
     {
       /*
@@ -1601,7 +1607,29 @@ MagickExport void MagickCoreGenesis(const char *path,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  MagickCoreTerminus() destroys the MagickCore environment.
+%  MagickCoreTerminus() is a function in the ImageMagick library that is
+%  used to clean up and release resources when shutting down an application
+%  that uses ImageMagick. This function should be called in the primary thread
+%  of the application's process during the shutdown process. It's crucial that
+%  this function is invoked only after any threads that are using ImageMagick
+%  functions have terminated.
+%
+%  ImageMagick might internally use threads via OpenMP (a method for parallel
+%  programming). As a result, it's important to ensure that any function calls
+%  into ImageMagick have completed before calling MagickCoreTerminus(). This
+%  prevents issues with OpenMP worker threads accessing resources that are
+%  destroyed by this termination function.
+%
+%  If OpenMP is being used (starting from version 5.0), the OpenMP
+%  implementation itself handles starting and stopping worker threads and
+%  allocating and freeing resources using its own methods. This means that
+%  after calling MagickCoreTerminus(), some OpenMP resources and worker
+%  threads might still remain allocated. To address this, the function
+%  omp_pause_resource_all(omp_pause_hard) can be invoked. This function,
+%  introduced in OpenMP version 5.0, ensures that any resources allocated by
+%  OpenMP (such as threads and thread-specific memory) are freed. It's
+%  recommended to call this function after MagickCoreTerminus() has completed
+%  its execution.
 %
 %  The format of the MagickCoreTerminus function is:
 %
@@ -1610,13 +1638,15 @@ MagickExport void MagickCoreGenesis(const char *path,
 */
 MagickExport void MagickCoreTerminus(void)
 {
+  InitializeMagickMutex();
+  LockMagickMutex();
   if (magickcore_instantiated == MagickFalse)
-    return;
+    {
+      UnlockMagickMutex();
+      return;
+    }
   MonitorComponentTerminus();
   RegistryComponentTerminus();
-#if defined(MAGICKCORE_X11_DELEGATE)
-  XComponentTerminus();
-#endif
 #if defined(MAGICKCORE_XML_DELEGATE)
   xmlCleanupParser();
 #endif
@@ -1639,6 +1669,9 @@ MagickExport void MagickCoreTerminus(void)
 #if defined(MAGICKCORE_MODULES_SUPPORT)
   ModuleComponentTerminus();
 #endif
+#if defined(MAGICKCORE_X11_DELEGATE)
+  XComponentTerminus();
+#endif
   CoderComponentTerminus();
   ResourceComponentTerminus();
   CacheComponentTerminus();
@@ -1648,8 +1681,9 @@ MagickExport void MagickCoreTerminus(void)
   LocaleComponentTerminus();
   LogComponentTerminus();
   ExceptionComponentTerminus();
-  SemaphoreComponentTerminus();
   magickcore_instantiated=MagickFalse;
+  UnlockMagickMutex();
+  SemaphoreComponentTerminus();
 }
 
 /*
@@ -1688,7 +1722,8 @@ MagickExport MagickBooleanType RegisterMagickInfo(MagickInfo *magick_info)
   */
   assert(magick_info != (MagickInfo *) NULL);
   assert(magick_info->signature == MagickCoreSignature);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",magick_info->name);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",magick_info->name);
   if (magick_list == (SplayTreeInfo *) NULL)
     return(MagickFalse);
   if ((GetMagickDecoderThreadSupport(magick_info) == MagickFalse) ||
@@ -1752,9 +1787,10 @@ MagickPrivate void ResetMagickPrecision(void)
 */
 MagickExport int SetMagickPrecision(const int precision)
 {
-#define MagickPrecision  (4+MAGICKCORE_QUANTUM_DEPTH/8)
+#define MagickPrecision  (MAGICKCORE_QUANTUM_DEPTH/8+4)
 
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (precision > 0)
     magick_precision=precision;
   if ((precision < 0) || (magick_precision == 0))
@@ -1762,13 +1798,16 @@ MagickExport int SetMagickPrecision(const int precision)
       char
         *limit;
 
-      /*
-        Precision reset, or it has not been set yet
-      */
+      ExceptionInfo
+        *exception = AcquireExceptionInfo();
+
       magick_precision=MagickPrecision;
-      limit=GetEnvironmentValue("MAGICK_PRECISION");
+      limit=(char *) GetImageRegistry(StringRegistryType,"precision",exception);
+      exception=DestroyExceptionInfo(exception);
       if (limit == (char *) NULL)
-        limit=GetPolicyValue("system:precision");
+        limit=GetEnvironmentValue("MAGICK_PRECISION");
+      if (limit == (char *) NULL)
+        limit=GetPolicyValue("system:precision");  /* deprecated */
       if (limit != (char *) NULL)
         {
           magick_precision=StringToInteger(limit);
@@ -1804,7 +1843,7 @@ MagickExport int SetMagickPrecision(const int precision)
 */
 MagickExport MagickBooleanType UnregisterMagickInfo(const char *name)
 {
-  register const MagickInfo
+  const MagickInfo
     *p;
 
   MagickBooleanType

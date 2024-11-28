@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -13044,7 +13044,7 @@ static Image *ReadMAGICKImage(const ImageInfo *image_info,
   ImageInfo
     *blob_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -13231,10 +13231,10 @@ static MagickBooleanType WriteMAGICKImage(const ImageInfo *image_info,
   size_t
     length;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   void
@@ -13245,11 +13245,11 @@ static MagickBooleanType WriteMAGICKImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   magick_image=CloneImage(image,0,0,MagickTrue,exception);
   if (magick_image == (Image *) NULL)
     ThrowWriterException(ResourceLimitError,exception->reason);

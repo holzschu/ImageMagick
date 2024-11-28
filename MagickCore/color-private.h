@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -43,9 +43,11 @@ static inline MagickBooleanType GetColorRange(const char *color,
   MagickBooleanType
     status;
 
+  if (color == (const char *) NULL)
+    return(MagickFalse);
   if (*color != '\0')
     {
-      register char
+      char
         *p;
 
       (void) CopyMagickString(start_color,color,MagickPathExtent);

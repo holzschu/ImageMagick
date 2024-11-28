@@ -17,7 +17,7 @@
 %                              July 1992                                      %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -182,7 +182,7 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
     *format;
 
   Image
-    *image;
+    *image = (Image *) NULL;
 
   ImageStack
     image_stack[MaxImageStackDepth+1];
@@ -190,12 +190,12 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
   MagickBooleanType
     fire,
     pend,
-    respect_parenthesis;
+    respect_parentheses;
 
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -210,13 +210,16 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
   */
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   (void) metadata;
   if (argc == 2)
     {
       option=argv[1];
+      if ((LocaleCompare("help",option+1) == 0) ||
+          (LocaleCompare("-help",option+1) == 0))
+        return(StreamUsage());
       if ((LocaleCompare("version",option+1) == 0) ||
           (LocaleCompare("-version",option+1) == 0))
         {
@@ -225,7 +228,12 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
         }
     }
   if (argc < 3)
-    return(StreamUsage());
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+        "MissingArgument","%s","");
+      (void) StreamUsage();
+      return(MagickFalse);
+    }
   format="%w,%h,%m";
   (void) format;
   j=1;
@@ -233,7 +241,7 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
   NewImageStack();
   option=(char *) NULL;
   pend=MagickFalse;
-  respect_parenthesis=MagickFalse;
+  respect_parentheses=MagickFalse;
   stream_info=AcquireStreamInfo(image_info,exception);
   status=MagickTrue;
   /*
@@ -283,7 +291,7 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
           filename=argv[++i];
         (void) CopyMagickString(image_info->filename,filename,MagickPathExtent);
         images=StreamImage(image_info,stream_info,exception);
-        status&=(images != (Image *) NULL) &&
+        status&=(MagickStatusType) (images != (Image *) NULL) &&
           (exception->severity < ErrorException);
         if (images == (Image *) NULL)
           continue;
@@ -613,7 +621,7 @@ WandExport MagickBooleanType StreamImageCommand(ImageInfo *image_info,
           break;
         if (LocaleNCompare("respect-parentheses",option+1,17) == 0)
           {
-            respect_parenthesis=(*option == '-') ? MagickTrue : MagickFalse;
+            respect_parentheses=(*option == '-') ? MagickTrue : MagickFalse;
             break;
           }
         ThrowStreamException(OptionError,"UnrecognizedOption",option)

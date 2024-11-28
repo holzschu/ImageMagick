@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -22,7 +22,9 @@
 extern "C" {
 #endif
 
-static inline void GetMagickUTCtime(const time_t *timep,struct tm *result)
+#include "MagickCore/locale_.h"
+
+static inline void GetMagickUTCTime(const time_t *timep,struct tm *result)
 {
 #if defined(MAGICKCORE_HAVE_GMTIME_R)
   (void) gmtime_r(timep,result);
@@ -56,6 +58,50 @@ static inline void GetMagickLocaltime(const time_t *timep,struct tm *result)
 
 extern MagickExport time_t
   GetMagickTime(void);
+
+static inline MagickBooleanType IsImageTTLExpired(const Image* image)
+{
+  if (image->ttl == (time_t) 0)
+    return(MagickFalse);
+  return(image->ttl < GetMagickTime() ? MagickTrue : MagickFalse);
+}
+
+static inline time_t ParseMagickTimeToLive(const char *time_to_live)
+{
+  char
+    *q;
+
+  time_t
+    ttl;
+
+  /*
+    Time to live, absolute or relative, e.g. 1440, 2 hours, 3 days, ...
+  */
+  ttl=(time_t) InterpretLocaleValue(time_to_live,&q);
+  if (q != time_to_live)
+    {
+      while (isspace((int) ((unsigned char) *q)) != 0)
+        q++;
+      if (LocaleNCompare(q,"second",6) == 0)
+        ttl*=1;
+      if (LocaleNCompare(q,"minute",6) == 0)
+        ttl*=60;
+      if (LocaleNCompare(q,"hour",4) == 0)
+        ttl*=3600;
+      if (LocaleNCompare(q,"day",3) == 0)
+        ttl*=86400;
+      if (LocaleNCompare(q,"week",4) == 0)
+        ttl*=604800;
+      if (LocaleNCompare(q,"month",5) == 0)
+        ttl*=2628000;
+      if (LocaleNCompare(q,"year",4) == 0)
+        ttl*=31536000;
+   }
+  return(ttl);
+}
+
+extern MagickPrivate void
+  SetMagickDatePrecision(const unsigned long);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

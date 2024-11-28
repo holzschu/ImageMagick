@@ -1,10 +1,10 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
 #  obtain a copy of the License at
 #
-#    http://imagemagick.org/script/license.php
+#    https://imagemagick.org/script/license.php
 #
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,9 +22,16 @@ UTILITIES_XFAIL_TESTS = \
   $(UTILITIES_TTF_XFAIL_TESTS) \
   $(UTILITIES_XML_XFAIL_TESTS)
 
+if WIN32_NATIVE_BUILD
+UTILITIES_LDFLAGS_EXTRA = -municode
+else
+UTILITIES_LDFLAGS_EXTRA =
+endif
+
 utilities_magick_LDADD    = $(MAGICKCORE_LIBS) $(MAGICKWAND_LIBS)
-utilities_magick_LDFLAGS  = $(LDFLAGS)
+utilities_magick_LDFLAGS  = $(LDFLAGS) $(UTILITIES_LDFLAGS_EXTRA)
 utilities_magick_SOURCES  = utilities/magick.c
+nodist_EXTRA_utilities_magick_SOURCES = dummy.cxx
 
 UTILITIES_MANS = \
   utilities/ImageMagick.1 \

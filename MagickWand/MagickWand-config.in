@@ -6,6 +6,9 @@
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
+libdir=@libdir@
+pkgconfigdir=@pkgconfigdir@
+export PKG_CONFIG_LIBDIR="${pkgconfigdir}"
 
 usage="\
 Usage: MagickWand-config [--cflags] [--cppflags] [--exec-prefix] [--ldflags] [--libs] [--prefix] [--version]"
@@ -37,8 +40,14 @@ while test $# -gt 0; do
     --version)
       echo '@PACKAGE_VERSION@ Q@QUANTUM_DEPTH@ @MAGICK_HDRI@'
       ;;
+    --cc)
+      echo '@CC@'
+      ;;
     --cflags)
       @PKG_CONFIG@ --cflags MagickWand-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      ;;
+    --cxx)
+      echo '@CXX@'
       ;;
     --cxxflags)
       @PKG_CONFIG@ --cflags MagickWand-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@

@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -104,7 +104,10 @@ typedef enum
   MagickWeightOptions,
   MagickAutoThresholdOptions,
   MagickToolOptions,
-  MagickCLIOptions
+  MagickCLIOptions,
+  MagickIlluminantOptions,
+  MagickWordBreakOptions,
+  MagickPagesizeOptions
 } CommandOption;
 
 typedef enum
@@ -122,13 +125,14 @@ typedef enum
   ImportExportValidate = 0x00100,
   MontageValidate = 0x00200,
   StreamValidate = 0x00400,
+  MagickValidate = 0x00800,
   AllValidate = 0x7fffffff
 } ValidateType;
 
 /*
   Flags to describe classes of image processing options.
   These are used to determine how a option should be processed, and
-  avoid attempting to process all options in every way posible.
+  avoid attempting to process all options in every way possible.
 */
 typedef enum
 {

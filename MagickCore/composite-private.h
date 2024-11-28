@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -21,9 +21,9 @@
 
 #include "MagickCore/color.h"
 #include "MagickCore/image.h"
+#include "MagickCore/artifact.h"
 #include "MagickCore/image-private.h"
 #include "MagickCore/pixel-accessor.h"
-#include "MagickCore/pixel-private.h"
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
@@ -57,7 +57,7 @@ static inline void CompositePixelOver(const Image *image,const PixelInfo *p,
     gamma,
     Sa;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -107,7 +107,8 @@ static inline void CompositePixelOver(const Image *image,const PixelInfo *p,
       }
       case AlphaPixelChannel:
       {
-        composite[i]=ClampToQuantum(QuantumRange*RoundToUnity(Sa+Da-Sa*Da));
+        composite[i]=ClampToQuantum((double) QuantumRange*
+          RoundToUnity(Sa+Da-Sa*Da));
         break;
       }
       default:
@@ -184,6 +185,12 @@ static inline void CompositePixelInfoBlend(const PixelInfo *p,
   */
   CompositePixelInfoPlus(p,(double) (alpha*p->alpha),q,(double) (beta*q->alpha),
     composite);
+}
+
+static inline void DisableCompositeClampUnlessSpecified(Image *image)
+{
+  if (GetImageArtifact(image,"compose:clamp") == (const char *) NULL)
+    (void) SetImageArtifact(image,"compose:clamp","off");
 }
 
 static inline MagickBooleanType GetCompositeClipToSelf(

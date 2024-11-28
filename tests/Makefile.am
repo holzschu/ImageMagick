@@ -1,4 +1,4 @@
-# Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+# Copyright 1999 ImageMagick Studio LLC, a non-profit organization
 # dedicated to making software imaging solutions freely available.
 #
 # You may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ TESTS_TESTS = \
   tests/validate-formats-memory.tap \
   tests/validate-identify.tap \
   tests/validate-import.tap \
+  tests/validate-magick.tap \
   tests/validate-montage.tap \
   tests/validate-stream.tap \
   tests/drawtest.tap \

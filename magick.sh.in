@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright © 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -17,7 +17,7 @@
 #  Convenience script to verify the ImageMagick build before you install.  For
 #  example:
 #
-#    magick.sh convert -size 640x480 gradient:black-yellow gradient.png
+#    magick.sh magick -size 640x480 gradient:black-yellow gradient.png
 
 top_srcdir='@abs_top_srcdir@'
 top_builddir='@abs_top_builddir@'

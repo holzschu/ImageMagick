@@ -1,10 +1,10 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
 #  obtain a copy of the License at
 #
-#    http://imagemagick.org/script/license.php
+#    https://imagemagick.org/script/license.php
 #
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,8 +29,8 @@ MAGICKCORE_BIN_SCRPTS = \
 
 MAGICKCORE_PKGCONFIG = \
   MagickCore/ImageMagick.pc \
-  MagickCore/MagickCore.pc \
   MagickCore/ImageMagick-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@.pc \
+  MagickCore/MagickCore.pc \
   MagickCore/MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@.pc
 
 OSX_GCOV_LDFLAG = @OSX_GCOV_LDFLAG@
@@ -47,6 +47,14 @@ else
 MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_SOURCES = $(MAGICKCORE_BASE_SRCS) $(MAGICKCORE_PLATFORM_SRCS) $(MAGICKCORE_CODER_SRCS) $(MAGICKCORE_FILTER_SRCS)
 MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_LIBADD = $(MAGICK_DEP_LIBS)
 endif # WITH_MODULES
+
+if WIN32_NATIVE_BUILD
+MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_LIBADD += -lws2_32
+if WITH_MODULES
+else
+MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_LIBADD += -lurlmon
+endif
+endif
 
 nodist_MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_SOURCES =
 MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBRARY_EXTRA_CPPFLAGS)
@@ -151,6 +159,7 @@ MAGICKCORE_BASE_SRCS = \
   MagickCore/gem-private.h \
   MagickCore/geometry.c \
   MagickCore/geometry.h \
+  MagickCore/geometry-private.h \
   MagickCore/histogram.c \
   MagickCore/histogram.h \
   MagickCore/identify.c \
@@ -260,6 +269,7 @@ MAGICKCORE_BASE_SRCS = \
   MagickCore/static.h \
   MagickCore/statistic.c \
   MagickCore/statistic.h \
+  MagickCore/statistic-private.h \
   MagickCore/stream.c \
   MagickCore/stream.h \
   MagickCore/stream-private.h \
@@ -440,14 +450,15 @@ MAGICKCORE_NOINST_HDRS = \
   MagickCore/exception-private.h \
   MagickCore/fx-private.h \
   MagickCore/gem-private.h \
+  MagickCore/geometry-private.h \
   MagickCore/image-private.h \
+  MagickCore/linked-list-private.h \
   MagickCore/locale-private.h \
   MagickCore/log-private.h \
   MagickCore/magick-private.h \
   MagickCore/magic-private.h \
   MagickCore/matrix-private.h \
   MagickCore/memory-private.h \
-  MagickCore/methods-private.h \
   MagickCore/mime-private.h \
   MagickCore/mime-private.h \
   MagickCore/module-private.h \
@@ -471,6 +482,7 @@ MAGICKCORE_NOINST_HDRS = \
   MagickCore/semaphore-private.h \
   MagickCore/semaphore-private.h \
   MagickCore/signature-private.h \
+  MagickCore/statistic-private.h \
   MagickCore/stream-private.h \
   MagickCore/string-private.h \
   MagickCore/thread_.h \

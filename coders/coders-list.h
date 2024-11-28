@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -14,10 +14,13 @@
   limitations under the License.
 */
 
+#include "coders/coders-private.h"
+
 AddMagickCoder(AAI)
 AddMagickCoder(ART)
 AddMagickCoder(ASHLAR)
 AddMagickCoder(AVS)
+AddMagickCoder(BAYER)
 AddMagickCoder(BGR)
 AddMagickCoder(BMP)
 AddMagickCoder(BRAILLE)
@@ -66,6 +69,7 @@ AddMagickCoder(FL32)
 #if defined(MAGICKCORE_FPX_DELEGATE)
   AddMagickCoder(FPX)
 #endif
+AddMagickCoder(FTXT)
 AddMagickCoder(GIF)
 AddMagickCoder(GRADIENT)
 AddMagickCoder(GRAY)
@@ -135,6 +139,7 @@ AddMagickCoder(PS3)
 AddMagickCoder(PS)
 AddMagickCoder(PSD)
 AddMagickCoder(PWP)
+AddMagickCoder(QOI)
 AddMagickCoder(RAW)
 AddMagickCoder(RGB)
 AddMagickCoder(RGF)
@@ -147,6 +152,7 @@ AddMagickCoder(SFW)
 AddMagickCoder(SGI)
 AddMagickCoder(SIXEL)
 AddMagickCoder(STEGANO)
+AddMagickCoder(STRIMG)
 AddMagickCoder(SUN)
 AddMagickCoder(SVG)
 AddMagickCoder(TGA)
@@ -161,6 +167,9 @@ AddMagickCoder(TIM2)
   AddMagickCoder(TTF)
 #endif
 AddMagickCoder(TXT)
+#if defined(MAGICKCORE_UHDR_DELEGATE)
+  AddMagickCoder(UHDR)
+#endif
 AddMagickCoder(UIL)
 AddMagickCoder(URL)
 AddMagickCoder(UYVY)
@@ -185,9 +194,9 @@ AddMagickCoder(XC)
 AddMagickCoder(XCF)
 AddMagickCoder(XPM)
 AddMagickCoder(XPS)
-AddMagickCoder(XTRN)
 #if defined(MAGICKCORE_X11_DELEGATE)
   AddMagickCoder(XWD)
 #endif
+AddMagickCoder(YAML)
 AddMagickCoder(YCBCR)
 AddMagickCoder(YUV)

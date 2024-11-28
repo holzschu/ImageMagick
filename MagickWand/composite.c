@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -125,9 +125,9 @@ static MagickBooleanType CompositeImageList(ImageInfo *image_info,Image **image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image **) NULL);
   assert((*image)->signature == MagickCoreSignature);
-  if ((*image)->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",(*image)->filename);
   assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",(*image)->filename);
   (void) image_info;
   status=MagickTrue;
   composite_options->clip_to_self=GetCompositeClipToSelf(
@@ -154,6 +154,8 @@ static MagickBooleanType CompositeImageList(ImageInfo *image_info,Image **image,
         case DistortCompositeOp:
         case DissolveCompositeOp:
         case ModulateCompositeOp:
+        case SaliencyBlendCompositeOp:
+        case SeamlessBlendCompositeOp:
         case ThresholdCompositeOp:
         {
           (void) SetImageArtifact(*image,"compose:args",
@@ -210,8 +212,9 @@ static MagickBooleanType CompositeImageList(ImageInfo *image_info,Image **image,
               columns=composite_image->columns;
               for (y=0; y < (ssize_t) (*image)->rows; y+=(ssize_t) composite_image->rows)
                 for (x=0; x < (ssize_t) (*image)->columns; x+=(ssize_t) columns)
-                  status&=CompositeImage(*image,composite_image,
-                    composite_options->compose,MagickTrue,x,y,exception);
+                  status&=(MagickStatusType) CompositeImage(*image,
+                    composite_image,composite_options->compose,MagickTrue,x,y,
+                    exception);
             }
           else
             {
@@ -233,9 +236,10 @@ static MagickBooleanType CompositeImageList(ImageInfo *image_info,Image **image,
                 Digitally composite image.
               */
               if (mask_image == (Image *) NULL)
-                status&=CompositeImage(*image,composite_image,
-                  composite_options->compose,composite_options->clip_to_self,
-                  geometry.x,geometry.y,exception);
+                status&=(MagickStatusType) CompositeImage(*image,
+                  composite_image,composite_options->compose,
+                  composite_options->clip_to_self,geometry.x,geometry.y,
+                  exception);
               else
                 {
                   Image
@@ -244,14 +248,16 @@ static MagickBooleanType CompositeImageList(ImageInfo *image_info,Image **image,
                   clone_image=CloneImage(*image,0,0,MagickTrue,exception);
                   if (clone_image != (Image *) NULL)
                     {
-                      status&=CompositeImage(*image,composite_image,
-                        composite_options->compose,
+                      status&=(MagickStatusType) CompositeImage(*image,
+                        composite_image,composite_options->compose,
                         composite_options->clip_to_self,geometry.x,geometry.y,
                         exception);
-                      status&=CompositeImage(*image,mask_image,
-                        CopyAlphaCompositeOp,MagickTrue,0,0,exception);
-                      status&=CompositeImage(clone_image,*image,OverCompositeOp,
-                        composite_options->clip_to_self,0,0,exception);
+                      status&=(MagickStatusType) CompositeImage(*image,
+                        mask_image,CopyAlphaCompositeOp,MagickTrue,0,0,
+                        exception);
+                      status&=(MagickStatusType) CompositeImage(clone_image,
+                        *image,OverCompositeOp,composite_options->clip_to_self,
+                        0,0,exception);
                       *image=DestroyImageList(*image);
                       *image=clone_image;
                     }
@@ -453,12 +459,12 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
   MagickBooleanType
     fire,
     pend,
-    respect_parenthesis;
+    respect_parentheses;
 
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -470,9 +476,9 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
   */
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (argc == 2)
     {
       option=argv[1];
@@ -484,7 +490,12 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
         }
     }
   if (argc < 4)
-    return(CompositeUsage());
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+        "MissingArgument","%s","");
+      (void) CompositeUsage();
+      return(MagickFalse);
+    }
   GetCompositeOptions(image_info,&composite_options);
   filename=(char *) NULL;
   format="%w,%h,%m";
@@ -493,7 +504,7 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
   NewImageStack();
   option=(char *) NULL;
   pend=MagickFalse;
-  respect_parenthesis=MagickFalse;
+  respect_parentheses=MagickFalse;
   status=MagickTrue;
   /*
     Check command syntax.
@@ -536,7 +547,7 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
         if ((LocaleCompare(filename,"--") == 0) && (i < (ssize_t) (argc-1)))
           filename=argv[++i];
         images=ReadImages(image_info,filename,exception);
-        status&=(images != (Image *) NULL) &&
+        status&=(MagickStatusType) (images != (Image *) NULL) &&
           (exception->severity < ErrorException);
         if (images == (Image *) NULL)
           continue;
@@ -1310,7 +1321,7 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
           }
         if (LocaleNCompare("respect-parentheses",option+1,17) == 0)
           {
-            respect_parenthesis=(*option == '-') ? MagickTrue : MagickFalse;
+            respect_parentheses=(*option == '-') ? MagickTrue : MagickFalse;
             break;
           }
         if (LocaleCompare("resize",option+1) == 0)
@@ -1663,13 +1674,14 @@ WandExport MagickBooleanType CompositeImageCommand(ImageInfo *image_info,
         }
     }
   RemoveImageStack(mask_image);
-  status&=CompositeImageList(image_info,&images,composite_image,mask_image,
-    &composite_options,exception);
+  status&=(MagickStatusType) CompositeImageList(image_info,&images,
+    composite_image,mask_image,&composite_options,exception);
   composite_image=DestroyImage(composite_image);
   /*
     Write composite images.
   */
-  status&=WriteImages(image_info,images,argv[argc-1],exception);
+  status&=(MagickStatusType) WriteImages(image_info,images,argv[argc-1],
+    exception);
   if (metadata != (char **) NULL)
     {
       char

@@ -1,4 +1,4 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -44,6 +44,7 @@ configlib_DATA = \
   config/type-dejavu.xml \
   config/type-ghostscript.xml \
   config/type-urw-base35.xml \
+  config/type-urw-base35-type1.xml \
   config/type-windows.xml
 
 CONFIG_EXTRA_DIST = \
@@ -61,7 +62,10 @@ CONFIG_EXTRA_DIST = \
   config/locale.xml \
   config/log.xml \
   config/mime.xml \
-  config/policy.xml \
+  config/policy-limited.xml \
+  config/policy-open.xml \
+  config/policy-secure.xml \
+  config/policy-websafe.xml \
   config/quantization-table.xml \
   config/sRGB.icm \
   config/thresholds.xml \
@@ -69,5 +73,6 @@ CONFIG_EXTRA_DIST = \
   config/type-dejavu.xml.in \
   config/type-ghostscript.xml.in \
   config/type-urw-base35.xml.in \
+  config/type-urw-base35-type1.xml.in \
   config/type-windows.xml.in \
   config/type.xml.in

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -53,6 +53,7 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/pixel-accessor.h"
+#include "MagickCore/property.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
@@ -103,14 +104,15 @@ static Image *ReadMASKImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   read_info=CloneImageInfo(image_info);
   SetImageInfoBlob(read_info,(void *) NULL,0);
-  (void) CopyMagickString(read_info->magick,"MIFF",MagickPathExtent);
+  (void) FormatLocaleString(read_info->filename,MagickPathExtent,
+    "miff:%s",image_info->filename);
   image=ReadImage(read_info,exception);
   read_info=DestroyImageInfo(read_info);
   if (image != (Image *) NULL)
@@ -212,7 +214,8 @@ ModuleExport void UnregisterMASKImage(void)
 %
 */
 
-static Image *MaskImage(const Image *image,ExceptionInfo *exception)
+static Image *MaskImage(const Image *image,const PixelChannel mask_channel,
+  ExceptionInfo *exception)
 {
   CacheView
     *image_view,
@@ -245,13 +248,13 @@ static Image *MaskImage(const Image *image,ExceptionInfo *exception)
   mask_view=AcquireAuthenticCacheView(mask_image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -266,10 +269,34 @@ static Image *MaskImage(const Image *image,ExceptionInfo *exception)
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      SetPixelChannel(mask_image,GrayPixelChannel,0,q);
-      SetPixelChannel(mask_image,GrayPixelChannel,GetPixelWriteMask(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(mask_image);
+      switch (mask_channel)
+      {
+        case CompositeMaskPixelChannel:
+        {
+          SetPixelChannel(mask_image,GrayPixelChannel,
+            GetPixelCompositeMask(image,p),q);
+          break;
+        }
+        case ReadMaskPixelChannel:
+        {
+          SetPixelChannel(mask_image,GrayPixelChannel,
+            GetPixelReadMask(image,p),q);
+          break;
+        }
+        case WriteMaskPixelChannel:
+        {
+          SetPixelChannel(mask_image,GrayPixelChannel,
+            GetPixelWriteMask(image,p),q);
+          break;
+        }
+        default:
+        {
+          SetPixelChannel(mask_image,GrayPixelChannel,0,q);
+          break;
+        }
+      }
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(mask_image);
     }
     if (SyncCacheViewAuthenticPixels(mask_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -285,7 +312,8 @@ static MagickBooleanType WriteMASKImage(const ImageInfo *image_info,
   Image *image,ExceptionInfo *exception)
 {
   Image
-    *mask_image;
+    *mask_image,
+    *write_image;
 
   ImageInfo
     *write_info;
@@ -293,20 +321,47 @@ static MagickBooleanType WriteMASKImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  mask_image=MaskImage(image,exception);
-  if (mask_image == (Image *) NULL)
-    return(MagickFalse);
-  (void) CopyMagickString(mask_image->filename,image->filename,
+  write_image=NewImageList();
+  if (GetPixelWriteMaskTraits(image) != UndefinedPixelTrait)
+    {
+      mask_image=MaskImage(image,WriteMaskPixelChannel,exception);
+      if (mask_image != (Image *) NULL)
+        {
+          (void) SetImageProperty(image,"mask","write",exception);
+          AppendImageToList(&write_image,mask_image);
+        }
+    }
+  if (GetPixelReadMaskTraits(image) != UndefinedPixelTrait)
+    {
+      mask_image=MaskImage(image,ReadMaskPixelChannel,exception);
+      if (mask_image != (Image *) NULL)
+        {
+          (void) SetImageProperty(image,"mask","read",exception);
+          AppendImageToList(&write_image,mask_image);
+        }
+    }
+  if (GetPixelCompositeMaskTraits(image) != UndefinedPixelTrait)
+    {
+      mask_image=MaskImage(image,CompositeMaskPixelChannel,exception);
+      if (mask_image != (Image *) NULL)
+        {
+          (void) SetImageProperty(image,"mask","composite",exception);
+          AppendImageToList(&write_image,mask_image);
+        }
+    }
+  if (write_image == (Image *) NULL)
+    ThrowWriterException(CoderError,"ImageDoesNotHaveAMaskChannel");
+  (void) CopyMagickString(write_image->filename,image->filename,
     MagickPathExtent);
   write_info=CloneImageInfo(image_info);
   *write_info->magick='\0';
   (void) SetImageInfo(write_info,1,exception);
   if ((*write_info->magick == '\0') ||
       (LocaleCompare(write_info->magick,"MASK") == 0))
-    (void) FormatLocaleString(mask_image->filename,MagickPathExtent,"miff:%s",
+    (void) FormatLocaleString(write_image->filename,MagickPathExtent,"miff:%s",
       write_info->filename);
-  status=WriteImage(write_info,mask_image,exception);
-  mask_image=DestroyImage(mask_image);
+  status=WriteImage(write_info,write_image,exception);
+  write_image=DestroyImage(write_image);
   write_info=DestroyImageInfo(write_info);
   return(status);
 }

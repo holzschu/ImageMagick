@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -41,9 +41,9 @@ static inline double SiPrefixToDoubleInterval(const char *string,
 }
 
 static inline double StringToDouble(const char *magick_restrict string,
-  char **magick_restrict sentinal)
+  char *magick_restrict *sentinel)
 {
-  return(InterpretLocaleValue(string,sentinal));
+  return(InterpretLocaleValue(string,sentinel));
 }
 
 static inline const char *StringLocateSubstring(const char *haystack,
@@ -57,7 +57,7 @@ static inline const char *StringLocateSubstring(const char *haystack,
       length_needle,
       length_haystack;
 
-    register size_t
+    size_t
       i;
 
     if (!haystack || !needle)
@@ -66,7 +66,7 @@ static inline const char *StringLocateSubstring(const char *haystack,
     length_haystack=strlen(haystack)-length_needle+1;
     for (i=0; i < length_haystack; i++)
     {
-      register size_t
+      size_t
         j;
 
       for (j=0; j < length_needle; j++)
@@ -102,12 +102,28 @@ static inline double StringToDoubleInterval(const char *string,
 
 static inline int StringToInteger(const char *magick_restrict value)
 {
+  if (value == (const char *) NULL)
+    return(0);
   return((int) strtol(value,(char **) NULL,10));
 }
 
 static inline long StringToLong(const char *magick_restrict value)
 {
+  if (value == (const char *) NULL)
+    return(0);
   return(strtol(value,(char **) NULL,10));
+}
+
+static inline MagickOffsetType StringToMagickOffsetType(const char *string,
+  const double interval)
+{
+  double
+    value;
+
+  value=SiPrefixToDoubleInterval(string,interval);
+  if (value >= (double) MagickULLConstant(~0))
+    return((MagickOffsetType) MagickULLConstant(~0));
+  return((MagickOffsetType) value);
 }
 
 static inline MagickSizeType StringToMagickSizeType(const char *string,
@@ -136,6 +152,8 @@ static inline size_t StringToSizeType(const char *string,const double interval)
 static inline unsigned long StringToUnsignedLong(
   const char *magick_restrict value)
 {
+  if (value == (const char *) NULL)
+    return(0);
   return(strtoul(value,(char **) NULL,10));
 }
 

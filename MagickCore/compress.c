@@ -17,7 +17,7 @@
 %                              May  1993                                      %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -233,13 +233,11 @@ static inline void Ascii85Tuple(Ascii85Info *ascii85_info,
 {
 #define MaxLineExtent  36L
 
-  register ssize_t
-    i,
-    x;
-
   size_t
     code,
-    quantum;
+    i,
+    quantum,
+    x;
 
   code=((((size_t) data[0] << 8) | (size_t) data[1]) << 16) |
     ((size_t) data[2] << 8) | (size_t) data[3];
@@ -252,7 +250,7 @@ static inline void Ascii85Tuple(Ascii85Info *ascii85_info,
   quantum=85UL*85UL*85UL*85UL;
   for (i=0; i < 4; i++)
   {
-    x=(ssize_t) (code/quantum);
+    x=(code/quantum);
     code-=quantum*x;
     ascii85_info->tuple[i]=(char) (x+(int) '!');
     quantum/=85L;
@@ -279,9 +277,9 @@ MagickExport void Ascii85Flush(Image *image)
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(image->ascii85 != (Ascii85Info *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->ascii85->offset > 0)
     {
       image->ascii85->buffer[image->ascii85->offset]='\0';
@@ -299,10 +297,10 @@ MagickExport void Ascii85Flush(Image *image)
 
 MagickExport void Ascii85Encode(Image *image,const unsigned char code)
 {
-  register char
+  char
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   ssize_t
@@ -329,10 +327,10 @@ MagickExport void Ascii85Encode(Image *image,const unsigned char code)
         }
       (void) WriteBlobByte(image,(unsigned char) *q);
     }
-    p+=8;
+    p+=(ptrdiff_t) 8;
   }
   image->ascii85->offset=n;
-  p-=4;
+  p-=(ptrdiff_t)4;
   for (n=0; n < 4; n++)
     image->ascii85->buffer[n]=(*p++);
 }
@@ -408,7 +406,8 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
     **mw_hash;
 
   int
-    byte;
+    byte,
+    mask;
 
   MagickBooleanType
     proceed;
@@ -416,25 +415,20 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
   Quantum
     index;
 
-  register ssize_t
-    i;
-
-  register unsigned char
-    *p;
-
   size_t
     bit,
     code,
-    mask,
     length,
     null_lines,
     runlength;
 
   ssize_t
     count,
+    i,
     y;
 
   unsigned char
+    *p,
     *scanline;
 
   unsigned int
@@ -446,7 +440,7 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->blob == (BlobInfo *) NULL)
     ThrowBinaryException(BlobError,"UnableToOpenBlob",image->filename);
@@ -497,10 +491,10 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
   for (y=0; ((y < (ssize_t) image->rows) && (null_lines < 3)); )
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     /*
@@ -621,7 +615,7 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
       index=(Quantum) (*p++);
       SetPixelIndex(image,index,q);
       SetPixelViaPixelInfo(image,image->colormap+(ssize_t) index,q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncCacheViewAuthenticPixels(image_view,exception) == MagickFalse)
       break;
@@ -716,14 +710,14 @@ RestoreMSCWarning \
   MagickBooleanType
     proceed;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
   size_t
@@ -747,7 +741,7 @@ RestoreMSCWarning \
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(inject_image != (Image *) NULL);
   assert(inject_image->signature == MagickCoreSignature);
@@ -794,7 +788,7 @@ RestoreMSCWarning \
     {
       *q++=(unsigned char) (GetPixelIntensity(huffman_image,p) >=
         ((double) QuantumRange/2.0) ? 0 : 1);
-      p+=GetPixelChannels(huffman_image);
+      p+=(ptrdiff_t) GetPixelChannels(huffman_image);
     }
     /*
       Huffman encode scanline.
@@ -940,7 +934,7 @@ MagickExport MagickBooleanType LZWEncodeImage(Image *image,const size_t length,
       next;
   } TableType;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -961,11 +955,11 @@ MagickExport MagickBooleanType LZWEncodeImage(Image *image,const size_t length,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(pixels != (unsigned char *) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   table=(TableType *) AcquireQuantumMemory(1UL << 12,sizeof(*table));
   if (table == (TableType *) NULL)
     ThrowBinaryException(ResourceLimitWarning,"MemoryAllocationFailed",
@@ -1087,7 +1081,7 @@ MagickExport MagickBooleanType PackbitsEncodeImage(Image *image,
   int
     count;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -1099,9 +1093,9 @@ MagickExport MagickBooleanType PackbitsEncodeImage(Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(pixels != (unsigned char *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   packbits=(unsigned char *) AcquireQuantumMemory(128UL,sizeof(*packbits));
   if (packbits == (unsigned char *) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
@@ -1239,7 +1233,7 @@ MagickExport MagickBooleanType ZLIBEncodeImage(Image *image,const size_t length,
   int
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1253,7 +1247,7 @@ MagickExport MagickBooleanType ZLIBEncodeImage(Image *image,const size_t length,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   compress_packets=(size_t) (1.001*length+12);
   compress_pixels=(unsigned char *) AcquireQuantumMemory(compress_packets,
@@ -1261,6 +1255,7 @@ MagickExport MagickBooleanType ZLIBEncodeImage(Image *image,const size_t length,
   if (compress_pixels == (unsigned char *) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
       image->filename);
+  (void) memset(&stream,0,sizeof(stream));
   stream.next_in=pixels;
   stream.avail_in=(unsigned int) length;
   stream.next_out=compress_pixels;
@@ -1295,7 +1290,7 @@ MagickExport MagickBooleanType ZLIBEncodeImage(Image *image,
   magick_unreferenced(pixels);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   (void) ThrowMagickException(exception,GetMagickModule(),MissingDelegateError,
     "DelegateLibrarySupportNotBuiltIn","'%s' (ZIP)",image->filename);

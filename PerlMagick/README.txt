@@ -12,7 +12,7 @@ Introduction
 
     for additional information about PerlMagick.  If you have problems, go to
 
-        https://imagemagick.org/discourse-server/viewforum.php?f=7
+        https://github.com/ImageMagick/ImageMagick/discussions
 
     for help.  For instructions about installing ImageMagick, see
 
@@ -23,8 +23,8 @@ Installation
 
     Get the PerlMagick distribution and type the following: 
 
-        gunzip ImageMagick-7.0.0-0.tar.gz
-        tar xvf ImageMagick-7.0.0
+        gunzip ImageMagick-7.1.1-18.tar.gz
+        tar xvf ImageMagick-7.1.1
 
     Follow the ImageMagick installation instructions in INSTALL-unix.txt
 		then type
@@ -40,7 +40,7 @@ Installation
     (often -R or -rpath) corresponding to the equivalent library search
     path option so that the library can be located at run-time.
 
-    To create and install the dymamically-loaded version of PerlMagick
+    To create and install the dynamically-loaded version of PerlMagick
     (the preferred way), execute
         
         perl Makefile.PL
@@ -90,8 +90,8 @@ Installation - Win32 Strawberry perl
    3) During installation select that you want to install ImageMagick's
       development files (libraries+headers)
 
-   4) You NEED TO have ImageMagick's directory in your PATH.  Note: we are
-      checking the presence of convert.exe or identify.exe tools
+   4) You also need to have ImageMagick's directory in your PATH. We are
+      using the 'magick' tool to determine your actual configuration.
 
    5) You might need Visual C++ Redistributable Package installed on your
       system.  See instructions on ImageMagick's Binary Release webpage.
@@ -109,6 +109,10 @@ Testing PerlMagick
     to verify that PERL can load the PerlMagick extension ok.  Chances are
     some of the tests will fail if you do not have the proper delegates
     installed for formats like JPEG, TIFF, etc.
+
+    Use the 'prove' utility to execute a test from the build folder:
+
+        prove --blib blib -I `pwd` -bv ./t/read.t
 
     To see a number of PerlMagick demonstration scripts, type
     

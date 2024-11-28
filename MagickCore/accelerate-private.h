@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -19,11 +19,13 @@
 #ifndef MAGICKCORE_ACCELERATE_PRIVATE_H
 #define MAGICKCORE_ACCELERATE_PRIVATE_H
 
+#if defined(MAGICKCORE_OPENCL_SUPPORT)
 #include "MagickCore/morphology.h"
 #include "MagickCore/resample.h"
 #include "MagickCore/resize.h"
 #include "MagickCore/statistic.h"
 #include "MagickCore/visual-effects.h"
+#endif
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
@@ -32,10 +34,7 @@ extern "C" {
 #if defined(MAGICKCORE_OPENCL_SUPPORT)
 
 extern MagickPrivate Image
-  *AccelerateAddNoiseImage(const Image*,const NoiseType,const double attenuate,
-    ExceptionInfo *),
   *AccelerateBlurImage(const Image *,const double,const double,ExceptionInfo *),
-  *AccelerateConvolveImage(const Image *,const KernelInfo *,ExceptionInfo *),
   *AccelerateDespeckleImage(const Image *,ExceptionInfo *),
   *AccelerateLocalContrastImage(const Image *,const double,const double,
     ExceptionInfo *),

@@ -16,7 +16,7 @@
 %                                April 2004                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -169,10 +169,10 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -189,10 +189,10 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
@@ -226,7 +226,8 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
   (void) FormatLocaleString(buffer,MagickPathExtent,"<Depth>2</Depth>\n");
   (void) WriteBlobString(image,buffer);
   (void) WriteBlobString(image,"<Data>");
-  (void) TransformImageColorspace(image,sRGBColorspace,exception);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+    (void) TransformImageColorspace(image,sRGBColorspace,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
@@ -241,7 +242,7 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
          (((size_t) (3*ClampToQuantum(GetPixelLuma(image,p+0*GetPixelChannels(image)))/QuantumRange) & 0x03) << 0));
       (void) FormatLocaleString(buffer,MagickPathExtent,"%02x",byte);
       (void) WriteBlobString(image,buffer);
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if ((image->columns % 4) != 0)
       {
@@ -254,28 +255,28 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
             case 0:
             {
               byte|=(unsigned char) (((size_t) (3*ClampToQuantum(GetPixelLuma(
-                image,p+MagickMin(i,3)*GetPixelChannels(image)))/
+                image,p+MagickMin(i,3)*(ssize_t) GetPixelChannels(image)))/
                 QuantumRange) & 0x03) << 6);
               break;
             }
             case 1:
             {
               byte|=(unsigned char) (((size_t) (3*ClampToQuantum(GetPixelLuma(
-                image,p+MagickMin(i,2)*GetPixelChannels(image)))/
+                image,p+MagickMin(i,2)*(ssize_t) GetPixelChannels(image)))/
                 QuantumRange) & 0x03) << 4);
               break;
             }
             case 2:
             {
               byte|=(unsigned char) (((size_t) (3*ClampToQuantum(GetPixelLuma(
-                image,p+MagickMin(i,1)*GetPixelChannels(image)))/
+                image,p+MagickMin(i,1)*(ssize_t) GetPixelChannels(image)))/
                 QuantumRange) & 0x03) << 2);
               break;
             }
             case 3:
             {
               byte|=(unsigned char) (((size_t) (3*ClampToQuantum(GetPixelLuma(
-                image,p+MagickMin(i,0)*GetPixelChannels(image)))/
+                image,p+MagickMin(i,0)*(ssize_t) GetPixelChannels(image)))/
                 QuantumRange) & 0x03) << 0);
               break;
             }
@@ -291,6 +292,7 @@ static MagickBooleanType WriteCIPImage(const ImageInfo *image_info,Image *image,
   }
   (void) WriteBlobString(image,"</Data>\n");
   (void) WriteBlobString(image,"</CiscoIPPhoneImage>\n");
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

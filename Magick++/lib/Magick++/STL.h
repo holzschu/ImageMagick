@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
-// Copyright Dirk Lemstra 2013-2017
+//
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Definition and implementation of template functions for using
 // Magick::Image with STL containers.
@@ -74,7 +76,7 @@ namespace Magick
     size_t _height;
     ::ssize_t _offset;
   };
-  
+
   // Add noise to image with specified noise type
   class MagickPPExport addNoiseImage
   {
@@ -125,7 +127,7 @@ namespace Magick
     // placement gravity.
     annotateImage ( const std::string &text_,
         const GravityType gravity_ );
-    
+
     void operator()( Image &image_ ) const;
 
   private:
@@ -284,7 +286,7 @@ namespace Magick
     compositeImage( const Image &compositeImage_,
         const Geometry &offset_,
         CompositeOperator compose_ = InCompositeOp );
-    
+
     void operator()( Image &image_ ) const;
 
   private:
@@ -343,7 +345,7 @@ namespace Magick
 
   // Distort image.  distorts an image using various distortion methods, by
   // mapping color lookups of the source image to a new destination image
-  // usally of the same size as the source image, unless 'bestfit' is set to
+  // usually of the same size as the source image, unless 'bestfit' is set to
   // true.
   class MagickPPExport distortImage
   {
@@ -352,7 +354,7 @@ namespace Magick
       const size_t number_arguments_,
       const double *arguments_,
       const bool bestfit_ );
-          
+
     distortImage( const Magick::DistortMethod method_,
       const size_t number_arguments_,
       const double *arguments_ );
@@ -383,7 +385,7 @@ namespace Magick
     DrawableList _drawableList;
   };
 
-  // Edge image (hilight edges in image)
+  // Edge image (highlight edges in image)
   class MagickPPExport edgeImage
   {
   public:
@@ -395,7 +397,7 @@ namespace Magick
     double _radius;
   };
 
-  // Emboss image (hilight edges with 3D effect)
+  // Emboss image (highlight edges with 3D effect)
   class MagickPPExport embossImage
   {
   public:
@@ -456,7 +458,7 @@ namespace Magick
 
   // Floodfill designated area with a matte value
   class MagickPPExport floodFillAlphaImage
-   
+
   {
   public:
     floodFillAlphaImage(const ::ssize_t x_,const ::ssize_t y_,
@@ -474,7 +476,7 @@ namespace Magick
 
   // Flood-fill image with color
   class MagickPPExport floodFillColorImage
-   
+
   {
   public:
     // Flood-fill color across pixels starting at target-pixel and
@@ -506,7 +508,7 @@ namespace Magick
 
   // Flood-fill image with texture
   class MagickPPExport floodFillTextureImage
-   
+
   {
   public:
     // Flood-fill texture across pixels that match the color of the
@@ -716,7 +718,7 @@ namespace Magick
   private:
     double _radius;
   };
-  
+
   // Merge image layers
   class MagickPPExport mergeLayersImage
   {
@@ -779,7 +781,7 @@ namespace Magick
     void operator()( Image &image_ ) const;
 
   private:
-  };  
+  };
 
   // Oilpaint image (image looks like oil painting)
   class MagickPPExport oilPaintImage
@@ -866,7 +868,7 @@ namespace Magick
     ~ReadOptions();
 
     // Vertical and horizontal resolution in pixels of the image
-    void density(const Geometry &geomery_);
+    void density(const Geometry &geometry_);
     Geometry density(void) const;
 
     // Image depth (8 or 16)
@@ -927,7 +929,7 @@ namespace Magick
   };
 
   // Roll image (rolls image vertically and horizontally) by specified
-  // number of columnms and rows)
+  // number of columns and rows)
   class MagickPPExport rollImage
   {
   public:
@@ -938,8 +940,8 @@ namespace Magick
     void operator()( Image &image_ ) const;
 
   private:
-    size_t _columns;
-    size_t _rows;
+    ssize_t _columns;
+    ssize_t _rows;
   };
 
   // Rotate image counter-clockwise by specified number of degrees.
@@ -964,7 +966,7 @@ namespace Magick
 
   private:
     Geometry  _geometry;
-  };  
+  };
 
   // Resize image by using simple ratio algorithm
   class MagickPPExport scaleImage
@@ -985,7 +987,7 @@ namespace Magick
   class MagickPPExport segmentImage
   {
   public:
-    segmentImage( const double clusterThreshold_ = 1.0, 
+    segmentImage( const double clusterThreshold_ = 1.0,
       const double smoothingThreshold_ = 1.5 );
 
     void operator()( Image &image_ ) const;
@@ -1092,7 +1094,7 @@ namespace Magick
     Geometry _geometry;
   };
 
-  // Spread pixels randomly within image by specified ammount
+  // Spread pixels randomly within image by specified amount
   class MagickPPExport spreadImage
   {
   public:
@@ -1403,9 +1405,9 @@ namespace Magick
   {
   public:
     composeImage( const CompositeOperator compose_ );
-                                                                                
+
     void operator()( Image &image_ ) const;
-                                                                                
+
   private:
     CompositeOperator _compose;
   };
@@ -1733,7 +1735,7 @@ namespace Magick
   public:
     sigmoidalContrastImage( const size_t sharpen_,
       const double contrast,
-      const double midpoint = QuantumRange / 2.0 );
+      const double midpoint = (double) QuantumRange / 2.0 );
 
     void operator()( Image &image_ ) const;
 
@@ -1920,7 +1922,7 @@ namespace Magick
 
       current->previous=previous;
       current->next=(MagickCore::Image *) NULL;
-      current->scene=scene++;
+      current->scene=(size_t) scene++;
 
       if (previous != (MagickCore::Image *) NULL)
         previous->next=current;
@@ -1995,7 +1997,7 @@ namespace Magick
     GetPPException;
     MagickCore::Image* image = MagickCore::AppendImages( first_->image(),
                    (MagickBooleanType) stack_,
-                   exceptionInfo ); 
+                   exceptionInfo );
     unlinkImages( first_, last_ );
     appendedImage_->replaceImage( image );
     ThrowPPException(appendedImage_->quiet());
@@ -2122,6 +2124,9 @@ namespace Magick
       {
         const MagickCore::MagickInfo *magick_info =
           MagickCore::GetMagickInfo( coder_list[i], exceptionInfo );
+        if (!magick_info)
+          continue;
+
         coder_list[i]=(char *)
           MagickCore::RelinquishMagickMemory( coder_list[i] );
 
@@ -2210,7 +2215,7 @@ namespace Magick
 
     // Obtain histogram array
     size_t colors;
-    MagickCore::PixelInfo *histogram_array = 
+    MagickCore::PixelInfo *histogram_array =
       MagickCore::GetImageHistogram( image.constImage(), &colors, exceptionInfo );
     ThrowPPException(image.quiet());
 
@@ -2328,7 +2333,7 @@ namespace Magick
   // Merge a sequence of image frames which represent image layers.
   // This is useful for combining Photoshop layers into a single image.
   template <class InputIterator>
-  void flattenImages( Image *flattendImage_,
+  void flattenImages( Image *flattenedImage_,
           InputIterator first_,
           InputIterator last_ ) {
     if (linkImages(first_,last_) == false)
@@ -2337,8 +2342,8 @@ namespace Magick
     MagickCore::Image* image = MagickCore::MergeImageLayers( first_->image(),
       FlattenLayer,exceptionInfo );
     unlinkImages( first_, last_ );
-    flattendImage_->replaceImage( image );
-    ThrowPPException(flattendImage_->quiet());
+    flattenedImage_->replaceImage( image );
+    ThrowPPException(flattenedImage_->quiet());
   }
 
   // Implements the discrete Fourier transform (DFT) of the image either as a
@@ -2568,7 +2573,7 @@ namespace Magick
       return;
     GetPPException;
     MagickCore::Image* image = MagickCore::MergeImageLayers( first_->image(),
-       MosaicLayer,exceptionInfo ); 
+       MosaicLayer,exceptionInfo );
     unlinkImages( first_, last_ );
     mosaicImage_->replaceImage( image );
     ThrowPPException(mosaicImage_->quiet());
@@ -2603,7 +2608,7 @@ namespace Magick
 
     ThrowPPException(quiet);
   }
-  
+
   // optimizeImagePlusLayers is exactly as optimizeImageLayers, but may
   // also add or even remove extra frames in the animation, if it improves
   // the total number of pixels in the resulting GIF animation.
@@ -2635,7 +2640,7 @@ namespace Magick
 
   // Compares each image the GIF disposed forms of the previous image in the
   // sequence. Any pixel that does not change the displayed result is replaced
-  // with transparency. 
+  // with transparency.
   template<class InputIterator>
   void optimizeTransparency(InputIterator first_,InputIterator last_)
   {

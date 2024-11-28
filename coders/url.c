@@ -18,7 +18,7 @@
 %                                March 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -44,6 +44,7 @@
 #include "MagickCore/blob.h"
 #include "MagickCore/blob-private.h"
 #include "MagickCore/constitute.h"
+#include "MagickCore/delegate.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
 #include "MagickCore/image.h"
@@ -58,20 +59,20 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/utility.h"
 #if defined(MAGICKCORE_XML_DELEGATE)
-#  if defined(MAGICKCORE_WINDOWS_SUPPORT)
-#    if !defined(__MINGW32__)
-#      include <win32config.h>
-#    endif
-#  endif
 #  include <libxml/parser.h>
 #  include <libxml/xmlmemory.h>
+#if defined(LIBXML_FTP_ENABLED)
 #  include <libxml/nanoftp.h>
+#endif
+#if defined(LIBXML_HTTP_ENABLED)
 #  include <libxml/nanohttp.h>
 #endif
-#if defined(MAGICKCORE_WINDOWS_SUPPORT) && \
-    !defined(__MINGW32__)
+#endif
+#if defined(MAGICKCORE_WINDOWS_SUPPORT)
 #  include <urlmon.h>
-#  pragma comment(lib, "urlmon.lib")
+#  if !defined(__MINGW32__)
+#    pragma comment(lib, "urlmon.lib")
+#  endif
 #endif
 
 /*
@@ -119,7 +120,7 @@ static void GetFTPData(void *userdata,const char *data,int size)
     return;
   if (size <= 0)
     return;
-  length=fwrite(data,size,1,file);
+  length=fwrite(data,1,(size_t) size,file);
   (void) length;
 }
 #endif
@@ -130,8 +131,6 @@ static void GetFTPData(void *userdata,const char *data,int size)
 
 static Image *ReadURLImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
-#define MaxBufferExtent  8192
-
   char
     filename[MagickPathExtent];
 
@@ -153,7 +152,7 @@ static Image *ReadURLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   image=AcquireImage(image_info,exception);
   read_info=CloneImageInfo(image_info);
   SetImageInfoBlob(read_info,(void *) NULL,0);
-#if !defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__MINGW32__)
+#if !defined(MAGICKCORE_WINDOWS_SUPPORT)
   if (LocaleCompare(read_info->magick,"https") == 0)
     {
       MagickBooleanType
@@ -208,7 +207,7 @@ static Image *ReadURLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   LocaleLower(filename);
   (void) ConcatenateMagickString(filename,image_info->filename,
     MagickPathExtent);
-#if defined(MAGICKCORE_WINDOWS_SUPPORT) && !defined(__MINGW32__)
+#if defined(MAGICKCORE_WINDOWS_SUPPORT)
   (void) fclose(file);
   if (URLDownloadToFile(NULL,filename,read_info->filename,0,NULL) != S_OK)
     {
@@ -241,7 +240,7 @@ static Image *ReadURLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (LocaleCompare(read_info->magick,"http") == 0)
     {
       char
-        buffer[MaxBufferExtent],
+        buffer[8192],
         *type;
 
       int
@@ -258,8 +257,8 @@ static Image *ReadURLImage(const ImageInfo *image_info,ExceptionInfo *exception)
           ssize_t
             count;
 
-          while ((bytes=xmlNanoHTTPRead(context,buffer,MaxBufferExtent)) > 0)
-            count=(ssize_t) fwrite(buffer,bytes,1,file);
+          while ((bytes=xmlNanoHTTPRead(context,buffer,sizeof(buffer))) > 0)
+            count=(ssize_t) fwrite(buffer,1,(size_t) bytes,file);
           (void) count;
           xmlNanoHTTPClose(context);
           xmlFree(type);
@@ -317,8 +316,7 @@ ModuleExport size_t RegisterURLImage(void)
     *entry;
 
   entry=AcquireMagickInfo("URL","HTTP","Uniform Resource Locator (http://)");
-#if (defined(MAGICKCORE_WINDOWS_SUPPORT) && \
-    !defined(__MINGW32__)) || \
+#if defined(MAGICKCORE_WINDOWS_SUPPORT) || \
     (defined(MAGICKCORE_XML_DELEGATE) && defined(LIBXML_HTTP_ENABLED))
   entry->decoder=(DecodeImageHandler *) ReadURLImage;
 #endif
@@ -329,8 +327,7 @@ ModuleExport size_t RegisterURLImage(void)
   entry->format_type=ImplicitFormatType;
   (void) RegisterMagickInfo(entry);
   entry=AcquireMagickInfo("URL","FTP","Uniform Resource Locator (ftp://)");
-#if (defined(MAGICKCORE_WINDOWS_SUPPORT) && \
-    !defined(__MINGW32__)) || \
+#if defined(MAGICKCORE_WINDOWS_SUPPORT) || \
     (defined(MAGICKCORE_XML_DELEGATE) && defined(LIBXML_FTP_ENABLED))
   entry->decoder=(DecodeImageHandler *) ReadURLImage;
 #endif

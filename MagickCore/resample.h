@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -63,13 +63,15 @@ typedef enum
   SplineFilter,
   LanczosRadiusFilter,
   CubicSplineFilter,
+  MagicKernelSharp2013Filter,
+  MagicKernelSharp2021Filter,
   SentinelFilter  /* a count of all the filters, not a real filter */
 } FilterType;
 
 /*
   Backward compatibility for the more correctly named Jinc Filter.  Original
   source of this filter is from "zoom" but it refers to a reference by Pratt,
-  who does not actualy name the filter.
+  who does not actually name the filter.
 
   also miss-spellings of common filters
 */

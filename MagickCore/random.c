@@ -16,7 +16,7 @@
 %                              December 2001                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -61,8 +61,12 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/thread_.h"
 #include "MagickCore/thread-private.h"
+#include "MagickCore/timer-private.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
+#if defined(MAGICKCORE_HAVE_GETENTROPY)
+#include <sys/random.h>
+#endif
 /*
   Define declarations.
 */
@@ -104,7 +108,7 @@ struct _RandomInfo
   SemaphoreInfo
     *semaphore;
 
-  ssize_t
+  time_t
     timestamp;
 
   size_t
@@ -191,7 +195,7 @@ MagickExport RandomInfo *AcquireRandomInfo(void)
   random_info->protocol_major=RandomProtocolMajorVersion;
   random_info->protocol_minor=RandomProtocolMinorVersion;
   random_info->semaphore=AcquireSemaphoreInfo();
-  random_info->timestamp=(ssize_t) time(0);
+  random_info->timestamp=GetMagickTime();
   random_info->signature=MagickCoreSignature;
   /*
     Seed random nonce.
@@ -273,9 +277,10 @@ MagickExport RandomInfo *AcquireRandomInfo(void)
 */
 MagickExport RandomInfo *DestroyRandomInfo(RandomInfo *random_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(random_info != (RandomInfo *) NULL);
   assert(random_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   LockSemaphoreInfo(random_info->semaphore);
   if (random_info->reservoir != (StringInfo *) NULL)
     random_info->reservoir=DestroyStringInfo(random_info->reservoir);
@@ -319,7 +324,7 @@ MagickExport RandomInfo *DestroyRandomInfo(RandomInfo *random_info)
 #if !defined(MAGICKCORE_WINDOWS_SUPPORT)
 static ssize_t ReadRandom(int file,unsigned char *source,size_t length)
 {
-  register unsigned char
+  unsigned char
     *q;
 
   ssize_t
@@ -327,7 +332,7 @@ static ssize_t ReadRandom(int file,unsigned char *source,size_t length)
     count;
 
   offset=0;
-  for (q=source; length != 0; length-=count)
+  for (q=source; length != 0; length-=(size_t) count)
   {
     count=(ssize_t) read(file,q,length);
     if (count <= 0)
@@ -337,7 +342,7 @@ static ssize_t ReadRandom(int file,unsigned char *source,size_t length)
           continue;
         return(-1);
       }
-    q+=count;
+    q+=(ptrdiff_t) count;
     offset+=count;
   }
   return(offset);
@@ -346,7 +351,7 @@ static ssize_t ReadRandom(int file,unsigned char *source,size_t length)
 
 static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 {
-#define MaxEntropyExtent  64
+#define MaxEntropyExtent  64  /* max permitted: 256 */
 
   MagickThreadType
     tid;
@@ -355,18 +360,32 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
     *chaos,
     *entropy;
 
-  size_t
-    nanoseconds,
-    seconds;
-
   ssize_t
     pid;
+
+  time_t
+    nanoseconds,
+    seconds;
 
   /*
     Initialize random reservoir.
   */
   entropy=AcquireStringInfo(0);
   LockSemaphoreInfo(random_info->semaphore);
+#if defined(MAGICKCORE_HAVE_GETENTROPY)
+  {
+    int
+      status;
+    
+    SetStringInfoLength(entropy,MaxEntropyExtent);
+    status=getentropy(GetStringInfoDatum(entropy),MaxEntropyExtent);
+    if (status == 0)
+      {
+        UnlockSemaphoreInfo(random_info->semaphore);
+        return(entropy);
+      }
+  }
+#endif
   chaos=AcquireStringInfo(sizeof(unsigned char *));
   SetStringInfoDatum(chaos,(unsigned char *) &entropy);
   ConcatenateStringInfo(entropy,chaos);
@@ -412,8 +431,8 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 
     if (gettimeofday(&timer,(struct timezone *) NULL) == 0)
       {
-        seconds=(size_t) timer.tv_sec;
-        nanoseconds=(size_t) (1000UL*timer.tv_usec);
+        seconds=timer.tv_sec;
+        nanoseconds=1000*timer.tv_usec;
       }
   }
 #endif
@@ -454,22 +473,22 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
   {
     double
-      seconds;
+      nt_seconds;
 
     LARGE_INTEGER
-      nanoseconds;
+      nt_nanoseconds;
 
     /*
-      Not crytographically strong but better than nothing.
+      Not cryptographically strong but better than nothing.
     */
-    seconds=NTElapsedTime()+NTUserTime();
-    SetStringInfoLength(chaos,sizeof(seconds));
-    SetStringInfoDatum(chaos,(unsigned char *) &seconds);
+    nt_seconds=NTElapsedTime()+NTElapsedTime();
+    SetStringInfoLength(chaos,sizeof(nt_seconds));
+    SetStringInfoDatum(chaos,(unsigned char *) &nt_seconds);
     ConcatenateStringInfo(entropy,chaos);
-    if (QueryPerformanceCounter(&nanoseconds) != 0)
+    if (QueryPerformanceCounter(&nt_nanoseconds) != 0)
       {
-        SetStringInfoLength(chaos,sizeof(nanoseconds));
-        SetStringInfoDatum(chaos,(unsigned char *) &nanoseconds);
+        SetStringInfoLength(chaos,sizeof(nt_nanoseconds));
+        SetStringInfoDatum(chaos,(unsigned char *) &nt_nanoseconds);
         ConcatenateStringInfo(entropy,chaos);
       }
     /*
@@ -494,15 +513,15 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
       *device;
 
     /*
-      Not crytographically strong but better than nothing.
+      Not cryptographically strong but better than nothing.
     */
     if (environ != (char **) NULL)
       {
-        register ssize_t
+        ssize_t
           i;
 
         /*
-          Squeeze some entropy from the sometimes unpredicatble environment.
+          Squeeze some entropy from the sometimes unpredictable environment.
         */
         for (i=0; environ[i] != (char *) NULL; i++)
         {
@@ -702,7 +721,7 @@ MagickExport StringInfo *GetRandomKey(RandomInfo *random_info,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  GetRandomSecretKey() returns the random secet key.
+%  GetRandomSecretKey() returns the random secret key.
 %
 %  The format of the GetRandomSecretKey method is:
 %
@@ -831,7 +850,7 @@ MagickPrivate void RandomComponentTerminus(void)
 
 static inline void IncrementRandomNonce(StringInfo *nonce)
 {
-  register ssize_t
+  ssize_t
     i;
 
   unsigned char
@@ -850,10 +869,10 @@ static inline void IncrementRandomNonce(StringInfo *nonce)
 MagickExport void SetRandomKey(RandomInfo *random_info,const size_t length,
   unsigned char *key)
 {
-  register size_t
+  size_t
     i;
 
-  register unsigned char
+  unsigned char
     *p;
 
   SignatureInfo
@@ -884,7 +903,7 @@ MagickExport void SetRandomKey(RandomInfo *random_info,const size_t length,
     IncrementRandomNonce(random_info->nonce);
     (void) memcpy(p,GetStringInfoDatum(GetSignatureDigest(
       signature_info)),GetSignatureDigestsize(signature_info));
-    p+=GetSignatureDigestsize(signature_info);
+    p+=(ptrdiff_t) GetSignatureDigestsize(signature_info);
     i-=GetSignatureDigestsize(signature_info);
   }
   if (i != 0)

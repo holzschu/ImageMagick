@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -184,11 +184,11 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -207,6 +207,8 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) ReadBlobLSBLong(image);
   ept_info.tiff_offset=(MagickOffsetType) ReadBlobLSBLong(image);
   ept_info.tiff_length=ReadBlobLSBLong(image);
+  if ((ept_info.postscript_length+ept_info.tiff_length) == 0)
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   if ((MagickSizeType) ept_info.tiff_length > GetBlobSize(image))
     ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
   (void) ReadBlobLSBShort(image);
@@ -249,29 +251,47 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   postscript_data=ReadBlobStream(image,ept_info.postscript_length,
     ept_info.postscript,&count);
   if (count != (ssize_t) (ept_info.postscript_length))
-    ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
+    {
+      ept_info.tiff=(unsigned char *) RelinquishMagickMemory(ept_info.tiff);
+      ept_info.postscript=(unsigned char *) RelinquishMagickMemory(
+        ept_info.postscript);
+      ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
+    }
   (void) CloseBlob(image);
   image=DestroyImage(image);
   read_info=CloneImageInfo(image_info);
   read_info->number_scenes=1;
   read_info->scene=0;
   (void) CopyMagickString(read_info->magick,"EPS",MagickPathExtent);
-  image=BlobToImage(read_info,postscript_data,ept_info.postscript_length,
-    exception);
-  if (image != (Image *) NULL)
+  if (ept_info.postscript_length != 0)
     {
-      (void) CopyMagickString(image->filename,image_info->filename,
-        MagickPathExtent);
-      (void) CopyMagickString(image->magick,"EPT",MagickPathExtent);
+      /*
+        Convert Postscript blob to image.
+      */
+      image=BlobToImage(read_info,postscript_data,ept_info.postscript_length,
+        exception);
+      if (image != (Image *) NULL)
+        {
+          (void) CopyMagickString(image->filename,image_info->filename,
+            MagickPathExtent);
+          (void) CopyMagickString(image->magick,"EPT",MagickPathExtent);
+        }
     }
-  (void) CopyMagickString(read_info->magick,"TIFF",MagickPathExtent);
-  tiff_image=BlobToImage(read_info,tiff_data,ept_info.tiff_length,exception);
-  if (tiff_image != (Image *) NULL)
+  if (ept_info.tiff_length != 0)
     {
-      if (image == (Image *) NULL)
-        image=tiff_image;
-      else
-        AppendImageToList(&image,tiff_image);
+      /*
+        Convert TIFF blob to image.
+      */
+      (void) CopyMagickString(read_info->magick,"TIFF",MagickPathExtent);
+      tiff_image=BlobToImage(read_info,tiff_data,ept_info.tiff_length,
+        exception);
+      if (tiff_image != (Image *) NULL)
+        {
+          if (image == (Image *) NULL)
+            image=tiff_image;
+          else
+            AppendImageToList(&image,tiff_image);
+        }
     }
   read_info=DestroyImageInfo(read_info);
   ept_info.tiff=(unsigned char *) RelinquishMagickMemory(ept_info.tiff);
@@ -414,7 +434,7 @@ static MagickBooleanType WriteEPTImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
@@ -510,6 +530,7 @@ static MagickBooleanType WriteEPTImage(const ImageInfo *image_info,Image *image,
   ept_info.postscript=(unsigned char *) RelinquishMagickMemory(
     ept_info.postscript);
   ept_info.tiff=(unsigned char *) RelinquishMagickMemory(ept_info.tiff);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

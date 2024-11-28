@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2002
-// Copyright Dirk Lemstra 2013-2017
+//
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Implementation of STL classes and functions
 //
@@ -298,7 +300,7 @@ void Magick::despeckleImage::operator()( Magick::Image &image_ ) const
 
 // Distort image.  distorts an image using various distortion methods, by
 // mapping color lookups of the source image to a new destination image
-// usally of the same size as the source image, unless 'bestfit' is set to
+// usually of the same size as the source image, unless 'bestfit' is set to
 // true.
 Magick::distortImage::distortImage( const Magick::DistortMethod method_,
                                     const size_t number_arguments_,
@@ -339,7 +341,7 @@ void Magick::drawImage::operator()( Magick::Image &image_ ) const
   image_.draw( _drawableList );
 }
 
-// Edge image (hilight edges in image)
+// Edge image (highlight edges in image)
 Magick::edgeImage::edgeImage( const double radius_ )
   : _radius( radius_ )
 {
@@ -349,7 +351,7 @@ void Magick::edgeImage::operator()( Magick::Image &image_ ) const
   image_.edge( _radius );
 }
 
-// Emboss image (hilight edges with 3D effect)
+// Emboss image (highlight edges with 3D effect)
 Magick::embossImage::embossImage( void )
   : _radius( 1 ),
     _sigma( 0.5 )
@@ -886,10 +888,10 @@ void Magick::reduceNoiseImage::operator()( Image &image_ ) const
 }
 
 // Roll image (rolls image vertically and horizontally) by specified
-// number of columnms and rows)
+// number of columns and rows)
 Magick::rollImage::rollImage( const Magick::Geometry &roll_ )
-  : _columns( roll_.width() ),
-    _rows( roll_.height() )
+  : _columns( static_cast<ssize_t>(roll_.width()) ),
+    _rows( static_cast<ssize_t>(roll_.height()) )
 {
 }
 Magick::rollImage::rollImage( const ssize_t columns_,
@@ -1021,7 +1023,7 @@ void Magick::solarizeImage::operator()( Magick::Image &image_ ) const
   image_.solarize( _factor );
 }
 
-// Spread pixels randomly within image by specified ammount
+// Spread pixels randomly within image by specified amount
 Magick::spreadImage::spreadImage( const size_t amount_ )
   : _amount( amount_ )
 {

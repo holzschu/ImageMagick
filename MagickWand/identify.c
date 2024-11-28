@@ -17,7 +17,7 @@
 %                            September 1994                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -102,6 +102,7 @@ static MagickBooleanType IdentifyUsage(void)
       "  -log format          format of debugging information\n"
       "  -version             print version information",
     operators[] =
+      "  -auto-orient         automagically orient (rotate) image\n"
       "  -channel mask        set the image channel mask\n"
       "  -grayscale method    convert image to grayscale\n"
       "  -negate              replace every pixel with its complementary color",
@@ -135,7 +136,6 @@ static MagickBooleanType IdentifyUsage(void)
       "  -ping                efficiently determine image attributes\n"
       "  -precision value     maximum number of significant digits to print\n"
       "  -quiet               suppress all warning messages\n"
-      "  -read-mask filename  associate a read mask with the image\n"
       "  -regard-warnings     pay attention to warning messages\n"
       "  -respect-parentheses settings remain in effect until parenthesis boundary\n"
       "  -sampling-factor geometry\n"
@@ -209,12 +209,12 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
   MagickBooleanType
     fire,
     pend,
-    respect_parenthesis;
+    respect_parentheses;
 
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -229,9 +229,9 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
   */
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(exception != (ExceptionInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (argc == 2)
     {
       option=argv[1];
@@ -243,7 +243,12 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
         }
     }
   if (argc < 2)
-    return(IdentifyUsage());
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+        "MissingArgument","%s","");
+      (void) IdentifyUsage();
+      return(MagickFalse);
+    }
   count=0;
   format=NULL;
   j=1;
@@ -251,7 +256,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
   NewImageStack();
   option=(char *) NULL;
   pend=MagickFalse;
-  respect_parenthesis=MagickFalse;
+  respect_parentheses=MagickFalse;
   status=MagickTrue;
   /*
     Identify an image.
@@ -307,7 +312,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
         else
           images=ReadImages(identify_info,filename,exception);
         identify_info=DestroyImageInfo(identify_info);
-        status&=(images != (Image *) NULL) &&
+        status&=(MagickStatusType) (images != (Image *) NULL) &&
           (exception->severity < ErrorException);
         if (images == (Image *) NULL)
           continue;
@@ -340,7 +345,18 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
         continue;
       }
     pend=image != (Image *) NULL ? MagickTrue : MagickFalse;
-    image_info->ping=MagickFalse;
+    {
+      const OptionInfo
+        *option_info = GetCommandOptionInfo(option);
+
+      if (option_info != (const OptionInfo *) NULL)
+        {
+          CommandOptionFlags option_type = (CommandOptionFlags)
+            option_info->flags;
+          if ((option_type & (SimpleOperatorFlag | ListOperatorFlag)) != 0)
+            image_info->ping=MagickFalse;
+        }
+    }
     switch (*(option+1))
     {
       case 'a':
@@ -373,6 +389,8 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
               ThrowIdentifyException(OptionError,"MissingArgument",option);
             break;
           }
+        if (LocaleCompare("auto-orient",option+1) == 0)
+          break;
         ThrowIdentifyException(OptionError,"UnrecognizedOption",option)
       }
       case 'c':
@@ -488,6 +506,8 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
                   ThrowIdentifyException(OptionError,"NoSuchOption",argv[i]);
                 break;
               }
+            if (LocaleNCompare("identify:locate",argv[i],15) == 0)
+              image_info->ping=MagickFalse;
             break;
           }
         if (LocaleCompare("density",option+1) == 0)
@@ -568,6 +588,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
             if (i == (ssize_t) argc)
               ThrowIdentifyException(OptionError,"MissingArgument",option);
             format=argv[i];
+            image_info->ping=MagickFalse;
             break;
           }
         if (LocaleCompare("fuzz",option+1) == 0)
@@ -790,9 +811,10 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
       {
         if (LocaleCompare("regard-warnings",option+1) == 0)
           break;
-        if (LocaleNCompare("respect-parentheses",option+1,17) == 0)
+        if ((LocaleNCompare("respect-parentheses",option+1,17) == 0) ||
+            (LocaleNCompare("respect-parenthesis",option+1,17) == 0))
           {
-            respect_parenthesis=(*option == '-') ? MagickTrue : MagickFalse;
+            respect_parentheses=(*option == '-') ? MagickTrue : MagickFalse;
             break;
           }
         ThrowIdentifyException(OptionError,"UnrecognizedOption",option)

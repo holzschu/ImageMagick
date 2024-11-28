@@ -17,7 +17,7 @@
 %                                 May 2002                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -122,21 +122,9 @@ static Image *ReadCLIPBOARDImage(const ImageInfo *image_info,
   LPVOID
     clip_mem;
 
-  MagickBooleanType
-    status;
-
-  register ssize_t
-    x;
-
-  register Quantum
-    *q;
-
   size_t
     clip_size,
     total_size;
-
-  ssize_t
-    y;
 
   unsigned char
     offset;
@@ -146,11 +134,11 @@ static Image *ReadCLIPBOARDImage(const ImageInfo *image_info,
 
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   if (!IsClipboardFormatAvailable(CF_DIB) &&
       !IsClipboardFormatAvailable(CF_DIBV5))
@@ -181,7 +169,7 @@ static Image *ReadCLIPBOARDImage(const ImageInfo *image_info,
       ThrowReaderException(CoderError,"UnableToReadImageData");
     }
   p=(unsigned char *) clip_data;
-  p+=BMP_HEADER_SIZE;
+  p+=(ptrdiff_t) BMP_HEADER_SIZE;
   (void) memcpy(p,clip_mem,clip_size);
   (void) GlobalUnlock(clip_mem);
   (void) CloseClipboard();
@@ -203,7 +191,7 @@ static Image *ReadCLIPBOARDImage(const ImageInfo *image_info,
         offset+=12;
     }
   offset+=BMP_HEADER_SIZE;
-  p-=BMP_HEADER_SIZE;
+  p-=(ptrdiff_t)BMP_HEADER_SIZE;
   p[0]='B';
   p[1]='M';
   p[2]=(unsigned char) total_size;
@@ -212,7 +200,7 @@ static Image *ReadCLIPBOARDImage(const ImageInfo *image_info,
   p[5]=(unsigned char) (total_size >> 24);
   p[10]=offset;
   read_info=CloneImageInfo(image_info);
-  (void) CopyMagickString(read_info->magick,"BMP",MaxTextExtent);
+  (void) CopyMagickString(read_info->magick,"BMP",MagickPathExtent);
   image=BlobToImage(read_info,clip_data,total_size,exception);
   read_info=DestroyImageInfo(read_info);
   clip_data=RelinquishMagickMemory(clip_data);
@@ -336,15 +324,15 @@ static MagickBooleanType WriteCLIPBOARDImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
     ThrowWriterException(CoderError,"UnableToWriteImageData");
   write_info=CloneImageInfo(image_info);
-  if (image->alpha_trait == UndefinedPixelTrait)
-    (void) CopyMagickString(write_info->magick,"BMP3",MaxTextExtent);
+  if ((image->alpha_trait & BlendPixelTrait) == 0)
+    (void) CopyMagickString(write_info->magick,"BMP3",MagickPathExtent);
   else
-    (void) CopyMagickString(write_info->magick,"BMP",MaxTextExtent);
+    (void) CopyMagickString(write_info->magick,"BMP",MagickPathExtent);
   clip_data=ImageToBlob(write_info,image,&length,exception);
   write_info=DestroyImageInfo(write_info);
   if (clip_data == (void *) NULL)
@@ -363,7 +351,7 @@ static MagickBooleanType WriteCLIPBOARDImage(const ImageInfo *image_info,
       ThrowWriterException(CoderError,"UnableToWriteImageData");
     }
   p=(unsigned char *) clip_data;
-  p+=BMP_HEADER_SIZE;
+  p+=(ptrdiff_t) BMP_HEADER_SIZE;
   (void) memcpy(clip_mem,p,length-BMP_HEADER_SIZE);
   (void) GlobalUnlock(clip_mem);
   clip_data=RelinquishMagickMemory(clip_data);
@@ -373,7 +361,7 @@ static MagickBooleanType WriteCLIPBOARDImage(const ImageInfo *image_info,
       ThrowWriterException(CoderError,"UnableToWriteImageData");
     }
   (void) EmptyClipboard();
-  if (image->alpha_trait == UndefinedPixelTrait)
+  if ((image->alpha_trait & BlendPixelTrait) == 0)
     SetClipboardData(CF_DIB,clip_handle);
   else
     SetClipboardData(CF_DIBV5,clip_handle);

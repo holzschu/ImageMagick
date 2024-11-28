@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -130,11 +130,11 @@ static Image *ReadRAWImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   if ((image->columns == 0) || (image->rows == 0))
     ThrowReaderException(OptionError,"MustSpecifyImageSize");
@@ -151,7 +151,7 @@ static Image *ReadRAWImage(const ImageInfo *image_info,ExceptionInfo *exception)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
   /*
-    Create virtual canvas to support cropping (i.e. image.gray[100x100+10+20]).
+    Create virtual canvas to support cropping (i.e. image.raw[100x100+10+20]).
   */
   canvas_image=CloneImage(image,image->extract_info.width,1,MagickFalse,
     exception);
@@ -207,13 +207,13 @@ static Image *ReadRAWImage(const ImageInfo *image_info,ExceptionInfo *exception)
       }
     for (y=0; y < (ssize_t) image->extract_info.height; y++)
     {
-      register const Quantum
+      const Quantum
         *magick_restrict p;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
-      register ssize_t
+      ssize_t
         x;
 
       if (count != (ssize_t) length)
@@ -244,8 +244,8 @@ static Image *ReadRAWImage(const ImageInfo *image_info,ExceptionInfo *exception)
             SetPixelRed(image,GetPixelRed(canvas_image,p),q);
             SetPixelGreen(image,GetPixelGreen(canvas_image,p),q);
             SetPixelBlue(image,GetPixelBlue(canvas_image,p),q);
-            p+=GetPixelChannels(canvas_image);
-            q+=GetPixelChannels(image);
+            p+=(ptrdiff_t) GetPixelChannels(canvas_image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -289,7 +289,8 @@ static Image *ReadRAWImage(const ImageInfo *image_info,ExceptionInfo *exception)
   } while (count == (ssize_t) length);
   quantum_info=DestroyQuantumInfo(quantum_info);
   canvas_image=DestroyImage(canvas_image);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
   return(GetFirstImageInList(image));
@@ -450,6 +451,9 @@ ModuleExport void UnregisterRAWImage(void)
 static MagickBooleanType WriteRAWImage(const ImageInfo *image_info,Image *image,
   ExceptionInfo *exception)
 {
+  const Quantum
+    *p;
+
   MagickOffsetType
     scene;
 
@@ -462,12 +466,9 @@ static MagickBooleanType WriteRAWImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  register const Quantum
-    *p;
-
   size_t
-    imageListLength,
-    length;
+    length,
+    number_scenes;
 
   ssize_t
     count,
@@ -483,10 +484,10 @@ static MagickBooleanType WriteRAWImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
@@ -567,7 +568,7 @@ static MagickBooleanType WriteRAWImage(const ImageInfo *image_info,Image *image,
     }
   }
   scene=0;
-  imageListLength=GetImageListLength(image);
+  number_scenes=GetImageListLength(image);
   do
   {
     /*
@@ -599,10 +600,11 @@ static MagickBooleanType WriteRAWImage(const ImageInfo *image_info,Image *image,
     if (GetNextImageInList(image) == (Image *) NULL)
       break;
     image=SyncNextImageInList(image);
-    status=SetImageProgress(image,SaveImagesTag,scene++,imageListLength);
+    status=SetImageProgress(image,SaveImagesTag,scene++,number_scenes);
     if (status == MagickFalse)
       break;
   } while (image_info->adjoin != MagickFalse);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -164,9 +164,9 @@ MagickExport MontageInfo *CloneMontageInfo(const ImageInfo *image_info,
 MagickExport MontageInfo *DestroyMontageInfo(MontageInfo *montage_info)
 {
   assert(montage_info != (MontageInfo *) NULL);
-  if (montage_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(montage_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (montage_info->geometry != (char *) NULL)
     montage_info->geometry=(char *)
       RelinquishMagickMemory(montage_info->geometry);
@@ -216,10 +216,10 @@ MagickExport void GetMontageInfo(const ImageInfo *image_info,
 {
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  assert(montage_info != (MontageInfo *) NULL);
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
-  assert(montage_info != (MontageInfo *) NULL);
   (void) memset(montage_info,0,sizeof(*montage_info));
   (void) CopyMagickString(montage_info->filename,image_info->filename,
     MagickPathExtent);
@@ -363,7 +363,7 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
   MagickStatusType
     flags;
 
-  register ssize_t
+  ssize_t
     i;
 
   RectangleInfo
@@ -403,12 +403,12 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
   */
   assert(images != (Image *) NULL);
   assert(images->signature == MagickCoreSignature);
-  if (images->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",images->filename);
   assert(montage_info != (MontageInfo *) NULL);
   assert(montage_info->signature == MagickCoreSignature);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",images->filename);
   number_images=GetImageListLength(images);
   primary_list=ImageListToArray(images,exception);
   if (primary_list == (Image **) NULL)
@@ -595,19 +595,19 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
           if (image_list[tile]->rows > max_height)
             max_height=image_list[tile]->rows;
         }
-      x_offset+=(ssize_t) (width+2*(extract_info.x+border_width));
+      x_offset+=((ssize_t) width+2*(extract_info.x+(ssize_t) border_width));
       if (x_offset > (ssize_t) bounds.width)
         bounds.width=(size_t) x_offset;
       if (((tile+1) == (ssize_t) tiles_per_page) ||
-          (((tile+1) % tiles_per_row) == 0))
+          (((tile+1) % (ssize_t) tiles_per_row) == 0))
         {
           x_offset=0;
           if (montage_info->tile != (char *) NULL)
             GetMontageGeometry(montage_info->tile,number_images,&x_offset,&y,
               &sans,&sans);
           height=concatenate != MagickFalse ? max_height : extract_info.height;
-          y_offset+=(ssize_t) (height+(extract_info.y+(ssize_t) border_width)*2+
-            (metrics.ascent-metrics.descent+4)*number_lines+
+          y_offset+=((ssize_t) height+(extract_info.y+(ssize_t) border_width)*2+
+            (metrics.ascent-metrics.descent+4)*(ssize_t) number_lines+
             (montage_info->shadow != MagickFalse ? 4 : 0));
           if (y_offset > (ssize_t) bounds.height)
             bounds.height=(size_t) y_offset;
@@ -654,17 +654,22 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
         &sans,&sans);
     y_offset+=(ssize_t) title_offset;
     (void) FormatLocaleString(montage->montage,MagickPathExtent,
-      "%.20gx%.20g%+.20g%+.20g",(double) (extract_info.width+
-      (extract_info.x+border_width)*2),(double) (extract_info.height+
-      (extract_info.y+border_width)*2+(double) ((metrics.ascent-
-      metrics.descent+4)*number_lines+(montage_info->shadow != MagickFalse ? 4 :
-      0))),(double) x_offset,(double) y_offset);
+      "%.20gx%.20g%+.20g%+.20g",(double) ((ssize_t) extract_info.width+
+      (extract_info.x+(ssize_t) border_width)*2),(double) ((ssize_t)
+      extract_info.height+(extract_info.y+(ssize_t) border_width)*2+(double)
+      ((metrics.ascent-metrics.descent+4)*number_lines+
+      (montage_info->shadow != MagickFalse ? 4 : 0))),(double) x_offset,
+      (double) y_offset);
     *montage->directory='\0';
     tile=0;
     while (tile < MagickMin((ssize_t) tiles_per_page,(ssize_t) number_images))
     {
-      (void) ConcatenateMagickString(montage->directory,
-        image_list[tile]->filename,extent);
+      if (strchr(image_list[tile]->filename,(int) '\xff') == (char *) NULL)
+        (void) ConcatenateMagickString(montage->directory,
+          image_list[tile]->filename,extent);
+      else
+        (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+          "InvalidArgument","'%s'",image_list[tile]->filename);
       (void) ConcatenateMagickString(montage->directory,"\xff",extent);
       tile++;
     }
@@ -768,8 +773,8 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
       (void) FormatLocaleString(tile_geometry,MagickPathExtent,
         "%.20gx%.20g+0+0",(double) image->columns,(double) image->rows);
       flags=ParseGravityGeometry(tile_image,tile_geometry,&geometry,exception);
-      x=(ssize_t) (geometry.x+border_width);
-      y=(ssize_t) (geometry.y+border_width);
+      x=geometry.x+(ssize_t) border_width;
+      y=geometry.y+(ssize_t) border_width;
       if ((montage_info->frame != (char *) NULL) && (bevel_width > 0))
         {
           FrameInfo
@@ -812,7 +817,7 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
               */
               (void) QueryColorCompliance("#0000",AllCompliance,
                 &image->background_color,exception);
-              shadow_image=ShadowImage(image,80.0,2.0,5,5,exception);
+              shadow_image=ShadowImage(image,30.0,5.0,5,5,exception);
               if (shadow_image != (Image *) NULL)
                 {
                   (void) CompositeImage(shadow_image,image,OverCompositeOp,
@@ -833,21 +838,22 @@ MagickExport Image *MontageImageList(const ImageInfo *image_info,
                 "%.20gx%.20g%+.20g%+.20g",(double) ((montage_info->frame ?
                 image->columns : width)-2*border_width),(double)
                 (metrics.ascent-metrics.descent+4)*MultilineCensus(value),
-                (double) (x_offset+border_width),(double)
-                ((montage_info->frame ? y_offset+height+border_width+4 :
-                y_offset+extract_info.height+border_width+
+                (double) (x_offset+(ssize_t) border_width),(double)
+                ((montage_info->frame ? y_offset+(ssize_t) height+(ssize_t)
+                border_width+4 : y_offset+(ssize_t) extract_info.height+
+                (ssize_t) border_width+
                 (montage_info->shadow != MagickFalse ? 4 : 0))+bevel_width));
               (void) CloneString(&draw_info->geometry,tile_geometry);
               (void) CloneString(&draw_info->text,value);
               (void) AnnotateImage(montage,draw_info,exception);
             }
         }
-      x_offset+=(ssize_t) (width+2*(extract_info.x+border_width));
+      x_offset+=(ssize_t) width+2*(extract_info.x+(ssize_t) border_width);
       if (((tile+1) == (ssize_t) tiles_per_page) ||
-          (((tile+1) % tiles_per_row) == 0))
+          (((tile+1) % (ssize_t) tiles_per_row) == 0))
         {
           x_offset=extract_info.x;
-          y_offset+=(ssize_t) (height+(extract_info.y+border_width)*2+
+          y_offset+=((ssize_t) height+(extract_info.y+(ssize_t) border_width)*2+
             (metrics.ascent-metrics.descent+4)*number_lines+
             (montage_info->shadow != MagickFalse ? 4 : 0));
           max_height=0;

@@ -20,7 +20,7 @@
 %                               October 2003                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -63,7 +63,7 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/option.h"
-#include "MagickCore/profile.h"
+#include "MagickCore/profile-private.h"
 #include "MagickCore/property.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/quantum-private.h"
@@ -226,7 +226,7 @@ typedef struct CINInfo
 } CINInfo;
 
 /*
-  Forward declaractions.
+  Forward declarations.
 */
 static MagickBooleanType
   WriteCINImage(const ImageInfo *,Image *,ExceptionInfo *);
@@ -403,10 +403,10 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   QuantumType
     quantum_type;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register Quantum
+  Quantum
     *q;
 
   size_t
@@ -426,11 +426,11 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -451,6 +451,8 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   image->endian=(magick[0] == 0x80) && (magick[1] == 0x2a) &&
     (magick[2] == 0x5f) && (magick[3] == 0xd7) ? MSBEndian : LSBEndian;
   cin.file.image_offset=ReadBlobLong(image);
+  if (cin.file.image_offset < 712)
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   offset+=4;
   cin.file.generic_length=ReadBlobLong(image);
   offset+=4;
@@ -622,7 +624,7 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) CopyMagickString(property,cin.origination.model,
     sizeof(cin.origination.model));
   (void) SetImageProperty(image,"dpx:origination.model",property,exception);
-  (void) memset(cin.origination.serial,0, 
+  (void) memset(cin.origination.serial,0,
     sizeof(cin.origination.serial));
   offset+=ReadBlob(image,sizeof(cin.origination.serial),(unsigned char *)
     cin.origination.serial);
@@ -685,7 +687,7 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
       offset+=4;
       if (IsFloatDefined(cin.film.frame_rate) != MagickFalse)
         (void) FormatImageProperty(image,"dpx:film.frame_rate","%g",
-          cin.film.frame_rate);
+          (double) cin.film.frame_rate);
       offset+=ReadBlob(image,sizeof(cin.film.frame_id),(unsigned char *)
         cin.film.frame_id);
       (void) CopyMagickString(property,cin.film.frame_id,
@@ -709,14 +711,16 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
       */
       if (cin.file.user_length > GetBlobSize(image))
         ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
-      profile=BlobToStringInfo((const unsigned char *) NULL,
-        cin.file.user_length);
+      profile=AcquireProfileStringInfo("dpx:user.data",cin.file.user_length,
+        exception);
       if (profile == (StringInfo *) NULL)
-        ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
-      offset+=ReadBlob(image,GetStringInfoLength(profile),
-        GetStringInfoDatum(profile));
-      (void) SetImageProfile(image,"dpx:user.data",profile,exception);
-      profile=DestroyStringInfo(profile);
+        offset=SeekBlob(image,(MagickOffsetType) cin.file.user_length,SEEK_CUR);
+      else
+        {
+          offset+=ReadBlob(image,cin.file.user_length,
+            GetStringInfoDatum(profile));
+          (void) SetImageProfilePrivate(image,profile,exception);
+        }
     }
   image->depth=cin.image.channel[0].bits_per_pixel;
   image->columns=cin.image.channel[0].pixels_per_line;
@@ -749,10 +753,9 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   quantum_info=AcquireQuantumInfo(image_info,image);
   if (quantum_info == (QuantumInfo *) NULL)
     ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
-  quantum_info->quantum=32;
-  quantum_info->pack=MagickFalse;
+  SetQuantumQuantum(quantum_info,32);
+  SetQuantumPack(quantum_info,MagickFalse);
   quantum_type=RGBQuantum;
-  length=GetQuantumExtent(image,quantum_info,quantum_type);
   length=GetBytesPerRow(image->columns,3,image->depth,MagickTrue);
   if (cin.image.number_channels == 1)
     {
@@ -789,7 +792,10 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
   SetImageColorspace(image,LogColorspace,exception);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -921,10 +927,10 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   QuantumType
     quantum_type;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -950,10 +956,10 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
@@ -994,9 +1000,9 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   offset+=WriteBlob(image,sizeof(cin.file.filename),(unsigned char *)
     cin.file.filename);
   seconds=GetMagickTime();
-  GetMagickUTCtime(&seconds,&utc_time);
+  GetMagickUTCTime(&seconds,&utc_time);
   (void) memset(timestamp,0,sizeof(timestamp));
-  (void) strftime(timestamp,MaxTextExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
+  (void) strftime(timestamp,MagickPathExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
   (void) memset(cin.file.create_date,0,sizeof(cin.file.create_date));
   (void) CopyMagickString(cin.file.create_date,timestamp,11);
   offset+=WriteBlob(image,sizeof(cin.file.create_date),(unsigned char *)
@@ -1093,7 +1099,7 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   offset+=WriteBlob(image,sizeof(cin.origination.filename),(unsigned char *)
     cin.origination.filename);
   (void) memset(timestamp,0,sizeof(timestamp));
-  (void) strftime(timestamp,MaxTextExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
+  (void) strftime(timestamp,MagickPathExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
   (void) memset(cin.origination.create_date,0,
     sizeof(cin.origination.create_date));
   (void) CopyMagickString(cin.origination.create_date,timestamp,11);
@@ -1204,8 +1210,8 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   quantum_info=AcquireQuantumInfo(image_info,image);
   if (quantum_info == (QuantumInfo *) NULL)
     ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
-  quantum_info->quantum=32;
-  quantum_info->pack=MagickFalse;
+  SetQuantumQuantum(quantum_info,32);
+  SetQuantumPack(quantum_info,MagickFalse);
   quantum_type=RGBQuantum;
   pixels=(unsigned char *) GetQuantumPixels(quantum_info);
   length=GetBytesPerRow(image->columns,3,image->depth,MagickTrue);
@@ -1225,6 +1231,7 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
       break;
   }
   quantum_info=DestroyQuantumInfo(quantum_info);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   return(status);
 }

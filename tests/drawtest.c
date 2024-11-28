@@ -24,7 +24,7 @@
 %                                March 2002                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999 ImageMagick Studio LLC, a non-profit organization           %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -46,6 +46,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <locale.h>
 #include <MagickWand/MagickWand.h>
 
 #define ThrowWandException(wand) \
@@ -427,6 +428,8 @@ int main(int argc,char **argv)
     Create canvas image.
   */
   MagickWandGenesis();
+  (void) setlocale(LC_ALL,"");
+  (void) setlocale(LC_NUMERIC,"C");
   canvas=NewMagickWand();
   status=MagickSetSize(canvas,596,842);
   if (status == MagickFalse)

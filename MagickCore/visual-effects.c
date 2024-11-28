@@ -24,7 +24,7 @@
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -53,6 +53,7 @@
 #include "MagickCore/artifact.h"
 #include "MagickCore/attribute.h"
 #include "MagickCore/cache.h"
+#include "MagickCore/cache-private.h"
 #include "MagickCore/cache-view.h"
 #include "MagickCore/channel.h"
 #include "MagickCore/color.h"
@@ -168,15 +169,10 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
-#if defined(MAGICKCORE_OPENCL_SUPPORT)
-  noise_image=AccelerateAddNoiseImage(image,noise_type,attenuate,exception);
-  if (noise_image != (Image *) NULL)
-    return(noise_image);
-#endif
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   noise_image=CloneImage(image,0,0,MagickTrue,exception);
   if (noise_image == (Image *) NULL)
     return((Image *) NULL);
@@ -190,13 +186,13 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
   */
   status=MagickTrue;
   progress=0;
-  random_info=AcquireRandomInfoThreadSet();
+  random_info=AcquireRandomInfoTLS();
   image_view=AcquireVirtualCacheView(image,exception);
   noise_view=AcquireAuthenticCacheView(noise_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   key=GetRandomSecretKey(random_info[0]);
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,noise_image,image->rows,key == ~0UL)
+    magick_number_threads(image,noise_image,image->rows,key == ~0UL ? 0 : 2)
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
@@ -206,13 +202,13 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -227,7 +223,7 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -247,8 +243,8 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
           GenerateDifferentialNoise(random_info[id],p[i],noise_type,attenuate)),
           q);
       }
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(noise_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(noise_image);
     }
     sync=SyncCacheViewAuthenticPixels(noise_view,exception);
     if (sync == MagickFalse)
@@ -269,7 +265,7 @@ MagickExport Image *AddNoiseImage(const Image *image,const NoiseType noise_type,
   }
   noise_view=DestroyCacheView(noise_view);
   image_view=DestroyCacheView(image_view);
-  random_info=DestroyRandomInfoThreadSet(random_info);
+  random_info=DestroyRandomInfoTLS(random_info);
   if (status == MagickFalse)
     noise_image=DestroyImage(noise_image);
   return(noise_image);
@@ -329,10 +325,10 @@ MagickExport Image *BlueShiftImage(const Image *image,const double factor,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   shift_image=CloneImage(image,0,0,MagickTrue,exception);
   if (shift_image == (Image *) NULL)
     return((Image *) NULL);
@@ -363,13 +359,13 @@ MagickExport Image *BlueShiftImage(const Image *image,const double factor,
     Quantum
       quantum;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -389,22 +385,22 @@ MagickExport Image *BlueShiftImage(const Image *image,const double factor,
         quantum=GetPixelGreen(image,p);
       if (GetPixelBlue(image,p) < quantum)
         quantum=GetPixelBlue(image,p);
-      pixel.red=0.5*(GetPixelRed(image,p)+factor*quantum);
-      pixel.green=0.5*(GetPixelGreen(image,p)+factor*quantum);
-      pixel.blue=0.5*(GetPixelBlue(image,p)+factor*quantum);
+      pixel.red=0.5*((double) GetPixelRed(image,p)+factor*(double) quantum);
+      pixel.green=0.5*((double) GetPixelGreen(image,p)+factor*(double) quantum);
+      pixel.blue=0.5*((double) GetPixelBlue(image,p)+factor*(double) quantum);
       quantum=GetPixelRed(image,p);
       if (GetPixelGreen(image,p) > quantum)
         quantum=GetPixelGreen(image,p);
       if (GetPixelBlue(image,p) > quantum)
         quantum=GetPixelBlue(image,p);
-      pixel.red=0.5*(pixel.red+factor*quantum);
-      pixel.green=0.5*(pixel.green+factor*quantum);
-      pixel.blue=0.5*(pixel.blue+factor*quantum);
+      pixel.red=0.5*(pixel.red+factor*(double) quantum);
+      pixel.green=0.5*(pixel.green+factor*(double) quantum);
+      pixel.blue=0.5*(pixel.blue+factor*(double) quantum);
       SetPixelRed(shift_image,ClampToQuantum(pixel.red),q);
       SetPixelGreen(shift_image,ClampToQuantum(pixel.green),q);
       SetPixelBlue(shift_image,ClampToQuantum(pixel.blue),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(shift_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(shift_image);
     }
     sync=SyncCacheViewAuthenticPixels(shift_view,exception);
     if (sync == MagickFalse)
@@ -473,10 +469,10 @@ MagickExport Image *CharcoalImage(const Image *image,const double radius,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   edge_image=EdgeImage(image,radius,exception);
   if (edge_image == (Image *) NULL)
     return((Image *) NULL);
@@ -536,7 +532,7 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
 {
 #define ColorizeImageTag  "Colorize/Image"
 #define Colorize(pixel,blend_percentage,colorize)  \
-  (((pixel)*(100.0-(blend_percentage))+(colorize)*(blend_percentage))/100.0)
+  ((((double) pixel)*(100.0-(blend_percentage))+(colorize)*(blend_percentage))/100.0)
 
   CacheView
     *image_view;
@@ -567,10 +563,10 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   colorize_image=CloneImage(image,0,0,MagickTrue,exception);
   if (colorize_image == (Image *) NULL)
     return((Image *) NULL);
@@ -612,20 +608,20 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
   */
   status=MagickTrue;
   progress=0;
-  image_view=AcquireVirtualCacheView(colorize_image,exception);
+  image_view=AcquireAuthenticCacheView(colorize_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(colorize_image,colorize_image,colorize_image->rows,1)
+    magick_number_threads(colorize_image,colorize_image,colorize_image->rows,2)
 #endif
   for (y=0; y < (ssize_t) colorize_image->rows; y++)
   {
     MagickBooleanType
       sync;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -639,7 +635,7 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
       }
     for (x=0; x < (ssize_t) colorize_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(colorize_image); i++)
@@ -654,7 +650,7 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
           Colorize(q[i],GetPixelInfoChannel(&blend_percentage,(PixelChannel) i),
           GetPixelInfoChannel(colorize,(PixelChannel) i))),q);
       }
-      q+=GetPixelChannels(colorize_image);
+      q+=(ptrdiff_t) GetPixelChannels(colorize_image);
     }
     sync=SyncCacheViewAuthenticPixels(image_view,exception);
     if (sync == MagickFalse)
@@ -713,7 +709,7 @@ MagickExport Image *ColorizeImage(const Image *image,const char *blend,
 %    o exception: return any errors or warnings in this structure.
 %
 */
-/* FUTURE: modify to make use of a MagickMatrix Mutliply function
+/* FUTURE: modify to make use of a MagickMatrix Multiply function
    That should be provided in "matrix.c"
    (ASIDE: actually distorts should do this too but currently doesn't)
 */
@@ -747,7 +743,7 @@ MagickExport Image *ColorMatrixImage(const Image *image,
   MagickOffsetType
     progress;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -760,10 +756,10 @@ MagickExport Image *ColorMatrixImage(const Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   i=0;
   for (v=0; v < (ssize_t) color_matrix->height; v++)
     for (u=0; u < (ssize_t) color_matrix->width; u++)
@@ -823,13 +819,13 @@ MagickExport Image *ColorMatrixImage(const Image *image,
     PixelInfo
       pixel;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -845,27 +841,28 @@ MagickExport Image *ColorMatrixImage(const Image *image,
     GetPixelInfo(image,&pixel);
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
-        v;
+      ssize_t
+        h;
 
       size_t
         height;
 
       GetPixelInfoPixel(image,p,&pixel);
       height=color_matrix->height > 6 ? 6UL : color_matrix->height;
-      for (v=0; v < (ssize_t) height; v++)
+      for (h=0; h < (ssize_t) height; h++)
       {
         double
           sum;
 
-        sum=ColorMatrix[v][0]*GetPixelRed(image,p)+ColorMatrix[v][1]*
-          GetPixelGreen(image,p)+ColorMatrix[v][2]*GetPixelBlue(image,p);
+        sum=ColorMatrix[h][0]*(double) GetPixelRed(image,p)+ColorMatrix[h][1]*
+          (double) GetPixelGreen(image,p)+ColorMatrix[h][2]*(double)
+          GetPixelBlue(image,p);
         if (image->colorspace == CMYKColorspace)
-          sum+=ColorMatrix[v][3]*GetPixelBlack(image,p);
+          sum+=ColorMatrix[h][3]*(double) GetPixelBlack(image,p);
         if (image->alpha_trait != UndefinedPixelTrait)
-          sum+=ColorMatrix[v][4]*GetPixelAlpha(image,p);
-        sum+=QuantumRange*ColorMatrix[v][5];
-        switch (v)
+          sum+=ColorMatrix[h][4]*(double) GetPixelAlpha(image,p);
+        sum+=(double) QuantumRange*ColorMatrix[h][5];
+        switch (h)
         {
           case 0: pixel.red=sum; break;
           case 1: pixel.green=sum; break;
@@ -876,8 +873,8 @@ MagickExport Image *ColorMatrixImage(const Image *image,
         }
       }
       SetPixelViaPixelInfo(color_image,&pixel,q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(color_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(color_image);
     }
     if (SyncCacheViewAuthenticPixels(color_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -974,15 +971,15 @@ MagickExport Image *ImplodeImage(const Image *image,const double amount,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas_image=CloneImage(image,0,0,MagickTrue,exception);
   if (canvas_image == (Image *) NULL)
     return((Image *) NULL);
   if ((canvas_image->alpha_trait == UndefinedPixelTrait) &&
-      (canvas_image->background_color.alpha != OpaqueAlpha))
+      (canvas_image->background_color.alpha != (double) OpaqueAlpha))
     (void) SetImageAlphaChannel(canvas_image,OpaqueAlphaChannel,exception);
   implode_image=CloneImage(canvas_image,0,0,MagickTrue,exception);
   if (implode_image == (Image *) NULL)
@@ -1005,11 +1002,13 @@ MagickExport Image *ImplodeImage(const Image *image,const double amount,
   center.y=0.5*canvas_image->rows;
   radius=center.x;
   if (canvas_image->columns > canvas_image->rows)
-    scale.y=(double) canvas_image->columns/(double) canvas_image->rows;
+    scale.y=(double) canvas_image->columns*PerceptibleReciprocal((double)
+      canvas_image->rows);
   else
     if (canvas_image->columns < canvas_image->rows)
       {
-        scale.x=(double) canvas_image->rows/(double) canvas_image->columns;
+        scale.x=(double) canvas_image->rows*PerceptibleReciprocal((double)
+          canvas_image->columns);
         radius=center.y;
       }
   /*
@@ -1026,19 +1025,19 @@ MagickExport Image *ImplodeImage(const Image *image,const double amount,
 #endif
   for (y=0; y < (ssize_t) canvas_image->rows; y++)
   {
+    const Quantum
+      *magick_restrict p;
+
     double
       distance;
 
     PointInfo
       delta;
 
-    register const Quantum
-      *magick_restrict p;
-
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1052,16 +1051,16 @@ MagickExport Image *ImplodeImage(const Image *image,const double amount,
         status=MagickFalse;
         continue;
       }
-    delta.y=scale.y*(double) (y-center.y);
+    delta.y=scale.y*((double) y-center.y);
     for (x=0; x < (ssize_t) canvas_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       /*
         Determine if the pixel is within an ellipse.
       */
-      delta.x=scale.x*(double) (x-center.x);
+      delta.x=scale.x*((double) x-center.x);
       distance=delta.x*delta.x+delta.y*delta.y;
       if (distance >= (radius*radius))
         for (i=0; i < (ssize_t) GetPixelChannels(canvas_image); i++)
@@ -1080,20 +1079,27 @@ MagickExport Image *ImplodeImage(const Image *image,const double amount,
           double
             factor;
 
+          PointInfo
+            offset;
+
           /*
             Implode the pixel.
           */
           factor=1.0;
           if (distance > 0.0)
-            factor=pow(sin(MagickPI*sqrt((double) distance)/radius/2),-amount);
-          status=InterpolatePixelChannels(canvas_image,interpolate_view,
-            implode_image,method,(double) (factor*delta.x/scale.x+center.x),
-            (double) (factor*delta.y/scale.y+center.y),q,exception);
+            factor=pow(sin(MagickPI*sqrt(distance)*
+              PerceptibleReciprocal(radius)/2.0),-amount);
+          offset.x=factor*delta.x*PerceptibleReciprocal(scale.x)+center.x;
+          offset.y=factor*delta.y*PerceptibleReciprocal(scale.y)+center.y;
+          if ((IsValidPixelOffset(offset.x,image->columns) != MagickFalse) &&
+              (IsValidPixelOffset(offset.y,image->rows) != MagickFalse))
+            status=InterpolatePixelChannels(canvas_image,interpolate_view,
+              implode_image,method,offset.x,offset.y,q,exception);
           if (status == MagickFalse)
             break;
         }
-      p+=GetPixelChannels(canvas_image);
-      q+=GetPixelChannels(implode_image);
+      p+=(ptrdiff_t) GetPixelChannels(canvas_image);
+      q+=(ptrdiff_t) GetPixelChannels(implode_image);
     }
     if (SyncCacheViewAuthenticPixels(implode_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -1170,10 +1176,10 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
   MagickOffsetType
     scene;
 
-  register const Image
+  const Image
     *next;
 
-  register ssize_t
+  ssize_t
     n;
 
   ssize_t
@@ -1184,10 +1190,10 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   morph_images=CloneImage(image,0,0,MagickTrue,exception);
   if (morph_images == (Image *) NULL)
     return((Image *) NULL);
@@ -1261,20 +1267,20 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
       morph_view=AcquireAuthenticCacheView(morph_images,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
       #pragma omp parallel for schedule(static) shared(status) \
-        magick_number_threads(morph_image,morph_image,morph_image->rows,1)
+        magick_number_threads(morph_image,morph_image,morph_image->rows,2)
 #endif
       for (y=0; y < (ssize_t) morph_images->rows; y++)
       {
         MagickBooleanType
           sync;
 
-        register const Quantum
+        const Quantum
           *magick_restrict p;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -1290,7 +1296,7 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
           }
         for (x=0; x < (ssize_t) morph_images->columns; x++)
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(morph_image); i++)
@@ -1306,11 +1312,11 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
                 SetPixelChannel(morph_image,channel,p[i],q);
                 continue;
               }
-            SetPixelChannel(morph_image,channel,ClampToQuantum(alpha*
-              GetPixelChannel(morph_images,channel,q)+beta*p[i]),q);
+            SetPixelChannel(morph_image,channel,ClampToQuantum(alpha*(double)
+              GetPixelChannel(morph_images,channel,q)+beta*(double) p[i]),q);
           }
-          p+=GetPixelChannels(morph_image);
-          q+=GetPixelChannels(morph_images);
+          p+=(ptrdiff_t) GetPixelChannels(morph_image);
+          q+=(ptrdiff_t) GetPixelChannels(morph_images);
         }
         sync=SyncCacheViewAuthenticPixels(morph_view,exception);
         if (sync == MagickFalse)
@@ -1408,14 +1414,14 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
   MagickStatusType
     status;
 
-  register const Quantum
+  const Quantum
     *magick_restrict u,
     *magick_restrict v;
 
-  register Quantum
+  Quantum
     *magick_restrict q;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -1437,8 +1443,8 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
       */
       depth--;
       attenuate++;
-      x_mid=(ssize_t) ceil((segment->x1+segment->x2)/2-0.5);
-      y_mid=(ssize_t) ceil((segment->y1+segment->y2)/2-0.5);
+      x_mid=CastDoubleToLong(ceil((segment->x1+segment->x2)/2-0.5));
+      y_mid=CastDoubleToLong(ceil((segment->y1+segment->y2)/2-0.5));
       local_info=(*segment);
       local_info.x2=(double) x_mid;
       local_info.y2=(double) y_mid;
@@ -1447,22 +1453,22 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
       local_info=(*segment);
       local_info.y1=(double) y_mid;
       local_info.x2=(double) x_mid;
-      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
-        &local_info,attenuate,depth,exception);
+      status&=(MagickStatusType) PlasmaImageProxy(image,image_view,u_view,
+        v_view,random_info,&local_info,attenuate,depth,exception);
       local_info=(*segment);
       local_info.x1=(double) x_mid;
       local_info.y2=(double) y_mid;
-      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
-        &local_info,attenuate,depth,exception);
+      status&=(MagickStatusType) PlasmaImageProxy(image,image_view,u_view,
+        v_view,random_info,&local_info,attenuate,depth,exception);
       local_info=(*segment);
       local_info.x1=(double) x_mid;
       local_info.y1=(double) y_mid;
-      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
-        &local_info,attenuate,depth,exception);
+      status&=(MagickStatusType) PlasmaImageProxy(image,image_view,u_view,
+        v_view,random_info,&local_info,attenuate,depth,exception);
       return(status == 0 ? MagickFalse : MagickTrue);
     }
-  x_mid=(ssize_t) ceil((segment->x1+segment->x2)/2-0.5);
-  y_mid=(ssize_t) ceil((segment->y1+segment->y2)/2-0.5);
+  x_mid=CastDoubleToLong(ceil((segment->x1+segment->x2)/2-0.5));
+  y_mid=CastDoubleToLong(ceil((segment->y1+segment->y2)/2-0.5));
   if ((fabs(segment->x1-x_mid) < MagickEpsilon) &&
       (fabs(segment->x2-x_mid) < MagickEpsilon) &&
       (fabs(segment->y1-y_mid) < MagickEpsilon) &&
@@ -1479,11 +1485,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
       /*
         Left pixel.
       */
-      x=(ssize_t) ceil(segment->x1-0.5);
-      u=GetCacheViewVirtualPixels(u_view,x,(ssize_t) ceil(segment->y1-0.5),1,1,
-        exception);
-      v=GetCacheViewVirtualPixels(v_view,x,(ssize_t) ceil(segment->y2-0.5),1,1,
-        exception);
+      x=CastDoubleToLong(ceil(segment->x1-0.5));
+      u=GetCacheViewVirtualPixels(u_view,x,CastDoubleToLong(ceil(
+        segment->y1-0.5)),1,1,exception);
+      v=GetCacheViewVirtualPixels(v_view,x,CastDoubleToLong(ceil(
+        segment->y2-0.5)),1,1,exception);
       q=QueueCacheViewAuthenticPixels(image_view,x,y_mid,1,1,exception);
       if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
           (q == (Quantum *) NULL))
@@ -1494,7 +1500,7 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if (traits == UndefinedPixelTrait)
           continue;
-        q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
+        q[i]=PlasmaPixel(random_info,((double) u[i]+(double) v[i])/2.0,plasma);
       }
       status=SyncCacheViewAuthenticPixels(image_view,exception);
       if (fabs(segment->x1-segment->x2) >= MagickEpsilon)
@@ -1502,11 +1508,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
           /*
             Right pixel.
           */
-          x=(ssize_t) ceil(segment->x2-0.5);
-          u=GetCacheViewVirtualPixels(u_view,x,(ssize_t) ceil(segment->y1-0.5),
-            1,1,exception);
-          v=GetCacheViewVirtualPixels(v_view,x,(ssize_t) ceil(segment->y2-0.5),
-            1,1,exception);
+          x=CastDoubleToLong(ceil(segment->x2-0.5));
+          u=GetCacheViewVirtualPixels(u_view,x,CastDoubleToLong(ceil(
+            segment->y1-0.5)),1,1,exception);
+          v=GetCacheViewVirtualPixels(v_view,x,CastDoubleToLong(ceil(
+            segment->y2-0.5)),1,1,exception);
           q=QueueCacheViewAuthenticPixels(image_view,x,y_mid,1,1,exception);
           if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
               (q == (Quantum *) NULL))
@@ -1517,7 +1523,8 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+(double) v[i])/2.0,
+              plasma);
           }
           status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
@@ -1531,11 +1538,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
           /*
             Bottom pixel.
           */
-          y=(ssize_t) ceil(segment->y2-0.5);
-          u=GetCacheViewVirtualPixels(u_view,(ssize_t) ceil(segment->x1-0.5),y,
-            1,1,exception);
-          v=GetCacheViewVirtualPixels(v_view,(ssize_t) ceil(segment->x2-0.5),y,
-            1,1,exception);
+          y=CastDoubleToLong(ceil(segment->y2-0.5));
+          u=GetCacheViewVirtualPixels(u_view,CastDoubleToLong(ceil(
+            segment->x1-0.5)),y,1,1,exception);
+          v=GetCacheViewVirtualPixels(v_view,CastDoubleToLong(ceil(
+            segment->x2-0.5)),y,1,1,exception);
           q=QueueCacheViewAuthenticPixels(image_view,x_mid,y,1,1,exception);
           if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
               (q == (Quantum *) NULL))
@@ -1546,7 +1553,8 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+(double) v[i])/2.0,
+              plasma);
           }
           status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
@@ -1555,11 +1563,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
           /*
             Top pixel.
           */
-          y=(ssize_t) ceil(segment->y1-0.5);
-          u=GetCacheViewVirtualPixels(u_view,(ssize_t) ceil(segment->x1-0.5),y,
-            1,1,exception);
-          v=GetCacheViewVirtualPixels(v_view,(ssize_t) ceil(segment->x2-0.5),y,
-            1,1,exception);
+          y=CastDoubleToLong(ceil(segment->y1-0.5));
+          u=GetCacheViewVirtualPixels(u_view,CastDoubleToLong(ceil(
+            segment->x1-0.5)),y,1,1,exception);
+          v=GetCacheViewVirtualPixels(v_view,CastDoubleToLong(ceil(
+            segment->x2-0.5)),y,1,1,exception);
           q=QueueCacheViewAuthenticPixels(image_view,x_mid,y,1,1,exception);
           if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
               (q == (Quantum *) NULL))
@@ -1570,7 +1578,8 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+(double) v[i])/2.0,
+              plasma);
           }
           status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
@@ -1581,11 +1590,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
       /*
         Middle pixel.
       */
-      x=(ssize_t) ceil(segment->x1-0.5);
-      y=(ssize_t) ceil(segment->y1-0.5);
+      x=CastDoubleToLong(ceil(segment->x1-0.5));
+      y=CastDoubleToLong(ceil(segment->y1-0.5));
       u=GetCacheViewVirtualPixels(u_view,x,y,1,1,exception);
-      x=(ssize_t) ceil(segment->x2-0.5);
-      y=(ssize_t) ceil(segment->y2-0.5);
+      x=CastDoubleToLong(ceil(segment->x2-0.5));
+      y=CastDoubleToLong(ceil(segment->y2-0.5));
       v=GetCacheViewVirtualPixels(v_view,x,y,1,1,exception);
       q=QueueCacheViewAuthenticPixels(image_view,x_mid,y_mid,1,1,exception);
       if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
@@ -1597,7 +1606,7 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if (traits == UndefinedPixelTrait)
           continue;
-        q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
+        q[i]=PlasmaPixel(random_info,((double) u[i]+(double) v[i])/2.0,plasma);
       }
       status=SyncCacheViewAuthenticPixels(image_view,exception);
     }
@@ -1623,10 +1632,8 @@ MagickExport MagickBooleanType PlasmaImage(Image *image,
     *random_info;
 
   assert(image != (Image *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
     return(MagickFalse);
@@ -1701,13 +1708,13 @@ MagickExport Image *PolaroidImage(const Image *image,const DrawInfo *draw_info,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   quantum=(ssize_t) MagickMax(MagickMax((double) image->columns,(double)
     image->rows)/25.0,10.0);
-  height=image->rows+2*quantum;
+  height=(size_t) ((ssize_t) image->rows+2*quantum);
   caption_image=(Image *) NULL;
   if (caption != (const char *) NULL)
     {
@@ -1764,8 +1771,8 @@ MagickExport Image *PolaroidImage(const Image *image,const DrawInfo *draw_info,
           text=DestroyString(text);
         }
     }
-  picture_image=CloneImage(image,image->columns+2*quantum,height,MagickTrue,
-    exception);
+  picture_image=CloneImage(image,(size_t) ((ssize_t) image->columns+2*quantum),
+    height,MagickTrue,exception);
   if (picture_image == (Image *) NULL)
     {
       if (caption_image != (Image *) NULL)
@@ -1779,7 +1786,7 @@ MagickExport Image *PolaroidImage(const Image *image,const DrawInfo *draw_info,
   if (caption_image != (Image *) NULL)
     {
       (void) CompositeImage(picture_image,caption_image,OverCompositeOp,
-        MagickTrue,quantum,(ssize_t) (image->rows+3*quantum/2),exception);
+        MagickTrue,quantum,((ssize_t) image->rows+3*quantum/2),exception);
       caption_image=DestroyImage(caption_image);
     }
   (void) QueryColorCompliance("none",AllCompliance,
@@ -1891,10 +1898,10 @@ MagickExport Image *SepiaToneImage(const Image *image,const double threshold,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   sepia_image=CloneImage(image,0,0,MagickTrue,exception);
   if (sepia_image == (Image *) NULL)
     return((Image *) NULL);
@@ -1916,13 +1923,13 @@ MagickExport Image *SepiaToneImage(const Image *image,const double threshold,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1956,8 +1963,8 @@ MagickExport Image *SepiaToneImage(const Image *image,const double threshold,
       if ((double) GetPixelBlue(image,q) < tone)
         SetPixelBlue(sepia_image,ClampToQuantum(tone),q);
       SetPixelAlpha(sepia_image,GetPixelAlpha(image,p),q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(sepia_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(sepia_image);
     }
     if (SyncCacheViewAuthenticPixels(sepia_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -2049,10 +2056,10 @@ MagickExport Image *ShadowImage(const Image *image,const double alpha,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   clone_image=CloneImage(image,0,0,MagickTrue,exception);
   if (clone_image == (Image *) NULL)
     return((Image *) NULL);
@@ -2060,8 +2067,8 @@ MagickExport Image *ShadowImage(const Image *image,const double alpha,
     (void) SetImageColorspace(clone_image,sRGBColorspace,exception);
   (void) SetImageVirtualPixelMethod(clone_image,EdgeVirtualPixelMethod,
     exception);
-  border_info.width=(size_t) floor(2.0*sigma+0.5);
-  border_info.height=(size_t) floor(2.0*sigma+0.5);
+  border_info.width=CastDoubleToUnsigned(2.0*sigma+0.5);
+  border_info.height=CastDoubleToUnsigned(2.0*sigma+0.5);
   border_info.x=0;
   border_info.y=0;
   (void) QueryColorCompliance("none",AllCompliance,&clone_image->border_color,
@@ -2082,10 +2089,10 @@ MagickExport Image *ShadowImage(const Image *image,const double alpha,
   image_view=AcquireAuthenticCacheView(border_image,exception);
   for (y=0; y < (ssize_t) border_image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2100,9 +2107,10 @@ MagickExport Image *ShadowImage(const Image *image,const double alpha,
     for (x=0; x < (ssize_t) border_image->columns; x++)
     {
       if (border_image->alpha_trait != UndefinedPixelTrait)
-        background_color.alpha=GetPixelAlpha(border_image,q)*alpha/100.0;
+        background_color.alpha=(double) GetPixelAlpha(border_image,q)*alpha/
+          100.0;
       SetPixelViaPixelInfo(border_image,&background_color,q);
-      q+=GetPixelChannels(border_image);
+      q+=(ptrdiff_t) GetPixelChannels(border_image);
     }
     if (SyncCacheViewAuthenticPixels(image_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -2123,8 +2131,10 @@ MagickExport Image *ShadowImage(const Image *image,const double alpha,
     shadow_image->page.width=shadow_image->columns;
   if (shadow_image->page.height == 0)
     shadow_image->page.height=shadow_image->rows;
-  shadow_image->page.width+=x_offset-(ssize_t) border_info.width;
-  shadow_image->page.height+=y_offset-(ssize_t) border_info.height;
+  shadow_image->page.width=(size_t) ((ssize_t) shadow_image->page.width+
+    x_offset-(ssize_t) border_info.width);
+  shadow_image->page.height=(size_t) ((ssize_t) shadow_image->page.height+
+    y_offset-(ssize_t) border_info.height);
   shadow_image->page.x+=x_offset-(ssize_t) border_info.width;
   shadow_image->page.y+=y_offset-(ssize_t) border_info.height;
   return(shadow_image);
@@ -2201,22 +2211,22 @@ MagickExport Image *SketchImage(const Image *image,const double radius,
   if (random_image == (Image *) NULL)
     return((Image *) NULL);
   status=MagickTrue;
-  random_info=AcquireRandomInfoThreadSet();
+  random_info=AcquireRandomInfoTLS();
   random_view=AcquireAuthenticCacheView(random_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   key=GetRandomSecretKey(random_info[0]);
   #pragma omp parallel for schedule(static) shared(status) \
-    magick_number_threads(random_image,random_image,random_image->rows,key == ~0UL)
+    magick_number_threads(random_image,random_image,random_image->rows,key == ~0UL ? 0 : 2)
 #endif
   for (y=0; y < (ssize_t) random_image->rows; y++)
   {
     const int
       id = GetOpenMPThreadId();
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2233,7 +2243,7 @@ MagickExport Image *SketchImage(const Image *image,const double radius,
       double
         value;
 
-      register ssize_t
+      ssize_t
         i;
 
       value=GetPseudoRandomValue(random_info[id]);
@@ -2243,15 +2253,15 @@ MagickExport Image *SketchImage(const Image *image,const double radius,
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if (traits == UndefinedPixelTrait)
           continue;
-        q[i]=ClampToQuantum(QuantumRange*value);
+        q[i]=ClampToQuantum((double) QuantumRange*value);
       }
-      q+=GetPixelChannels(random_image);
+      q+=(ptrdiff_t) GetPixelChannels(random_image);
     }
     if (SyncCacheViewAuthenticPixels(random_view,exception) == MagickFalse)
       status=MagickFalse;
   }
   random_view=DestroyCacheView(random_view);
-  random_info=DestroyRandomInfoThreadSet(random_info);
+  random_info=DestroyRandomInfoTLS(random_info);
   if (status == MagickFalse)
     {
       random_image=DestroyImage(random_image);
@@ -2345,13 +2355,13 @@ MagickExport MagickBooleanType SolarizeImage(Image *image,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (IsGrayColorspace(image->colorspace) != MagickFalse)
     (void) SetImageColorspace(image,sRGBColorspace,exception);
   if (image->storage_class == PseudoClass)
     {
-      register ssize_t
+      ssize_t
         i;
 
       /*
@@ -2360,11 +2370,12 @@ MagickExport MagickBooleanType SolarizeImage(Image *image,
       for (i=0; i < (ssize_t) image->colors; i++)
       {
         if ((double) image->colormap[i].red > threshold)
-          image->colormap[i].red=QuantumRange-image->colormap[i].red;
+          image->colormap[i].red=(double) QuantumRange-image->colormap[i].red;
         if ((double) image->colormap[i].green > threshold)
-          image->colormap[i].green=QuantumRange-image->colormap[i].green;
+          image->colormap[i].green=(double) QuantumRange-
+            image->colormap[i].green;
         if ((double) image->colormap[i].blue > threshold)
-          image->colormap[i].blue=QuantumRange-image->colormap[i].blue;
+          image->colormap[i].blue=(double) QuantumRange-image->colormap[i].blue;
       }
       return(SyncImage(image,exception));
     }
@@ -2376,14 +2387,14 @@ MagickExport MagickBooleanType SolarizeImage(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(progress,status) \
-    magick_number_threads(image,image,image->rows,1)
+    magick_number_threads(image,image,image->rows,2)
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -2396,7 +2407,7 @@ MagickExport MagickBooleanType SolarizeImage(Image *image,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -2408,7 +2419,7 @@ MagickExport MagickBooleanType SolarizeImage(Image *image,
         if ((double) q[i] > threshold)
           q[i]=QuantumRange-q[i];
       }
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncCacheViewAuthenticPixels(image_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -2483,10 +2494,10 @@ MagickExport Image *SteganoImage(const Image *image,const Image *watermark,
   PixelInfo
     pixel;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
   size_t
@@ -2504,12 +2515,12 @@ MagickExport Image *SteganoImage(const Image *image,const Image *watermark,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(watermark != (const Image *) NULL);
   assert(watermark->signature == MagickCoreSignature);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   one=1UL;
   stegano_image=CloneImage(image,0,0,MagickTrue,exception);
   if (stegano_image == (Image *) NULL)
@@ -2589,7 +2600,7 @@ MagickExport Image *SteganoImage(const Image *image,const Image *watermark,
           proceed;
 
         proceed=SetImageProgress(image,SteganoImageTag,(MagickOffsetType)
-          (depth-i),depth);
+          depth-i,depth);
         if (proceed == MagickFalse)
           status=MagickFalse;
       }
@@ -2666,13 +2677,13 @@ MagickExport Image *StereoAnaglyphImage(const Image *left_image,
 
   assert(left_image != (const Image *) NULL);
   assert(left_image->signature == MagickCoreSignature);
-  if (left_image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      left_image->filename);
   assert(right_image != (const Image *) NULL);
   assert(right_image->signature == MagickCoreSignature);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      left_image->filename);
   image=left_image;
   if ((left_image->columns != right_image->columns) ||
       (left_image->rows != right_image->rows))
@@ -2696,14 +2707,14 @@ MagickExport Image *StereoAnaglyphImage(const Image *left_image,
   status=MagickTrue;
   for (y=0; y < (ssize_t) stereo_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p,
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict r;
 
     p=GetVirtualPixels(left_image,-x_offset,y-y_offset,image->columns,1,
@@ -2721,9 +2732,9 @@ MagickExport Image *StereoAnaglyphImage(const Image *left_image,
       if ((GetPixelAlphaTraits(stereo_image) & CopyPixelTrait) != 0)
         SetPixelAlpha(stereo_image,(GetPixelAlpha(left_image,p)+
           GetPixelAlpha(right_image,q))/2,r);
-      p+=GetPixelChannels(left_image);
-      q+=GetPixelChannels(right_image);
-      r+=GetPixelChannels(stereo_image);
+      p+=(ptrdiff_t) GetPixelChannels(left_image);
+      q+=(ptrdiff_t) GetPixelChannels(right_image);
+      r+=(ptrdiff_t) GetPixelChannels(stereo_image);
     }
     if (SyncAuthenticPixels(stereo_image,exception) == MagickFalse)
       break;
@@ -2809,10 +2820,10 @@ MagickExport Image *SwirlImage(const Image *image,double degrees,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas_image=CloneImage(image,0,0,MagickTrue,exception);
   if (canvas_image == (Image *) NULL)
     return((Image *) NULL);
@@ -2864,13 +2875,13 @@ MagickExport Image *SwirlImage(const Image *image,double degrees,
     PointInfo
       delta;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -2894,7 +2905,7 @@ MagickExport Image *SwirlImage(const Image *image,double degrees,
       distance=delta.x*delta.x+delta.y*delta.y;
       if (distance >= (radius*radius))
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(canvas_image); i++)
@@ -2929,8 +2940,8 @@ MagickExport Image *SwirlImage(const Image *image,double degrees,
           if (status == MagickFalse)
             break;
         }
-      p+=GetPixelChannels(canvas_image);
-      q+=GetPixelChannels(swirl_image);
+      p+=(ptrdiff_t) GetPixelChannels(canvas_image);
+      q+=(ptrdiff_t) GetPixelChannels(swirl_image);
     }
     if (SyncCacheViewAuthenticPixels(swirl_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -3027,10 +3038,10 @@ MagickExport Image *TintImage(const Image *image,const char *blend,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   tint_image=CloneImage(image,0,0,MagickTrue,exception);
   if (tint_image == (Image *) NULL)
     return((Image *) NULL);
@@ -3086,13 +3097,13 @@ MagickExport Image *TintImage(const Image *image,const char *blend,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -3114,22 +3125,22 @@ MagickExport Image *TintImage(const Image *image,const char *blend,
         weight;
 
       GetPixelInfo(image,&pixel);
-      weight=QuantumScale*GetPixelRed(image,p)-0.5;
+      weight=QuantumScale*(double) GetPixelRed(image,p)-0.5;
       pixel.red=(MagickRealType) GetPixelRed(image,p)+color_vector.red*
         (1.0-(4.0*(weight*weight)));
-      weight=QuantumScale*GetPixelGreen(image,p)-0.5;
+      weight=QuantumScale*(double) GetPixelGreen(image,p)-0.5;
       pixel.green=(MagickRealType) GetPixelGreen(image,p)+color_vector.green*
         (1.0-(4.0*(weight*weight)));
-      weight=QuantumScale*GetPixelBlue(image,p)-0.5;
+      weight=QuantumScale*(double) GetPixelBlue(image,p)-0.5;
       pixel.blue=(MagickRealType) GetPixelBlue(image,p)+color_vector.blue*
         (1.0-(4.0*(weight*weight)));
-      weight=QuantumScale*GetPixelBlack(image,p)-0.5;
+      weight=QuantumScale*(double) GetPixelBlack(image,p)-0.5;
       pixel.black=(MagickRealType) GetPixelBlack(image,p)+color_vector.black*
         (1.0-(4.0*(weight*weight)));
       pixel.alpha=(MagickRealType) GetPixelAlpha(image,p);
       SetPixelViaPixelInfo(tint_image,&pixel,q);
-      p+=GetPixelChannels(image);
-      q+=GetPixelChannels(tint_image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(tint_image);
     }
     if (SyncCacheViewAuthenticPixels(tint_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -3203,10 +3214,10 @@ MagickExport Image *VignetteImage(const Image *image,const double radius,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas=CloneImage(image,0,0,MagickTrue,exception);
   if (canvas == (Image *) NULL)
     return((Image *) NULL);
@@ -3311,7 +3322,7 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
   MagickOffsetType
     progress;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -3322,15 +3333,15 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas_image=CloneImage(image,0,0,MagickTrue,exception);
   if (canvas_image == (Image *) NULL)
     return((Image *) NULL);
   if ((canvas_image->alpha_trait == UndefinedPixelTrait) &&
-      (canvas_image->background_color.alpha != OpaqueAlpha))
+      (canvas_image->background_color.alpha != (double) OpaqueAlpha))
     (void) SetImageAlpha(canvas_image,OpaqueAlpha,exception);
   wave_image=CloneImage(canvas_image,canvas_image->columns,(size_t)
     (canvas_image->rows+2.0*fabs(amplitude)),MagickTrue,exception);
@@ -3357,8 +3368,8 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
       ThrowImageException(ResourceLimitError,"MemoryAllocationFailed");
     }
   for (i=0; i < (ssize_t) wave_image->columns; i++)
-    sine_map[i]=(float) fabs(amplitude)+amplitude*sin((double)
-      ((2.0*MagickPI*i)/wave_length));
+    sine_map[i]=(float) (fabs(amplitude)+amplitude*sin((double)
+      ((2.0*MagickPI*i)*(double) PerceptibleReciprocal(wave_length))));
   /*
     Wave image.
   */
@@ -3374,13 +3385,13 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
 #endif
   for (y=0; y < (ssize_t) wave_image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -3400,8 +3411,8 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
         wave_image,method,(double) x,(double) (y-sine_map[x]),q,exception);
       if (status == MagickFalse)
         break;
-      p+=GetPixelChannels(canvas_image);
-      q+=GetPixelChannels(wave_image);
+      p+=(ptrdiff_t) GetPixelChannels(canvas_image);
+      q+=(ptrdiff_t) GetPixelChannels(wave_image);
     }
     if (SyncCacheViewAuthenticPixels(wave_view,exception) == MagickFalse)
       status=MagickFalse;
@@ -3472,7 +3483,7 @@ static inline void HatTransform(const float *magick_restrict pixels,
     *magick_restrict q,
     *magick_restrict r;
 
-  register ssize_t
+  ssize_t
     i;
 
   p=pixels;
@@ -3481,22 +3492,22 @@ static inline void HatTransform(const float *magick_restrict pixels,
   for (i=0; i < (ssize_t) scale; i++)
   {
     kernel[i]=0.25f*(*p+(*p)+(*q)+(*r));
-    p+=stride;
+    p+=(ptrdiff_t) stride;
     q-=stride;
-    r+=stride;
+    r+=(ptrdiff_t) stride;
   }
   for ( ; i < (ssize_t) (extent-scale); i++)
   {
     kernel[i]=0.25f*(2.0f*(*p)+*(p-scale*stride)+*(p+scale*stride));
-    p+=stride;
+    p+=(ptrdiff_t) stride;
   }
   q=p-scale*stride;
   r=pixels+stride*(extent-2);
   for ( ; i < (ssize_t) extent; i++)
   {
     kernel[i]=0.25f*(*p+(*p)+(*q)+(*r));
-    p+=stride;
-    q+=stride;
+    p+=(ptrdiff_t) stride;
+    q+=(ptrdiff_t) stride;
     r-=stride;
   }
 }
@@ -3536,10 +3547,10 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
   */
   assert(image != (const Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 #if defined(MAGICKCORE_OPENCL_SUPPORT)
   noise_image=AccelerateWaveletDenoiseImage(image,threshold,exception);
   if (noise_image != (Image *) NULL)
@@ -3574,7 +3585,7 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
   noise_view=AcquireAuthenticCacheView(noise_image,exception);
   for (channel=0; channel < (ssize_t) GetPixelChannels(image); channel++)
   {
-    register ssize_t
+    ssize_t
       i;
 
     size_t
@@ -3607,7 +3618,7 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
     i=0;
     for (y=0; y < (ssize_t) image->rows; y++)
     {
-      register const Quantum
+      const Quantum
         *magick_restrict p;
 
       ssize_t
@@ -3622,7 +3633,7 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
       for (x=0; x < (ssize_t) image->columns; x++)
       {
         pixels[i++]=(float) p[channel];
-        p+=GetPixelChannels(image);
+        p+=(ptrdiff_t) GetPixelChannels(image);
       }
     }
     /*
@@ -3637,8 +3648,7 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
         magnitude;
 
       ssize_t
-        x,
-        y;
+        x;
 
       low_pass=(size_t) (number_pixels*((level & 0x01)+1));
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -3650,18 +3660,18 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
         const int
           id = GetOpenMPThreadId();
 
-        register float
+        float
           *magick_restrict p,
           *magick_restrict q;
 
-        register ssize_t
-          x;
+        ssize_t
+          c;
 
-        p=kernel+id*image->columns;
-        q=pixels+y*image->columns;
-        HatTransform(q+high_pass,1,image->columns,(size_t) (1UL << level),p);
-        q+=low_pass;
-        for (x=0; x < (ssize_t) image->columns; x++)
+        p=kernel+id*(ssize_t) image->columns;
+        q=pixels+y*(ssize_t) image->columns;
+        HatTransform(q+high_pass,1,image->columns,((size_t) 1UL << level),p);
+        q+=(ptrdiff_t) low_pass;
+        for (c=0; c < (ssize_t) image->columns; c++)
           *q++=(*p++);
       }
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -3673,39 +3683,40 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
         const int
           id = GetOpenMPThreadId();
 
-        register float
+        float
           *magick_restrict p,
           *magick_restrict q;
 
-        register ssize_t
-          y;
+        ssize_t
+          r;
 
-        p=kernel+id*image->rows;
+        p=kernel+id*(ssize_t) image->rows;
         q=pixels+x+low_pass;
-        HatTransform(q,image->columns,image->rows,(size_t) (1UL << level),p);
-        for (y=0; y < (ssize_t) image->rows; y++)
+        HatTransform(q,image->columns,image->rows,((size_t) 1UL << level),p);
+        for (r=0; r < (ssize_t) image->rows; r++)
         {
           *q=(*p++);
-          q+=image->columns;
+          q+=(ptrdiff_t) image->columns;
         }
       }
       /*
         To threshold, each coefficient is compared to a threshold value and
         attenuated / shrunk by some factor.
       */
-      magnitude=threshold*noise_levels[level];
+      magnitude=threshold*(double) noise_levels[level];
       for (i=0; i < (ssize_t) number_pixels; ++i)
       {
-        pixels[high_pass+i]-=pixels[low_pass+i];
-        if (pixels[high_pass+i] < -magnitude)
-          pixels[high_pass+i]+=magnitude-softness*magnitude;
+        pixels[(ssize_t) high_pass+i]-=pixels[(ssize_t) low_pass+i];
+        if ((double) pixels[(ssize_t) high_pass+i] < -magnitude)
+          pixels[(ssize_t) high_pass+i]+=(float) (magnitude-softness*magnitude);
         else
-          if (pixels[high_pass+i] > magnitude)
-            pixels[high_pass+i]-=magnitude-softness*magnitude;
+          if ((double) pixels[(ssize_t) high_pass+i] > magnitude)
+            pixels[(ssize_t) high_pass+i]-=(float) (magnitude-softness*
+              magnitude);
           else
-            pixels[high_pass+i]*=softness;
+            pixels[(ssize_t) high_pass+i]*=(float) softness;
         if (high_pass != 0)
-          pixels[i]+=pixels[high_pass+i];
+          pixels[i]+=pixels[(ssize_t) high_pass+i];
       }
       high_pass=low_pass;
     }
@@ -3718,10 +3729,10 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
       MagickBooleanType
         sync;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
-      register ssize_t
+      ssize_t
         x;
 
       ssize_t
@@ -3740,10 +3751,11 @@ MagickExport Image *WaveletDenoiseImage(const Image *image,
         MagickRealType
           pixel;
 
-        pixel=(MagickRealType) pixels[i]+pixels[low_pass+i];
+        pixel=(MagickRealType) pixels[i]+(MagickRealType)
+          pixels[(ssize_t) low_pass+i];
         q[offset]=ClampToQuantum(pixel);
         i++;
-        q+=GetPixelChannels(noise_image);
+        q+=(ptrdiff_t) GetPixelChannels(noise_image);
       }
       sync=SyncCacheViewAuthenticPixels(noise_view,exception);
       if (sync == MagickFalse)

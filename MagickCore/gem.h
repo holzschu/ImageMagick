@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 extern MagickExport double
-  ExpandAffine(const AffineMatrix *);
+  ExpandAffine(const AffineMatrix *) magick_attribute((__pure__));
 
 extern MagickExport void
   ConvertHSLToRGB(const double,const double,const double,double *,double *,

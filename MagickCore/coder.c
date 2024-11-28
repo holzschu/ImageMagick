@@ -17,7 +17,7 @@
 %                                 May 2001                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -113,12 +113,9 @@ static MagickBooleanType
 %
 %  The format of the AcquireCoderCache coder is:
 %
-%      SplayTreeInfo *AcquireCoderCache(const char *filename,
-%        ExceptionInfo *exception)
+%      SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
-%
-%    o filename: the font file name.
 %
 %    o exception: return any errors or warnings in this structure.
 %
@@ -126,7 +123,7 @@ static MagickBooleanType
 
 static void *DestroyCoderNode(void *coder_info)
 {
-  register CoderInfo
+  CoderInfo
     *p;
 
   p=(CoderInfo *) coder_info;
@@ -147,7 +144,7 @@ static SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   SplayTreeInfo
@@ -164,7 +161,7 @@ static SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
     CoderInfo
       *coder_info;
 
-    register const CoderMapInfo
+    const CoderMapInfo
       *p;
 
     p=CoderMap+i;
@@ -181,8 +178,8 @@ static SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
     coder_info->name=(char *) p->name;
     coder_info->exempt=MagickTrue;
     coder_info->signature=MagickCoreSignature;
-    status&=AddValueToSplayTree(cache,ConstantString(coder_info->magick),
-      coder_info);
+    status&=(MagickStatusType) AddValueToSplayTree(cache,
+      ConstantString(coder_info->magick),coder_info);
     if (status == MagickFalse)
       (void) ThrowMagickException(exception,GetMagickModule(),
         ResourceLimitError,"MemoryAllocationFailed","`%s'",coder_info->name);
@@ -326,18 +323,19 @@ MagickExport const CoderInfo **GetCoderInfoList(const char *pattern,
   const CoderInfo
     **coder_map;
 
-  register const CoderInfo
+  const CoderInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
     Allocate coder list.
   */
   assert(pattern != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   assert(number_coders != (size_t *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   *number_coders=0;
   p=GetCoderInfo("*",exception);
   if (p == (const CoderInfo *) NULL)
@@ -396,7 +394,7 @@ MagickExport const CoderInfo **GetCoderInfoList(const char *pattern,
 
 static int CoderCompare(const void *x,const void *y)
 {
-  register const char
+  const char
     **p,
     **q;
 
@@ -411,18 +409,19 @@ MagickExport char **GetCoderList(const char *pattern,
   char
     **coder_map;
 
-  register const CoderInfo
+  const CoderInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
     Allocate coder list.
   */
   assert(pattern != (char *) NULL);
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   assert(number_coders != (size_t *) NULL);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",pattern);
   *number_coders=0;
   p=GetCoderInfo("*",exception);
   if (p == (const CoderInfo *) NULL)
@@ -521,7 +520,7 @@ MagickExport MagickBooleanType ListCoderInfo(FILE *file,
   const CoderInfo
     **coder_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t

@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -27,19 +27,8 @@
 extern "C" {
 #endif
 
-/*
-  Number of threads bounded by the amount of work and any thread resource limit.
-  The limit is 2 if the pixel cache type is not memory or memory-mapped.
-*/
-#define magick_number_threads(source,destination,chunk,multithreaded) \
-  num_threads((multithreaded) == 0 ? 1 : \
-    ((GetImagePixelCacheType(source) != MemoryCache) && \
-     (GetImagePixelCacheType(source) != MapCache)) || \
-    ((GetImagePixelCacheType(destination) != MemoryCache) && \
-     (GetImagePixelCacheType(destination) != MapCache)) ? \
-    MagickMax(MagickMin(GetMagickResourceLimit(ThreadResource),2),1) : \
-    MagickMax(MagickMin((ssize_t) GetMagickResourceLimit(ThreadResource),(ssize_t) (chunk)/64),1))
-
+#define magick_number_threads(source,destination,chunk,factor) \
+  num_threads(GetMagickNumberThreads((source),(destination),(chunk),(factor)))
 #if defined(__clang__) || (__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ > 10))
 #define MagickCachePrefetch(address,mode,locality) \
   __builtin_prefetch(address,mode,locality)
@@ -57,6 +46,29 @@ extern "C" {
 #else
   typedef size_t MagickMutexType;
 #endif
+
+static inline int GetMagickNumberThreads(const Image *source,
+  const Image *destination,const size_t chunk,const int factor)
+{
+#define WorkLoadFactor  (64UL << factor)
+
+  const CacheType
+    destination_type = (CacheType) GetImagePixelCacheType(destination),
+    source_type = (CacheType) GetImagePixelCacheType(source);
+
+  int
+    number_threads;
+
+  /*
+    Return number of threads dependent on cache type and work load.
+  */
+  number_threads=(int) MagickMax(MagickMin(chunk/WorkLoadFactor,
+    GetMagickResourceLimit(ThreadResource)),1);
+  if (((source_type != MemoryCache) && (source_type != MapCache)) ||
+      ((destination_type != MemoryCache) && (destination_type != MapCache)))
+    number_threads=MagickMin(number_threads,2);
+  return(number_threads);
+}
 
 static inline MagickThreadType GetMagickThreadId(void)
 {
@@ -114,7 +126,7 @@ static inline MagickBooleanType IsMagickThreadEqual(const MagickThreadType id)
 static inline size_t GetOpenMPMaximumThreads(void)
 {
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  return(omp_get_max_threads());
+  return((size_t) omp_get_max_threads());
 #else
   return(1);
 #endif
@@ -129,21 +141,25 @@ static inline int GetOpenMPThreadId(void)
 #endif
 }
 
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
 static inline void SetOpenMPMaximumThreads(const int threads)
 {
-#if defined(MAGICKCORE_OPENMP_SUPPORT)
   omp_set_num_threads(threads);
 #else
-  (void) threads;
+static inline void SetOpenMPMaximumThreads(const int magick_unused(threads))
+{
+  magick_unreferenced(threads);
 #endif
 }
 
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
 static inline void SetOpenMPNested(const int value)
 {
-#if defined(MAGICKCORE_OPENMP_SUPPORT)
   omp_set_nested(value);
 #else
-  (void) value;
+static inline void SetOpenMPNested(const int magick_unused(value))
+{
+  magick_unreferenced(value);
 #endif
 }
 

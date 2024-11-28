@@ -17,7 +17,7 @@
 %                                 March 2012                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -103,6 +103,12 @@
 %    o exception: return any errors or warnings in this structure.
 %
 */
+static inline int ScalePangoValue(double value,double resolution)
+{
+  return((int) ((value*(resolution == 0.0 ? DefaultSVGDensity : resolution)*
+    PANGO_SCALE+DefaultSVGDensity/2)/DefaultSVGDensity+0.5));
+}
+
 static Image *ReadPANGOImage(const ImageInfo *image_info,
   ExceptionInfo *exception)
 {
@@ -161,7 +167,7 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   RectangleInfo
     page;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -178,11 +184,11 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   (void) ResetImagePage(image,"0x0+0+0");
   if ((image->columns != 0) && (image->rows != 0))
@@ -222,13 +228,15 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
       if (LocaleCompare(option,"full") != 0)
         cairo_font_options_set_hint_style(font_options,CAIRO_HINT_STYLE_FULL);
     }
+  draw_info=CloneDrawInfo(image_info,(DrawInfo *) NULL);
+  if (draw_info->text_antialias == MagickFalse)
+    cairo_font_options_set_antialias(font_options,CAIRO_ANTIALIAS_NONE);
   context=pango_font_map_create_context(fontmap);
   pango_cairo_context_set_font_options(context,font_options);
   cairo_font_options_destroy(font_options);
   option=GetImageOption(image_info,"pango:language");
   if (option != (const char *) NULL)
     pango_context_set_language(context,pango_language_from_string(option));
-  draw_info=CloneDrawInfo(image_info,(DrawInfo *) NULL);
   pango_context_set_base_dir(context,draw_info->direction ==
     RightToLeftDirection ? PANGO_DIRECTION_RTL : PANGO_DIRECTION_LTR);
   switch (draw_info->gravity)
@@ -311,9 +319,8 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
     }
   option=GetImageOption(image_info,"pango:indent");
   if (option != (const char *) NULL)
-    pango_layout_set_indent(layout,(int) ((StringToLong(option)*
-      (image->resolution.x == 0.0 ? DefaultSVGDensity : image->resolution.x)*
-      PANGO_SCALE+DefaultSVGDensity/2)/DefaultSVGDensity+0.5));
+    pango_layout_set_indent(layout,ScalePangoValue(StringToDouble(option,
+      (char **) NULL),image->resolution.x));
   switch (draw_info->align)
   {
     case CenterAlign: align=PANGO_ALIGN_CENTER; break;
@@ -366,6 +373,9 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
           error->message,"`%s'",image_info->filename);
       pango_layout_set_markup(layout,caption,-1);
     }
+  if (draw_info->interline_spacing != 0)
+    pango_layout_set_spacing(layout,ScalePangoValue(
+      draw_info->interline_spacing,image->resolution.x));
   pango_layout_context_changed(layout);
   page.x=0;
   page.y=0;
@@ -374,26 +384,26 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   if (image->columns == 0)
     {
       pango_layout_get_extents(layout,NULL,&extent);
-      image->columns=(extent.x+extent.width+PANGO_SCALE/2)/PANGO_SCALE+2*page.x;
+      image->columns=(size_t) ((extent.x+extent.width+PANGO_SCALE/2)/
+        PANGO_SCALE+2*page.x);
     }
   else
     {
-      image->columns-=2*page.x;
-      pango_layout_set_width(layout,(int) ((PANGO_SCALE*image->columns*
-        (image->resolution.x == 0.0 ? DefaultSVGDensity : image->resolution.x)+
-        DefaultSVGDensity/2)/DefaultSVGDensity+0.5));
+      image->columns=(size_t) ((ssize_t) image->columns-2*page.x);
+      pango_layout_set_width(layout,ScalePangoValue((double) image->columns,
+        image->resolution.x));
     }
   if (image->rows == 0)
-    {
+    { 
       pango_layout_get_extents(layout,NULL,&extent);
-      image->rows=(extent.y+extent.height+PANGO_SCALE/2)/PANGO_SCALE+2*page.y;
+      image->rows=(size_t) ((extent.y+extent.height+PANGO_SCALE/2)/
+        PANGO_SCALE+2*page.y);
     }
   else
     {
-      image->rows-=2*page.y;
-      pango_layout_set_height(layout,(int) ((PANGO_SCALE*image->rows*
-        (image->resolution.y == 0.0 ? DefaultSVGDensity : image->resolution.y)+
-        DefaultSVGDensity/2)/DefaultSVGDensity+0.5));
+      image->rows=(size_t) ((ssize_t) image->rows-2*page.y);
+      pango_layout_set_height(layout,ScalePangoValue((double) image->rows,
+        image->resolution.y));
     }
   status=SetImageExtent(image,image->columns,image->rows,exception);
   if (status == MagickFalse)
@@ -434,10 +444,10 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   GetPixelInfo(image,&fill_color);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *q;
 
-    register ssize_t
+    ssize_t
       x;
 
     q=GetAuthenticPixels(image,0,y,image->columns,1,exception);
@@ -462,7 +472,7 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
       fill_color.red*=gamma;
       CompositePixelOver(image,&fill_color,fill_color.alpha,q,(double)
         GetPixelAlpha(image,q),q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;

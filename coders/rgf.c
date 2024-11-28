@@ -17,7 +17,7 @@
 %                               August 2013                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -107,14 +107,14 @@ static Image *ReadRGFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
-  register Quantum
+  Quantum
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   ssize_t
@@ -129,11 +129,11 @@ static Image *ReadRGFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -204,7 +204,7 @@ static Image *ReadRGFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       byte>>=1;
       if (bit == 8)
         bit=0;
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -215,7 +215,10 @@ static Image *ReadRGFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   }
   data=(unsigned char *) RelinquishMagickMemory(data);
   (void) SyncImage(image,exception);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -313,10 +316,10 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   size_t
@@ -333,15 +336,16 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
   return(status);
+  if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
     (void) TransformImageColorspace(image,sRGBColorspace,exception);
-  if((image->columns > 255L) || (image->rows > 255L))
+  if ((image->columns > 255L) || (image->rows > 255L))
     ThrowWriterException(ImageError,"Dimensions must be less than 255x255");
   /*
     Write header (just the image dimensions)
@@ -351,7 +355,8 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
   /*
     Convert MIFF to bit pixels.
   */
-  (void) SetImageType(image,BilevelType,exception);
+  if (IsImageMonochrome(image) == MagickFalse)
+    (void) SetImageType(image,BilevelType,exception);
   x=0;
   y=0;
   for (y=0; y < (ssize_t) image->rows; y++)
@@ -364,7 +369,7 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
     for (x=0; x < (ssize_t) image->columns; x++)
     {
       byte>>=1;
-      if (GetPixelLuma(image,p) < (QuantumRange/2.0))
+      if (GetPixelLuma(image,p) < ((double) QuantumRange/2.0))
         byte|=0x80;
       bit++;
       if (bit == 8)
@@ -376,7 +381,7 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
           bit=0;
           byte=0;
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (bit != 0)
     {
@@ -388,6 +393,7 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
     if (status == MagickFalse)
       break;
   }
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

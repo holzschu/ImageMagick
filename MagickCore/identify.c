@@ -17,7 +17,7 @@
 %                            September 1994                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -47,6 +47,7 @@
 #include "MagickCore/artifact.h"
 #include "MagickCore/attribute.h"
 #include "MagickCore/blob.h"
+#include "MagickCore/blob-private.h"
 #include "MagickCore/cache.h"
 #include "MagickCore/client.h"
 #include "MagickCore/coder.h"
@@ -77,6 +78,7 @@
 #include "MagickCore/montage.h"
 #include "MagickCore/option.h"
 #include "MagickCore/pixel-accessor.h"
+#include "MagickCore/pixel-private.h"
 #include "MagickCore/prepress.h"
 #include "MagickCore/profile.h"
 #include "MagickCore/property.h"
@@ -91,6 +93,7 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
 #include "MagickCore/timer.h"
+#include "MagickCore/timer-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
@@ -135,7 +138,7 @@ static ChannelStatistics *GetLocationStatistics(const Image *image,
   ChannelStatistics
     *channel_statistics;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -143,7 +146,7 @@ static ChannelStatistics *GetLocationStatistics(const Image *image,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   channel_statistics=(ChannelStatistics *) AcquireQuantumMemory(
     MaxPixelChannels+1,sizeof(*channel_statistics));
@@ -170,10 +173,10 @@ static ChannelStatistics *GetLocationStatistics(const Image *image,
   }
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
@@ -183,7 +186,7 @@ static ChannelStatistics *GetLocationStatistics(const Image *image,
     {
       if (GetPixelReadMask(image,p) <= (QuantumRange/2))
         {
-          p+=GetPixelChannels(image);
+          p+=(ptrdiff_t) GetPixelChannels(image);
           continue;
         }
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -209,7 +212,7 @@ static ChannelStatistics *GetLocationStatistics(const Image *image,
           }
         }
       }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
   }
   return(channel_statistics);
@@ -310,7 +313,7 @@ static ssize_t PrintChannelLocations(FILE *file,const Image *image,
   n=0;
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *p;
 
     ssize_t
@@ -329,7 +332,7 @@ static ssize_t PrintChannelLocations(FILE *file,const Image *image,
       if (traits == UndefinedPixelTrait)
         continue;
       offset=GetPixelChannelOffset(image,channel);
-      match=fabs((double) (p[offset]-target)) < 0.5 ? MagickTrue : MagickFalse;
+      match=fabs((double) p[offset]-target) < 0.5 ? MagickTrue : MagickFalse;
       if (match != MagickFalse)
         {
           if ((max_locations != 0) && (n >= (ssize_t) max_locations))
@@ -337,7 +340,7 @@ static ssize_t PrintChannelLocations(FILE *file,const Image *image,
           (void) FormatLocaleFile(file," %.20g,%.20g",(double) x,(double) y);
           n++;
         }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (x < (ssize_t) image->columns)
       break;
@@ -353,7 +356,7 @@ static ssize_t PrintChannelMoments(FILE *file,const PixelChannel channel,
     powers[MaximumNumberOfImageMoments] =
       { 1.0, 2.0, 3.0, 3.0, 6.0, 4.0, 6.0, 4.0 };
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -384,7 +387,7 @@ static ssize_t PrintChannelMoments(FILE *file,const PixelChannel channel,
 static ssize_t PrintChannelPerceptualHash(Image *image,FILE *file,
   const ChannelPerceptualHash *channel_phash)
 {
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -408,7 +411,7 @@ static ssize_t PrintChannelPerceptualHash(Image *image,FILE *file,
     PixelTrait
       traits;
 
-    register ssize_t
+    ssize_t
       j;
 
     channel=GetPixelChannelChannel(image,i);
@@ -420,7 +423,7 @@ static ssize_t PrintChannelPerceptualHash(Image *image,FILE *file,
     n=FormatLocaleFile(file,"    Channel %.20g:\n",(double) channel);
     for (j=0; j < MaximumNumberOfPerceptualHashes; j++)
     {
-      register ssize_t
+      ssize_t
         k;
 
       n+=FormatLocaleFile(file,"      PH%.20g: ",(double) j+1);
@@ -473,8 +476,8 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
   const MagickBooleanType verbose,ExceptionInfo *exception)
 {
   char
+    buffer[MagickPathExtent],
     color[MagickPathExtent],
-    format[MagickPathExtent],
     key[MagickPathExtent];
 
   ChannelFeatures
@@ -503,6 +506,9 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
   const MagickInfo
     *magick_info;
 
+  const Quantum
+    *p;
+
   double
     elapsed_time,
     scale,
@@ -511,26 +517,27 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
   ImageType
     type;
 
+  int
+    expired;
+
   MagickBooleanType
     ping;
-
-  register const Quantum
-    *p;
-
-  register ssize_t
-    i,
-    x;
 
   size_t
     depth,
     distance;
 
   ssize_t
+    i,
+    x,
     y;
+
+  struct stat
+    properties;
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (file == (FILE *) NULL)
     file=thread_stdout;
@@ -565,38 +572,51 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         case RGBColorspace:
         case sRGBColorspace:
         {
-          (void) PrintChannelLocations(file,image,RedPixelChannel,"Red",
-            statistic_type,max_locations,channel_statistics);
-          (void) PrintChannelLocations(file,image,GreenPixelChannel,"Green",
-            statistic_type,max_locations,channel_statistics);
-          (void) PrintChannelLocations(file,image,BluePixelChannel,"Blue",
-            statistic_type,max_locations,channel_statistics);
+          if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,RedPixelChannel,"Red",
+              statistic_type,max_locations,channel_statistics);
+          if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,GreenPixelChannel,"Green",
+              statistic_type,max_locations,channel_statistics);
+          if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,BluePixelChannel,"Blue",
+              statistic_type,max_locations,channel_statistics);
           break;
         }
         case CMYKColorspace:
         {
-          (void) PrintChannelLocations(file,image,CyanPixelChannel,"Cyan",
-            statistic_type,max_locations,channel_statistics);
-          (void) PrintChannelLocations(file,image,MagentaPixelChannel,
-            "Magenta",statistic_type,max_locations,channel_statistics);
-          (void) PrintChannelLocations(file,image,YellowPixelChannel,"Yellow",
-            statistic_type,max_locations,channel_statistics);
-          (void) PrintChannelLocations(file,image,BlackPixelChannel,"Black",
-            statistic_type,max_locations,channel_statistics);
+          if ((GetPixelCyanTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,CyanPixelChannel,"Cyan",
+              statistic_type,max_locations,channel_statistics);
+          if ((GetPixelMagentaTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,MagentaPixelChannel,
+              "Magenta",statistic_type,max_locations,channel_statistics);
+          if ((GetPixelYellowTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,YellowPixelChannel,"Yellow",
+              statistic_type,max_locations,channel_statistics);
+          if ((GetPixelBlackTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,BlackPixelChannel,"Black",
+              statistic_type,max_locations,channel_statistics);
           break;
         }
         case LinearGRAYColorspace:
         case GRAYColorspace:
         {
-          (void) PrintChannelLocations(file,image,GrayPixelChannel,"Gray",
-            statistic_type,max_locations,channel_statistics);
+          if ((GetPixelGrayTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelLocations(file,image,GrayPixelChannel,"Gray",
+              statistic_type,max_locations,channel_statistics);
           break;
         }
         default:
         {
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
-            (void) PrintChannelLocations(file,image,(PixelChannel) i,"Gray",
-              statistic_type,max_locations,channel_statistics);
+          {
+            PixelChannel channel = GetPixelChannelChannel(image,i);
+            PixelTrait traits = GetPixelChannelTraits(image,channel);
+            if ((traits & UpdatePixelTrait) != 0)
+              (void) PrintChannelLocations(file,image,channel,"Channel",
+                statistic_type,max_locations,channel_statistics);
+          }
           break;
         }
       }
@@ -607,7 +627,6 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         channel_statistics);
       return(ferror(file) != 0 ? MagickFalse : MagickTrue);
     }
-  *format='\0';
   elapsed_time=GetElapsedTime(&image->timer);
   user_time=GetUserTime(&image->timer);
   GetTimerInfo(&image->timer);
@@ -651,8 +670,8 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           if (image->total_colors != 0)
             {
               (void) FormatMagickSize(image->total_colors,MagickFalse,"B",
-                MagickPathExtent,format);
-              (void) FormatLocaleFile(file,"%s ",format);
+                MagickPathExtent,buffer);
+              (void) FormatLocaleFile(file,"%s ",buffer);
             }
         }
       else
@@ -669,9 +688,9 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           image->error.normalized_maximum_error);
       if (image->extent != 0)
         {
-          (void) FormatMagickSize(image->extent,MagickTrue,"B",MagickPathExtent,
-            format);
-          (void) FormatLocaleFile(file,"%s ",format);
+          (void) FormatMagickSize(image->extent,MagickTrue,"B",
+            MagickPathExtent,buffer);
+          (void) FormatLocaleFile(file,"%s ",buffer);
         }
       (void) FormatLocaleFile(file,"%0.3fu %lu:%02lu.%03lu",user_time,
         (unsigned long) (elapsed_time/60.0),(unsigned long) floor(fmod(
@@ -719,6 +738,16 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         GetPathComponent(image->magick_filename,TailPath,filename);
         (void) FormatLocaleFile(file,"  Base filename: %s\n",filename);
       }
+  properties=(*GetBlobProperties(image));
+  if (properties.st_mode != 0)
+    {
+      static const char *rwx[] =
+        { "---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
+      (void) FormatLocaleFile(file,"  Permissions: %s%s%s\n",
+        rwx[(properties.st_mode >> 6) & 0x07],
+        rwx[(properties.st_mode >> 3) & 0x07],
+        rwx[(properties.st_mode >> 0) & 0x07]);
+    }
   magick_info=GetMagickInfo(image->magick,exception);
   if ((magick_info == (const MagickInfo *) NULL) ||
       (GetMagickDescription(magick_info) == (const char *) NULL))
@@ -769,6 +798,8 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         (void) FormatLocaleFile(file,"  Depth: %.20g/%.20g-bit\n",(double)
           image->depth,(double) depth);
     }
+  (void) FormatLocaleFile(file,"  Channels: %g.%g\n",(double)
+    image->number_channels,(double) image->number_meta_channels);
   if (channel_statistics != (ChannelStatistics *) NULL)
     {
       /*
@@ -780,44 +811,75 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         case RGBColorspace:
         case sRGBColorspace:
         {
-          (void) FormatLocaleFile(file,"    Red: %.20g-bit\n",(double)
-            channel_statistics[RedPixelChannel].depth);
-          (void) FormatLocaleFile(file,"    Green: %.20g-bit\n",(double)
-            channel_statistics[GreenPixelChannel].depth);
-          (void) FormatLocaleFile(file,"    Blue: %.20g-bit\n",(double)
-            channel_statistics[BluePixelChannel].depth);
+          if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Red: %.20g-bit\n",(double)
+              channel_statistics[RedPixelChannel].depth);
+          if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Green: %.20g-bit\n",(double)
+              channel_statistics[GreenPixelChannel].depth);
+          if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Blue: %.20g-bit\n",(double)
+              channel_statistics[BluePixelChannel].depth);
           break;
         }
         case CMYKColorspace:
         {
-          (void) FormatLocaleFile(file,"    Cyan: %.20g-bit\n",(double)
-            channel_statistics[CyanPixelChannel].depth);
-          (void) FormatLocaleFile(file,"    Magenta: %.20g-bit\n",(double)
-            channel_statistics[MagentaPixelChannel].depth);
-          (void) FormatLocaleFile(file,"    Yellow: %.20g-bit\n",(double)
-            channel_statistics[YellowPixelChannel].depth);
-          (void) FormatLocaleFile(file,"    Black: %.20g-bit\n",(double)
-            channel_statistics[BlackPixelChannel].depth);
+          if ((GetPixelCyanTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Cyan: %.20g-bit\n",(double)
+              channel_statistics[CyanPixelChannel].depth);
+          if ((GetPixelMagentaTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Magenta: %.20g-bit\n",(double)
+              channel_statistics[MagentaPixelChannel].depth);
+          if ((GetPixelYellowTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Yellow: %.20g-bit\n",(double)
+              channel_statistics[YellowPixelChannel].depth);
+          if ((GetPixelBlackTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Black: %.20g-bit\n",(double)
+              channel_statistics[BlackPixelChannel].depth);
           break;
         }
         case LinearGRAYColorspace:
         case GRAYColorspace:
         {
-          (void) FormatLocaleFile(file,"    Gray: %.20g-bit\n",(double)
-            channel_statistics[GrayPixelChannel].depth);
+          if ((GetPixelGrayTraits(image) & UpdatePixelTrait) != 0)
+            (void) FormatLocaleFile(file,"    Gray: %.20g-bit\n",(double)
+              channel_statistics[GrayPixelChannel].depth);
           break;
         }
         default:
         {
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
-            (void) FormatLocaleFile(file,"    Channel %.20g: %.20g-bit\n",
-              (double) i,(double) channel_statistics[i].depth);
+          {
+            PixelChannel channel = GetPixelChannelChannel(image,i);
+            PixelTrait traits = GetPixelChannelTraits(image,channel);
+            if ((traits & UpdatePixelTrait) != 0)
+              (void) FormatLocaleFile(file,"    Channel %.20g: %.20g-bit\n",
+                (double) i,(double) channel_statistics[channel].depth);
+          }
           break;
         }
       }
       if (image->alpha_trait != UndefinedPixelTrait)
         (void) FormatLocaleFile(file,"    Alpha: %.20g-bit\n",(double)
           channel_statistics[AlphaPixelChannel].depth);
+      if ((image->channels & ReadMaskChannel) != 0)
+        (void) FormatLocaleFile(file,"    Read mask: %.20g-bit\n",(double)
+          channel_statistics[ReadMaskPixelChannel].depth);
+      if ((image->channels & WriteMaskChannel) != 0)
+        (void) FormatLocaleFile(file,"    Write mask: %.20g-bit\n",(double)
+          channel_statistics[WriteMaskPixelChannel].depth);
+      if ((image->channels & CompositeMaskChannel) != 0)
+        (void) FormatLocaleFile(file,"    Composite mask: %.20g-bit\n",
+          (double) channel_statistics[CompositeMaskPixelChannel].depth);
+      if (image->number_meta_channels != 0)
+        for (i=0; i < (ssize_t) image->number_meta_channels; i++)
+        {
+          PixelChannel
+            channel = (PixelChannel) (MetaPixelChannels+i);
+
+          (void) FormatLocaleFile(file,"    Meta channel[%.20g]: %.20g-bit\n",
+            (double) i,(double) channel_statistics[channel].depth);
+        }
       scale=1.0;
       if (image->depth <= MAGICKCORE_QUANTUM_DEPTH)
         scale=(double) (QuantumRange/((size_t) QuantumRange >> ((size_t)
@@ -830,31 +892,39 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         case RGBColorspace:
         case sRGBColorspace:
         {
-          (void) PrintChannelStatistics(file,RedPixelChannel,"Red",1.0/
-            scale,channel_statistics);
-          (void) PrintChannelStatistics(file,GreenPixelChannel,"Green",1.0/
-            scale,channel_statistics);
-          (void) PrintChannelStatistics(file,BluePixelChannel,"Blue",1.0/
-            scale,channel_statistics);
+          if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,RedPixelChannel,"Red",1.0/
+              scale,channel_statistics);
+          if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,GreenPixelChannel,"Green",1.0/
+              scale,channel_statistics);
+          if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,BluePixelChannel,"Blue",1.0/
+              scale,channel_statistics);
           break;
         }
         case CMYKColorspace:
         {
-          (void) PrintChannelStatistics(file,CyanPixelChannel,"Cyan",1.0/
-            scale,channel_statistics);
-          (void) PrintChannelStatistics(file,MagentaPixelChannel,"Magenta",1.0/
-            scale,channel_statistics);
-          (void) PrintChannelStatistics(file,YellowPixelChannel,"Yellow",1.0/
-            scale,channel_statistics);
-          (void) PrintChannelStatistics(file,BlackPixelChannel,"Black",1.0/
-            scale,channel_statistics);
+          if ((GetPixelCyanTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,CyanPixelChannel,"Cyan",1.0/
+              scale,channel_statistics);
+          if ((GetPixelMagentaTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,MagentaPixelChannel,"Magenta",
+              1.0/scale,channel_statistics);
+          if ((GetPixelYellowTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,YellowPixelChannel,"Yellow",1.0/
+              scale,channel_statistics);
+          if ((GetPixelBlackTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,BlackPixelChannel,"Black",1.0/
+              scale,channel_statistics);
           break;
         }
         case LinearGRAYColorspace:
         case GRAYColorspace:
         {
-          (void) PrintChannelStatistics(file,GrayPixelChannel,"Gray",1.0/
-            scale,channel_statistics);
+          if ((GetPixelGrayTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelStatistics(file,GrayPixelChannel,"Gray",1.0/
+              scale,channel_statistics);
           break;
         }
         default:
@@ -862,20 +932,49 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
           {
             char
-              channel[MagickPathExtent];
+              label[MagickPathExtent];
 
-            (void) FormatLocaleString(channel,MagickPathExtent,"Channel %.20g",
-              (double) i);
-            (void) PrintChannelStatistics(file,(PixelChannel) i,channel,1.0/
-              scale,channel_statistics);
+            PixelChannel channel = GetPixelChannelChannel(image,i);
+            PixelTrait traits = GetPixelChannelTraits(image,channel);
+            if ((traits & UpdatePixelTrait) != 0)
+              {
+                (void) FormatLocaleString(label,MagickPathExtent,
+                  "Channel %.20g",(double) i);
+                (void) PrintChannelStatistics(file,channel,label,1.0/scale,
+                  channel_statistics);
+              }
           }
           break;
         }
       }
       if (image->alpha_trait != UndefinedPixelTrait)
-        (void) PrintChannelStatistics(file,AlphaPixelChannel,"Alpha",1.0/scale,
-          channel_statistics);
-      if ((colorspace != LinearGRAYColorspace) && (colorspace != GRAYColorspace))
+        (void) PrintChannelStatistics(file,AlphaPixelChannel,
+          "Alpha",1.0/scale,channel_statistics);
+      if ((image->channels & ReadMaskChannel) != 0)
+        (void) PrintChannelStatistics(file,ReadMaskPixelChannel,
+          "Read mask",1.0/scale,channel_statistics);
+      if ((image->channels & WriteMaskChannel) != 0)
+        (void) PrintChannelStatistics(file,WriteMaskPixelChannel,
+          "Write mask",1.0/scale,channel_statistics);
+      if ((image->channels & CompositeMaskChannel) != 0)
+        (void) PrintChannelStatistics(file,WriteMaskPixelChannel,
+          "Composite mask",1.0/scale,channel_statistics);
+      if (image->number_meta_channels != 0)
+        for (i=0; i < (ssize_t) image->number_meta_channels; i++)
+        {
+          char
+            label[MagickPathExtent];
+
+          PixelChannel
+            channel = (PixelChannel) (MetaPixelChannels+i);
+
+          (void) FormatLocaleString(label,MagickPathExtent,
+            "Meta channel[%.20g]",(double) i);
+          (void) PrintChannelStatistics(file,channel,label,1.0/scale,
+            channel_statistics);
+        }
+      if ((colorspace != LinearGRAYColorspace) &&
+          (colorspace != GRAYColorspace))
         {
           (void) FormatLocaleFile(file,"  Image statistics:\n");
           (void) PrintChannelStatistics(file,CompositePixelChannel,"Overall",
@@ -893,30 +992,38 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         case RGBColorspace:
         case sRGBColorspace:
         {
-          (void) PrintChannelMoments(file,RedPixelChannel,"Red",scale,
-            channel_moments);
-          (void) PrintChannelMoments(file,GreenPixelChannel,"Green",scale,
-            channel_moments);
-          (void) PrintChannelMoments(file,BluePixelChannel,"Blue",scale,
-            channel_moments);
+          if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,RedPixelChannel,"Red",scale,
+              channel_moments);
+          if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,GreenPixelChannel,"Green",scale,
+              channel_moments);
+          if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,BluePixelChannel,"Blue",scale,
+              channel_moments);
           break;
         }
         case CMYKColorspace:
         {
-          (void) PrintChannelMoments(file,CyanPixelChannel,"Cyan",scale,
-            channel_moments);
-          (void) PrintChannelMoments(file,MagentaPixelChannel,"Magenta",scale,
-            channel_moments);
-          (void) PrintChannelMoments(file,YellowPixelChannel,"Yellow",scale,
-            channel_moments);
-          (void) PrintChannelMoments(file,BlackPixelChannel,"Black",scale,
-            channel_moments);
+          if ((GetPixelCyanTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,CyanPixelChannel,"Cyan",scale,
+              channel_moments);
+          if ((GetPixelMagentaTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,MagentaPixelChannel,"Magenta",scale,
+              channel_moments);
+          if ((GetPixelYellowTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,YellowPixelChannel,"Yellow",scale,
+              channel_moments);
+          if ((GetPixelBlackTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,BlackPixelChannel,"Black",scale,
+              channel_moments);
           break;
         }
         case GRAYColorspace:
         {
-          (void) PrintChannelMoments(file,GrayPixelChannel,"Gray",scale,
-            channel_moments);
+          if ((GetPixelGrayTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelMoments(file,GrayPixelChannel,"Gray",scale,
+              channel_moments);
           break;
         }
         default:
@@ -924,12 +1031,17 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
           {
             char
-              channel[MagickPathExtent];
+              label[MagickPathExtent];
 
-            (void) FormatLocaleString(channel,MagickPathExtent,"Channel %.20g",
-              (double) i);
-            (void) PrintChannelMoments(file,(PixelChannel) i,"channel",scale,
-              channel_moments);
+            PixelChannel channel = GetPixelChannelChannel(image,i);
+            PixelTrait traits = GetPixelChannelTraits(image,channel);
+            if ((traits & UpdatePixelTrait) != 0)
+              {
+                (void) FormatLocaleString(label,MagickPathExtent,
+                  "Channel %.20g",(double) i);
+                (void) PrintChannelMoments(file,channel,label,scale,
+                  channel_moments);
+              }
           }
           break;
         }
@@ -961,30 +1073,38 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         case RGBColorspace:
         case sRGBColorspace:
         {
-          (void) PrintChannelFeatures(file,RedPixelChannel,"Red",
-            channel_features);
-          (void) PrintChannelFeatures(file,GreenPixelChannel,"Green",
-            channel_features);
-          (void) PrintChannelFeatures(file,BluePixelChannel,"Blue",
-            channel_features);
+          if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,RedPixelChannel,"Red",
+              channel_features);
+          if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,GreenPixelChannel,"Green",
+              channel_features);
+          if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,BluePixelChannel,"Blue",
+              channel_features);
           break;
         }
         case CMYKColorspace:
         {
-          (void) PrintChannelFeatures(file,CyanPixelChannel,"Cyan",
-            channel_features);
-          (void) PrintChannelFeatures(file,MagentaPixelChannel,"Magenta",
-            channel_features);
-          (void) PrintChannelFeatures(file,YellowPixelChannel,"Yellow",
-            channel_features);
-          (void) PrintChannelFeatures(file,BlackPixelChannel,"Black",
-            channel_features);
+          if ((GetPixelCyanTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,CyanPixelChannel,"Cyan",
+              channel_features);
+          if ((GetPixelMagentaTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,MagentaPixelChannel,"Magenta",
+              channel_features);
+          if ((GetPixelYellowTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,YellowPixelChannel,"Yellow",
+              channel_features);
+          if ((GetPixelBlackTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,BlackPixelChannel,"Black",
+              channel_features);
           break;
         }
         case GRAYColorspace:
         {
-          (void) PrintChannelFeatures(file,GrayPixelChannel,"Gray",
-            channel_features);
+          if ((GetPixelGrayTraits(image) & UpdatePixelTrait) != 0)
+            (void) PrintChannelFeatures(file,GrayPixelChannel,"Gray",
+              channel_features);
           break;
         }
         default:
@@ -992,12 +1112,17 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
           {
             char
-              channel[MagickPathExtent];
+              label[MagickPathExtent];
 
-            (void) FormatLocaleString(channel,MagickPathExtent,"Channel %.20g",
-              (double) i);
-            (void) PrintChannelFeatures(file,(PixelChannel) i,channel,
-              channel_features);
+            PixelChannel channel = GetPixelChannelChannel(image,i);
+            PixelTrait traits = GetPixelChannelTraits(image,channel);
+            if ((traits & UpdatePixelTrait) != 0)
+              {
+                (void) FormatLocaleString(label,MagickPathExtent,
+                  "Channel %.20g",(double) i);
+                (void) PrintChannelFeatures(file,channel,label,
+                  channel_features);
+              }
           }
           break;
         }
@@ -1033,7 +1158,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
                   found=MagickTrue;
                   break;
                 }
-              p+=GetPixelChannels(image);
+              p+=(ptrdiff_t) GetPixelChannels(image);
             }
             if (found != MagickFalse)
               break;
@@ -1084,7 +1209,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
           PixelInfo
             pixel;
 
-          register PixelInfo
+          PixelInfo
             *magick_restrict c;
 
           GetPixelInfo(image,&pixel);
@@ -1146,15 +1271,18 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         Display image chromaticity.
       */
       (void) FormatLocaleFile(file,"  Chromaticity:\n");
-      (void) FormatLocaleFile(file,"    red primary: (%g,%g)\n",
-        image->chromaticity.red_primary.x,image->chromaticity.red_primary.y);
-      (void) FormatLocaleFile(file,"    green primary: (%g,%g)\n",
-        image->chromaticity.green_primary.x,
-        image->chromaticity.green_primary.y);
-      (void) FormatLocaleFile(file,"    blue primary: (%g,%g)\n",
-        image->chromaticity.blue_primary.x,image->chromaticity.blue_primary.y);
-      (void) FormatLocaleFile(file,"    white point: (%g,%g)\n",
-        image->chromaticity.white_point.x,image->chromaticity.white_point.y);
+      (void) FormatLocaleFile(file,"    red primary: (%g,%g,%g)\n",
+        image->chromaticity.red_primary.x,image->chromaticity.red_primary.y,
+        image->chromaticity.red_primary.z);
+      (void) FormatLocaleFile(file,"    green primary: (%g,%g,%g)\n",
+        image->chromaticity.green_primary.x,image->chromaticity.green_primary.y,
+        image->chromaticity.green_primary.z);
+      (void) FormatLocaleFile(file,"    blue primary: (%g,%g,%g)\n",
+        image->chromaticity.blue_primary.x,image->chromaticity.blue_primary.y,
+        image->chromaticity.blue_primary.z);
+      (void) FormatLocaleFile(file,"    white point: (%g,%g,%g)\n",
+        image->chromaticity.white_point.x,image->chromaticity.white_point.y,
+        image->chromaticity.white_point.z);
     }
   if ((image->extract_info.width*image->extract_info.height) != 0)
     (void) FormatLocaleFile(file,"  Tile geometry: %.20gx%.20g%+.20g%+.20g\n",
@@ -1219,7 +1347,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
       ImageInfo
         *image_info;
 
-      register char
+      char
         *d,
         *q;
 
@@ -1278,55 +1406,56 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
         (void) fputc('\n',file);
       (void) FormatLocaleFile(file,"%s\n",value);
     }
-  {
-    char
-      *points,
-      value[MagickPathExtent];
+  artifact=GetImageArtifact(image,"identify:convex-hull");
+  if (IsStringTrue(artifact) != MagickFalse)
+    {
+      char
+        *points;
 
-    PointInfo
-      *bounding_box,
-      *convex_hull;
+      PointInfo
+        *bounding_box,
+        *convex_hull;
 
-    register ssize_t
-      n;
+      ssize_t
+        n;
 
-    size_t
-      number_points;
+      size_t
+        number_points;
 
-    /*
-      Display convex hull & minimum bounding box.
-    */
-    convex_hull=GetImageConvexHull(image,&number_points,exception);
-    if (convex_hull != (PointInfo *) NULL)
-      {
-        points=AcquireString("");
-        for (n=0; n < (ssize_t) number_points; n++)
+      /*
+        Display convex hull & minimum bounding box.
+      */
+      convex_hull=GetImageConvexHull(image,&number_points,exception);
+      if (convex_hull != (PointInfo *) NULL)
         {
-          (void) FormatLocaleString(value,MagickPathExtent,"%g,%g ",
-            convex_hull[n].x,convex_hull[n].y);
-          (void) ConcatenateString(&points,value);
+          points=AcquireString("");
+          for (n=0; n < (ssize_t) number_points; n++)
+          {
+            (void) FormatLocaleString(buffer,MagickPathExtent,"%g,%g ",
+              convex_hull[n].x,convex_hull[n].y);
+            (void) ConcatenateString(&points,buffer);
+          }
+          convex_hull=(PointInfo *) RelinquishMagickMemory(convex_hull);
+          (void) FormatLocaleFile(file,"  Convex hull: ");
+          (void) FormatLocaleFile(file,"%s\n",points);
+          points=DestroyString(points);
         }
-        convex_hull=(PointInfo *) RelinquishMagickMemory(convex_hull);
-        (void) FormatLocaleFile(file,"  Convex hull: ");
-        (void) FormatLocaleFile(file,"%s\n",points);
-        points=DestroyString(points);
-      }
-    bounding_box=GetImageMinimumBoundingBox(image,&number_points,exception);
-    if (bounding_box != (PointInfo *) NULL)
-      {
-        points=AcquireString("");
-        for (n=0; n < (ssize_t) number_points; n++)
+      bounding_box=GetImageMinimumBoundingBox(image,&number_points,exception);
+      if (bounding_box != (PointInfo *) NULL)
         {
-          (void) FormatLocaleString(value,MagickPathExtent,"%g,%g ",
-            bounding_box[n].x,bounding_box[n].y);
-          (void) ConcatenateString(&points,value);
+          points=AcquireString("");
+          for (n=0; n < (ssize_t) number_points; n++)
+          {
+            (void) FormatLocaleString(buffer,MagickPathExtent,"%g,%g ",
+              bounding_box[n].x,bounding_box[n].y);
+            (void) ConcatenateString(&points,buffer);
+          }
+          bounding_box=(PointInfo *) RelinquishMagickMemory(bounding_box);
+          (void) FormatLocaleFile(file,"  Minimum bounding box: ");
+          (void) FormatLocaleFile(file,"%s\n",points);
+          points=DestroyString(points);
         }
-        bounding_box=(PointInfo *) RelinquishMagickMemory(bounding_box);
-        (void) FormatLocaleFile(file,"  Minimum bounding box: ");
-        (void) FormatLocaleFile(file,"%s\n",points);
-        points=DestroyString(points);
-      }
-  }
+    }
   ResetImageProfileIterator(image);
   name=GetNextImageProfile(image);
   if (name != (char *) NULL)
@@ -1359,7 +1488,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
               record,
               sentinel;
 
-            register ssize_t
+            ssize_t
               j;
 
             size_t
@@ -1436,7 +1565,7 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
                 (double) dataset,(double) record);
               length=(size_t) (GetStringInfoDatum(profile)[i++] << 8);
               length|=GetStringInfoDatum(profile)[i++];
-              length=MagickMin(length,profile_length-i);
+              length=MagickMin(length,profile_length-(size_t) i);
               attribute=(char *) NULL;
               if (~length >= (MagickPathExtent-1))
                 attribute=(char *) AcquireQuantumMemory(length+MagickPathExtent,
@@ -1521,18 +1650,45 @@ MagickExport MagickBooleanType IdentifyImage(Image *image,FILE *file,
     }
   (void) FormatLocaleFile(file,"  Tainted: %s\n",CommandOptionToMnemonic(
     MagickBooleanOptions,(ssize_t) image->taint));
-  (void) FormatMagickSize(image->extent,MagickTrue,"B",MagickPathExtent,format);
-  (void) FormatLocaleFile(file,"  Filesize: %s\n",format);
+  (void) FormatMagickSize(image->extent,MagickTrue,"B",MagickPathExtent,buffer);
+  (void) FormatLocaleFile(file,"  Filesize: %s\n",buffer);
   (void) FormatMagickSize((MagickSizeType) image->columns*image->rows,
-    MagickFalse,"P",MagickPathExtent,format);
-  if (strlen(format) > 1)
-    format[strlen(format)-1]='\0';
-  (void) FormatLocaleFile(file,"  Number pixels: %s\n",format);
+    MagickFalse,"P",MagickPathExtent,buffer);
+  if (strlen(buffer) > 1)
+    buffer[strlen(buffer)-1]='\0';
+  (void) FormatLocaleFile(file,"  Number pixels: %s\n",buffer);
+  (void) FormatLocaleString(buffer,MagickPathExtent,"%s",
+    CommandOptionToMnemonic(MagickCacheOptions,(ssize_t)
+    GetImagePixelCacheType(image)));
+  (void) FormatLocaleFile(file,"  Pixel cache type: %s\n",buffer);
   if (elapsed_time > MagickEpsilon)
     {
       (void) FormatMagickSize((MagickSizeType) ((double) image->columns*
-        image->rows/elapsed_time+0.5),MagickFalse,"P",MagickPathExtent,format);
-      (void) FormatLocaleFile(file,"  Pixels per second: %s\n",format);
+        image->rows/elapsed_time+0.5),MagickFalse,"P",MagickPathExtent,buffer);
+      (void) FormatLocaleFile(file,"  Pixels per second: %s\n",buffer);
+    }
+  if (image->ttl != (time_t) 0)
+    {
+      char
+        iso8601[sizeof("9999-99-99T99:99:99Z")];
+
+      int
+        seconds;
+
+      struct tm
+        timestamp;
+
+      (void) GetMagickUTCTime(&image->ttl,&timestamp);
+      (void) strftime(iso8601,sizeof(iso8601),"%Y-%m-%dT%H:%M:%SZ",&timestamp);
+      seconds=MagickMax((int)(image->ttl-GetMagickTime()),0);
+      expired=' ';
+      if (seconds == 0)
+        expired='*';
+      (void) FormatLocaleFile(file,"  Time-to-live: %g:%02g:%02g:%02g%c %s\n",
+        ceil((double) (seconds/(3600*24))),
+        ceil((double) ((seconds % (24*3600))/3600)),
+        ceil((double) ((seconds % 3600)/60)),
+        ceil((double) ((seconds % 3600) % 60)),expired,iso8601);
     }
   (void) FormatLocaleFile(file,"  User time: %0.3fu\n",user_time);
   (void) FormatLocaleFile(file,"  Elapsed time: %lu:%02lu.%03lu\n",

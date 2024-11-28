@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
-// Copyright Dirk Lemstra 2013-2018
+//
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Color Implementation
 //
@@ -12,19 +14,19 @@
 #include "Magick++/Include.h"
 #include <string>
 
-using namespace std;
-
 #include "Magick++/Color.h"
 #include "Magick++/Exception.h"
+
+using namespace std;
 
 MagickPPExport int Magick::operator == (const Magick::Color &left_,
   const Magick::Color &right_)
 {
 #if defined(MAGICKCORE_HDRI_SUPPORT)
   return((left_.isValid() == right_.isValid()) &&
-    (fabs(left_.quantumRed()-right_.quantumRed()) < MagickEpsilon) &&
-    (fabs(left_.quantumGreen()-right_.quantumGreen()) < MagickEpsilon) &&
-    (fabs(left_.quantumBlue()-right_.quantumBlue()) < MagickEpsilon));
+    (fabs((double) left_.quantumRed()-(double) right_.quantumRed()) < MagickEpsilon) &&
+    (fabs((double) left_.quantumGreen()-(double) right_.quantumGreen()) < MagickEpsilon) &&
+    (fabs((double) left_.quantumBlue()-(double) right_.quantumBlue()) < MagickEpsilon));
 #else
   return((left_.isValid() == right_.isValid()) &&
     (left_.quantumRed() == right_.quantumRed()) &&
@@ -237,7 +239,12 @@ const Magick::Color& Magick::Color::operator=(const std::string &color_)
       setPixelType(target_color);
     }
   else
-    _isValid = false;
+    {
+      _isValid = false;
+      _pixelOwn = false;
+      delete _pixel;
+      _pixel = (PixelInfo *)NULL;
+    }
   ThrowPPException(false);
 
   return(*this);
@@ -261,8 +268,6 @@ Magick::Color::operator std::string() const
 
   pixel.colorspace=(_pixelType == RGBPixel || _pixelType == RGBAPixel) ?
     sRGBColorspace : CMYKColorspace;
-  pixel.alpha_trait=(_pixelType == RGBAPixel || _pixelType == CMYKAPixel) ?
-    BlendPixelTrait : UndefinedPixelTrait;
   pixel.depth=MAGICKCORE_QUANTUM_DEPTH;
   pixel.alpha=_pixel->alpha;
   pixel.alpha_trait=_pixel->alpha_trait;
@@ -399,13 +404,13 @@ void Magick::Color::pixel(PixelInfo *rep_,PixelType pixelType_)
 
 Magick::Quantum Magick::Color::scaleDoubleToQuantum(const double double_)
 {
-  return(static_cast<Magick::Quantum>(double_*QuantumRange));
+  return(static_cast<Magick::Quantum>(double_*(double) QuantumRange));
 }
 
 double Magick::Color::scaleQuantumToDouble(const Magick::Quantum quantum_)
 {
 #if (MAGICKCORE_QUANTUM_DEPTH < 32) && (MAGICKCORE_SIZEOF_FLOAT_T != MAGICKCORE_SIZEOF_DOUBLE || !defined(MAGICKCORE_HDRI_SUPPORT))
-  return(static_cast<double>(QuantumScale*quantum_));
+  return(static_cast<double>(QuantumScale*(double) quantum_));
 #else
   return(QuantumScale*quantum_);
 #endif
@@ -891,8 +896,8 @@ void Magick::ColorYUV::u(const double u_)
 
 double Magick::ColorYUV::u(void) const
 {
-  return(scaleQuantumToDouble((-0.14740 * quantumRed()) - (0.28950 *
-    quantumGreen()) + (0.43690 * quantumBlue())));
+  return(scaleQuantumToDouble((-0.14740 * (double) quantumRed()) - (0.28950 *
+    (double) quantumGreen()) + (0.43690 * (double) quantumBlue())));
 }
 
 void Magick::ColorYUV::v(const double v_)
@@ -902,8 +907,8 @@ void Magick::ColorYUV::v(const double v_)
 
 double Magick::ColorYUV::v(void) const
 {
-  return(scaleQuantumToDouble((0.61500 * quantumRed()) - (0.51500 *
-    quantumGreen()) - (0.10000 * quantumBlue())));
+  return(scaleQuantumToDouble((0.61500 * (double) quantumRed()) - (0.51500 *
+    (double) quantumGreen()) - (0.10000 * (double) quantumBlue())));
 }
 
 void Magick::ColorYUV::y(const double y_)
@@ -913,8 +918,8 @@ void Magick::ColorYUV::y(const double y_)
 
 double Magick::ColorYUV::y ( void ) const
 {
-  return(scaleQuantumToDouble((0.29900 * quantumRed()) + (0.58700 *
-    quantumGreen()) + (0.11400 * quantumBlue())));
+  return(scaleQuantumToDouble((0.29900 * (double) quantumRed()) + (0.58700 *
+    (double) quantumGreen()) + (0.11400 * (double) quantumBlue())));
 }
 
 void Magick::ColorYUV::convert(const double y_,const double u_,const double v_)

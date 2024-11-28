@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
-// Copyright Dirk Lemstra 2014-2018
+//
+// Copyright @ 2014 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Implementation of Options
 //
@@ -162,7 +164,7 @@ double Magick::Options::colorFuzz(void) const
 
 void Magick::Options::debug(const bool flag_)
 {
-  if  (flag_)
+  if (flag_)
     SetLogEventMask("All");
   else
     SetLogEventMask("None");
@@ -180,7 +182,7 @@ void Magick::Options::density(const Point &density_)
   if (!density_.isValid())
     _imageInfo->density=(char *) RelinquishMagickMemory(_imageInfo->density);
   else
-   CloneString(&_imageInfo->density,density_);
+    CloneString(&_imageInfo->density,density_);
 }
 
 Magick::Point Magick::Options::density(void) const
@@ -227,7 +229,7 @@ void Magick::Options::fileName(const std::string &fileName_)
     max_length;
 
   max_length=sizeof(_imageInfo->filename)-1;
-  fileName_.copy(_imageInfo->filename,max_length);
+  fileName_.copy(_imageInfo->filename,(size_t) max_length);
   if ((ssize_t) fileName_.length() > max_length)
     _imageInfo->filename[max_length]=0;
   else
@@ -255,7 +257,7 @@ Magick::Color Magick::Options::fillColor(void) const
 void Magick::Options::fillPattern(const MagickCore::Image *fillPattern_)
 {
   if (_drawInfo->fill_pattern)
-      _drawInfo->fill_pattern=DestroyImageList(_drawInfo->fill_pattern);
+    _drawInfo->fill_pattern=DestroyImageList(_drawInfo->fill_pattern);
 
   if (fillPattern_)
     {
@@ -594,9 +596,12 @@ void Magick::Options::strokeDashArray(const double *strokeDashArray_)
       if (!_drawInfo->dash_pattern)
         throwExceptionExplicit(MagickCore::ResourceLimitError,
           "Unable to allocate dash-pattern memory");
-      // Copy elements
-      memcpy(_drawInfo->dash_pattern,strokeDashArray_,(x+1)*sizeof(double));
-      _drawInfo->dash_pattern[x]=0.0;
+      else
+        {
+          // Copy elements
+          memcpy(_drawInfo->dash_pattern,strokeDashArray_,(x+1)*sizeof(double));
+          _drawInfo->dash_pattern[x]=0.0;
+        }
     }
 }
 

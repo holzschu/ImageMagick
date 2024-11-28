@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -94,7 +94,7 @@
 %
 %  A description of each parameter follows:
 %
-%    o image: the image, to recieve the cloned artifacts.
+%    o image: the image, to receive the cloned artifacts.
 %
 %    o clone_image: the source image for artifacts to clone.
 %
@@ -104,13 +104,14 @@ MagickExport MagickBooleanType CloneImageArtifacts(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(clone_image != (const Image *) NULL);
   assert(clone_image->signature == MagickCoreSignature);
-  if (clone_image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      clone_image->filename);
+  if (IsEventLogging() != MagickFalse)
+    {
+      (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+      (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+        clone_image->filename);
+    }
   if (clone_image->artifacts != (void *) NULL)
     {
       if (image->artifacts != (void *) NULL)
@@ -133,7 +134,7 @@ MagickExport MagickBooleanType CloneImageArtifacts(Image *image,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  DefineImageArtifact() associates an assignment string of the form
-%  "key=value" with per-image artifact. It is equivelent to
+%  "key=value" with per-image artifact. It is equivalent to
 %  SetImageArtifact().
 %
 %  The format of the DefineImageArtifact method is:
@@ -155,7 +156,7 @@ MagickExport MagickBooleanType DefineImageArtifact(Image *image,
     key[MagickPathExtent],
     value[MagickPathExtent];
 
-  register char
+  char
     *p;
 
   assert(image != (Image *) NULL);
@@ -200,7 +201,7 @@ MagickExport MagickBooleanType DeleteImageArtifact(Image *image,
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->artifacts == (void *) NULL)
     return(MagickFalse);
@@ -234,7 +235,7 @@ MagickExport void DestroyImageArtifacts(Image *image)
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->artifacts != (void *) NULL)
     image->artifacts=(void *) DestroySplayTree((SplayTreeInfo *)
@@ -273,12 +274,12 @@ MagickExport void DestroyImageArtifacts(Image *image)
 MagickExport const char *GetImageArtifact(const Image *image,
   const char *artifact)
 {
-  register const char
+  const char
     *p;
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   p=(const char *) NULL;
   if (image->artifacts != (void *) NULL)
@@ -324,7 +325,7 @@ MagickExport const char *GetNextImageArtifact(const Image *image)
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->artifacts == (void *) NULL)
     return((const char *) NULL);
@@ -367,7 +368,7 @@ MagickExport char *RemoveImageArtifact(Image *image,const char *artifact)
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->artifacts == (void *) NULL)
     return((char *) NULL);
@@ -407,7 +408,7 @@ MagickExport void ResetImageArtifactIterator(const Image *image)
 {
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (image->artifacts == (void *) NULL)
     return;
@@ -453,7 +454,7 @@ MagickExport MagickBooleanType SetImageArtifact(Image *image,
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   /*
     Create tree if needed - specify how key,values are to be freed.

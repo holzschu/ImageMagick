@@ -1,7 +1,9 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
-// Copyright Dirk Lemstra 2013-2015
+//
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Pixels Implementation
 //
@@ -148,8 +150,8 @@ void Magick::PixelData::init(Magick::Image &image_,const ::ssize_t x_,
   _length=0;
   _size=0;
   if ((x_ < 0) || (width_ == 0) || (y_ < 0) || (height_ == 0) ||
-      (x_ > (ssize_t) image_.columns()) || ((width_ + x_) > image_.columns())
-      || (y_ > (ssize_t) image_.rows()) || ((height_ + y_) > image_.rows())
+      (x_ > (ssize_t) image_.columns()) || (((ssize_t) width_ + x_) > (ssize_t) image_.columns())
+      || (y_ > (ssize_t) image_.rows()) || (((ssize_t) height_ + y_) > (ssize_t) image_.rows())
       || (map_.length() == 0))
     return;
 
@@ -181,9 +183,9 @@ void Magick::PixelData::init(Magick::Image &image_,const ::ssize_t x_,
       return;
   }
 
-  _length=width_*height_*map_.length();
-  _size=_length*size;
-  _data=AcquireMagickMemory(_size);
+  _length=(ssize_t) (width_*height_*map_.length());
+  _size=_length*(ssize_t) size;
+  _data=AcquireMagickMemory((size_t) _size);
 
   GetPPException;
   MagickCore::ExportImagePixels(image_.image(),x_,y_,width_,height_,

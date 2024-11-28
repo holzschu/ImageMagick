@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -47,14 +47,14 @@ extern "C" {
     { \
 DisableMSCWarning(4127) \
       if (image_stack[k].image == (Image *) NULL) \
-        status&=MogrifyImageInfo(image_stack[k].image_info,(int) (i-j+1), \
-          (const char **) (argv+j),exception); \
+        status&=(MagickStatusType) MogrifyImageInfo(image_stack[k].image_info, \
+          (int) (i-j+1),(const char **) (argv+j),exception); \
       else \
         if ((fire) != MagickFalse) \
           { \
-            status&=MogrifyImages(image_stack[k].image_info,postfix,(int) \
-              (i-j+1),(const char **) (argv+j),&image_stack[k].image, \
-              exception); \
+            status&=(MagickStatusType) MogrifyImages(image_stack[k].image_info,\
+              postfix,(int) (i-j+1),(const char **) (argv+j), \
+              &image_stack[k].image,exception); \
             image=image_stack[k].image; \
             if ((advance) != MagickFalse) \
               j=i+1; \
@@ -81,7 +81,7 @@ RestoreMSCWarning \
 }
 #define PopImageStack() \
 { \
-  if (respect_parenthesis == MagickFalse) \
+  if (respect_parentheses == MagickFalse) \
     { \
       image_stack[k-1].image_info=DestroyImageInfo(image_stack[k-1].image_info); \
       image_stack[k-1].image_info=CloneImageInfo(image_stack[k].image_info); \

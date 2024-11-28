@@ -1,4 +1,4 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright © 1999 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -96,9 +96,7 @@ XFAIL_TESTS = \
 
 TOP_EXTRA_DIST = \
   AUTHORS.txt \
-  ChangeLog \
   LICENSE \
-  QuickStart.txt \
   NOTICE \
   Install-mac.txt \
   Install-unix.txt \
@@ -106,10 +104,7 @@ TOP_EXTRA_DIST = \
   Install-windows.txt \
   magick.sh.in \
   Magickshr.opt \
-  NEWS.txt \
-  README.txt \
   index.html \
-  version.sh \
   winpath.sh
 
 # Additional files to distribute
@@ -170,9 +165,7 @@ man_MANS = \
   $(UTILITIES_MANS)
 
 doc_DATA = \
-  LICENSE \
-  ChangeLog \
-  NEWS.txt
+  LICENSE
 endif
 
 if MAINTAINER_MODE
@@ -227,7 +220,7 @@ dist-hook:
 	  cd $(srcdir) && \
 	  ( \
 	    for dir in $(DISTDIRS) ; do \
-	      find $$dir -depth -print | egrep -v '(~$$)|(/.git)|(/\.#)|(/\.deps)|(/\.git)' \
+	      find $$dir -depth -print | grep -E -v '(~$$)|(/.git)|(/\.#)|(/\.deps)|(/\.git)' \
 	        | cpio -pdum $$builddir/$(distdir) 2> /dev/null ; \
 	    done \
 	  ) \
@@ -271,9 +264,6 @@ uninstall-data-html:
 
 # Ensure that version.h at $(srcdir)/MagickCore/version.h is kept up to date.
 magick-version: MagickCore/version.h
-	@if test -f "$(srcdir)/VisualMagick/installer/inc/version.isx.in" ; then \
-	  ./config.status --file="$(srcdir)/../VisualMagick/installer/inc/version.isx" 2> /dev/null ; \
-	fi
 	@if test -n "$(VPATH)" ; then \
 	  cmp MagickCore/version.h $(srcdir)/MagickCore/version.h > /dev/null ; \
 	        if test $$? -eq 1 ; then \
@@ -283,7 +273,7 @@ magick-version: MagickCore/version.h
 	fi ; \
 	touch magick-version
 
-MagickCore/version.h:	$(top_srcdir)/ChangeLog $(top_srcdir)/version.sh
+MagickCore/version.h:	$(top_srcdir)/m4/version.m4
 
 # Automagically reconfigure libtool
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
@@ -315,31 +305,31 @@ html-local:
 # Build Windows source Zip and 7Zip balls
 #
 if ZIP_DELEGATE
-DIST_WINDOWS_SRC_ZIP=$(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-windows.zip
+DIST_WINDOWS_SRC_ZIP=$(PACKAGE_NAME)-$(PACKAGE_VERSION)-windows.zip
 else
 DIST_WINDOWS_SRC_ZIP=
 endif
 if P7ZIP_DELEGATE
-DIST_WINDOWS_SRC_7ZIP=$(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-windows.7z
+DIST_WINDOWS_SRC_7ZIP=$(PACKAGE_NAME)-$(PACKAGE_VERSION)-windows.7z
 else
 DIST_WINDOWS_SRC_7ZIP=
 endif
 $(DIST_WINDOWS_SRC_ZIP) $(DIST_WINDOWS_SRC_7ZIP) windows-dist:
-	if test -d $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; then \
-	  chmod -R u+w $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
-	  rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
+	if test -d $(PACKAGE_NAME)-$(PACKAGE_VERSION) ; then \
+	  chmod -R u+w $(PACKAGE_NAME)-$(PACKAGE_VERSION) ; \
+	  rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION) ; \
 	fi
-	git clone -b master https://github.com/ImageMagick/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	git clone -b main https://github.com/ImageMagick/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 if ZIP_DELEGATE
 	rm -f $(DIST_WINDOWS_SRC_ZIP)
-	$(ZIP) -r -9 -q  $(DIST_WINDOWS_SRC_ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	$(ZIP) -r -9 -q  $(DIST_WINDOWS_SRC_ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 endif # ZIP_DELEGATE
 if P7ZIP_DELEGATE
 	rm -f $(DIST_WINDOWS_SRC_7ZIP)
-	$(P7ZIP) a -t7z -mx=9 $(DIST_WINDOWS_SRC_7ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	$(P7ZIP) a -t7z -mx=9 $(DIST_WINDOWS_SRC_7ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 	chmod 644 $(DIST_WINDOWS_SRC_7ZIP)
 endif # P7ZIP_DELEGATE
-	rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 
 #
 # RPM build support
@@ -359,11 +349,11 @@ RPMDIR=rpmbuild
 RPMARCH=$(MAGICK_TARGET_CPU)
 
 DIST_ARCHIVE_RPM= \
-  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-$(PACKAGE_RELEASE).$(RPMARCH).rpm \
-  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-c++-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-$(PACKAGE_RELEASE).$(RPMARCH).rpm \
-  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-c++-devel-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-$(PACKAGE_RELEASE).$(RPMARCH).rpm \
-  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-devel-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-$(PACKAGE_RELEASE).$(RPMARCH).rpm \
-  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-perl-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)-$(PACKAGE_RELEASE).$(RPMARCH).rpm
+  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)-$(PACKAGE_PATCHLEVEL_VERSION).$(RPMARCH).rpm \
+  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-c++-$(PACKAGE_VERSION)-$(PACKAGE_PATCHLEVEL_VERSION).$(RPMARCH).rpm \
+  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-c++-devel-$(PACKAGE_VERSION)-$(PACKAGE_PATCHLEVEL_VERSION).$(RPMARCH).rpm \
+  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-devel-$(PACKAGE_VERSION)-$(PACKAGE_PATCHLEVEL_VERSION).$(RPMARCH).rpm \
+  $(RPMDIR)/$(RPMARCH)/$(PACKAGE_NAME)-perl-$(PACKAGE_VERSION)-$(PACKAGE_PATCHLEVEL_VERSION).$(RPMARCH).rpm
 
 .PHONY: rpm
 rpm: dist

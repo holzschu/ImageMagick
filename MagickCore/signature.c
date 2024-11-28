@@ -16,7 +16,7 @@
 %                              December 1992                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -84,7 +84,7 @@ struct _SignatureInfo
   MagickBooleanType
     lsb_first;
 
-  ssize_t
+  time_t
     timestamp;
 
   size_t
@@ -139,7 +139,7 @@ MagickPrivate SignatureInfo *AcquireSignatureInfo(void)
   lsb_first=1;
   signature_info->lsb_first=(int) (*(char *) &lsb_first) == 1 ? MagickTrue :
     MagickFalse;
-  signature_info->timestamp=(ssize_t) GetMagickTime();
+  signature_info->timestamp=GetMagickTime();
   signature_info->signature=MagickCoreSignature;
   InitializeSignature(signature_info);
   return(signature_info);
@@ -170,9 +170,10 @@ MagickPrivate SignatureInfo *AcquireSignatureInfo(void)
 */
 MagickPrivate SignatureInfo *DestroySignatureInfo(SignatureInfo *signature_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (signature_info->accumulator != (unsigned int *) NULL)
     signature_info->accumulator=(unsigned int *) RelinquishMagickMemory(
       signature_info->accumulator);
@@ -209,13 +210,13 @@ MagickPrivate SignatureInfo *DestroySignatureInfo(SignatureInfo *signature_info)
 */
 MagickPrivate void FinalizeSignature(SignatureInfo *signature_info)
 {
-  register ssize_t
+  ssize_t
     i;
 
-  register unsigned char
+  unsigned char
     *q;
 
-  register unsigned int
+  unsigned int
     *p;
 
   size_t
@@ -231,9 +232,10 @@ MagickPrivate void FinalizeSignature(SignatureInfo *signature_info)
   /*
     Add padding and return the message accumulator.
   */
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   low_order=signature_info->low_order;
   high_order=signature_info->high_order;
   extent=((low_order >> 3) & 0x3f);
@@ -296,9 +298,10 @@ MagickPrivate void FinalizeSignature(SignatureInfo *signature_info)
 MagickPrivate unsigned int GetSignatureBlocksize(
   const SignatureInfo *signature_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   return(signature_info->blocksize);
 }
 
@@ -327,9 +330,10 @@ MagickPrivate unsigned int GetSignatureBlocksize(
 MagickPrivate const StringInfo *GetSignatureDigest(
   const SignatureInfo *signature_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   return(signature_info->digest);
 }
 
@@ -358,9 +362,10 @@ MagickPrivate const StringInfo *GetSignatureDigest(
 MagickPrivate unsigned int GetSignatureDigestsize(
   const SignatureInfo *signature_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   return(signature_info->digestsize);
 }
 
@@ -388,9 +393,10 @@ MagickPrivate unsigned int GetSignatureDigestsize(
 */
 MagickPrivate void InitializeSignature(SignatureInfo *signature_info)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(signature_info != (SignatureInfo *) NULL);
   assert(signature_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   signature_info->accumulator[0]=0x6a09e667U;
   signature_info->accumulator[1]=0xbb67ae85U;
   signature_info->accumulator[2]=0x3c6ef372U;
@@ -479,7 +485,7 @@ MagickExport MagickBooleanType SignatureImage(Image *image,
   float
     pixel;
 
-  register const Quantum
+  const Quantum
     *p;
 
   SignatureInfo
@@ -499,7 +505,7 @@ MagickExport MagickBooleanType SignatureImage(Image *image,
   */
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   signature_info=AcquireSignatureInfo();
   signature=AcquireStringInfo(GetPixelChannels(image)*image->columns*
@@ -507,10 +513,10 @@ MagickExport MagickBooleanType SignatureImage(Image *image,
   image_view=AcquireVirtualCacheView(image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
-    register unsigned char
+    unsigned char
       *q;
 
     p=GetCacheViewVirtualPixels(image_view,0,y,image->columns,1,exception);
@@ -522,24 +528,24 @@ MagickExport MagickBooleanType SignatureImage(Image *image,
     q=pixels;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       if (GetPixelReadMask(image,p) <= (QuantumRange/2))
         {
-          p+=GetPixelChannels(image);
+          p+=(ptrdiff_t) GetPixelChannels(image);
           continue;
         }
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
       {
-        register ssize_t
+        ssize_t
           j;
 
         PixelChannel channel = GetPixelChannelChannel(image,i);
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if ((traits & UpdatePixelTrait) == 0)
           continue;
-        pixel=(float) (QuantumScale*p[i]);
+        pixel=(float) (QuantumScale*(double) p[i]);
         if (signature_info->lsb_first == MagickFalse)
           for (j=(ssize_t) sizeof(pixel)-1; j >= 0; j--)
             *q++=(unsigned char) ((unsigned char *) &pixel)[j];
@@ -547,7 +553,7 @@ MagickExport MagickBooleanType SignatureImage(Image *image,
           for (j=0; j < (ssize_t) sizeof(pixel); j++)
             *q++=(unsigned char) ((unsigned char *) &pixel)[j];
       }
-      p+=GetPixelChannels(image);
+      p+=(ptrdiff_t) GetPixelChannels(image);
     }
     SetStringInfoLength(signature,(size_t) (q-pixels));
     UpdateSignature(signature_info,signature);
@@ -599,10 +605,10 @@ static void TransformSignature(SignatureInfo *signature_info)
 #define Suma1(x)  (RotateRight(x,6) ^ RotateRight(x,11) ^ RotateRight(x,25))
 #define Trunc32(x)  ((unsigned int) ((x) & 0xffffffffU))
 
-  register ssize_t
+  ssize_t
     i;
 
-  register unsigned char
+  unsigned char
     *p;
 
   ssize_t
@@ -627,7 +633,7 @@ static void TransformSignature(SignatureInfo *signature_info)
     };  /* 32-bit fractional part of the cube root of the first 64 primes */
 
   unsigned int
-    A,
+    A = 0,
     B,
     C,
     D,
@@ -651,14 +657,14 @@ RestoreMSCWarning
         for (i=0; i < 16; i++)
         {
           T=(*((unsigned int *) p));
-          p+=4;
+          p+=(ptrdiff_t) 4;
           W[i]=Trunc32(T);
         }
       else
         for (i=0; i < 16; i+=2)
         {
           T=(*((unsigned int *) p));
-          p+=8;
+          p+=(ptrdiff_t) 8;
           W[i]=Trunc32(T >> shift);
           W[i+1]=Trunc32(T);
         }
@@ -670,7 +676,7 @@ RestoreMSCWarning
       for (i=0; i < 16; i++)
       {
         T=(*((unsigned int *) p));
-        p+=4;
+        p+=(ptrdiff_t) 4;
         W[i]=((T << 24) & 0xff000000) | ((T << 8) & 0x00ff0000) |
           ((T >> 8) & 0x0000ff00) | ((T >> 24) & 0x000000ff);
       }
@@ -678,7 +684,7 @@ RestoreMSCWarning
       for (i=0; i < 16; i+=2)
       {
         T=(*((unsigned int *) p));
-        p+=8;
+        p+=(ptrdiff_t) 8;
         W[i]=((T << 24) & 0xff000000) | ((T << 8) & 0x00ff0000) |
           ((T >> 8) & 0x0000ff00) | ((T >> 24) & 0x000000ff);
         T>>=shift;
@@ -736,7 +742,7 @@ RestoreMSCWarning
   T=0;
   T1=0;
   T2=0;
-  (void) memset(W,0,sizeof(W));
+  (void) ResetMagickMemory(W,0,sizeof(W));
 }
 
 /*
@@ -766,10 +772,10 @@ RestoreMSCWarning
 MagickPrivate void UpdateSignature(SignatureInfo *signature_info,
   const StringInfo *message)
 {
-  register size_t
+  size_t
     i;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -798,7 +804,7 @@ MagickPrivate void UpdateSignature(SignatureInfo *signature_info,
       (void) memcpy(GetStringInfoDatum(signature_info->message)+
         signature_info->extent,p,i);
       n-=i;
-      p+=i;
+      p+=(ptrdiff_t) i;
       signature_info->extent+=i;
       if (signature_info->extent != GetStringInfoLength(signature_info->message))
         return;
@@ -807,7 +813,7 @@ MagickPrivate void UpdateSignature(SignatureInfo *signature_info,
   while (n >= GetStringInfoLength(signature_info->message))
   {
     SetStringInfoDatum(signature_info->message,p);
-    p+=GetStringInfoLength(signature_info->message);
+    p+=(ptrdiff_t) GetStringInfoLength(signature_info->message);
     n-=GetStringInfoLength(signature_info->message);
     TransformSignature(signature_info);
   }

@@ -17,7 +17,7 @@
 %                                 May 2003                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -949,7 +949,7 @@ static Image *ReadPATTERNImage(const ImageInfo *image_info,
   ImageInfo
     *blob_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -984,6 +984,8 @@ static Image *ReadPATTERNImage(const ImageInfo *image_info,
       */
       pattern_image=image;
       image=AcquireImage(image_info,exception);
+      (void) SetImageBackgroundColor(image,exception);
+      (void) SetImageAlpha(pattern_image,OpaqueAlpha,exception);
       (void) TextureImage(image,pattern_image,exception);
       pattern_image=DestroyImage(pattern_image);
     }

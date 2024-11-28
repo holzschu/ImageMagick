@@ -3,7 +3,6 @@
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%                                                                             %
 %                            M   M   AAA    CCCC                              %
 %                            MM MM  A   A  C                                  %
 %                            M M M  AAAAA  C                                  %
@@ -18,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -95,13 +94,13 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register Quantum
+  Quantum
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register unsigned char
+  unsigned char
     *p;
 
   size_t
@@ -122,11 +121,11 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -140,9 +139,16 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
   length=ReadBlobLSBShort(image);
   if ((length & 0xff) != 0)
     ThrowReaderException(CorruptImageError,"CorruptImage");
-  for (x=0; x < (ssize_t) 638; x++)
-    if (ReadBlobByte(image) == EOF)
-      ThrowReaderException(CorruptImageError,"CorruptImage");
+  if (length == 0)
+    {
+      for (x=0; x < (ssize_t) 510; x++)
+        if (ReadBlobByte(image) == EOF)
+          ThrowReaderException(CorruptImageError,"CorruptImage");
+    }
+  else
+    for (x=0; x < (ssize_t) 638; x++)
+      if (ReadBlobByte(image) == EOF)
+        ThrowReaderException(CorruptImageError,"CorruptImage");
   image->columns=576;
   image->rows=720;
   image->depth=1;
@@ -163,9 +169,10 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
     Convert MAC raster image to pixel packets.
   */
   length=(image->columns+7)/8;
-  pixels=(unsigned char *) AcquireQuantumMemory(length+1,sizeof(*pixels));
+  pixels=(unsigned char *) AcquireQuantumMemory(length+257,sizeof(*pixels));
   if (pixels == (unsigned char *) NULL) 
     ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
+  (void) memset(pixels,0,(length+257)*sizeof(*pixels));
   p=pixels;
   offset=0;
   for (y=0; y < (ssize_t) image->rows; )
@@ -199,7 +206,7 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
                 byte<<=1;
                 if (bit == 8)
                   bit=0;
-                q+=GetPixelChannels(image);
+                q+=(ptrdiff_t) GetPixelChannels(image);
               }
               if (SyncAuthenticPixels(image,exception) == MagickFalse)
                 break;
@@ -234,7 +241,7 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
             byte<<=1;
             if (bit == 8)
               bit=0;
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -246,7 +253,10 @@ static Image *ReadMACImage(const ImageInfo *image_info,ExceptionInfo *exception)
   }
   pixels=(unsigned char *) RelinquishMagickMemory(pixels);
   (void) SyncImage(image,exception);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 

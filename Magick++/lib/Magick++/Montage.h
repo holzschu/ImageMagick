@@ -2,6 +2,9 @@
 //
 // Copyright Bob Friesenhahn, 1999, 2000, 2001, 2002, 2003
 //
+// Copyright @ 2014 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
+//
 // Definition of Montage class used to specify montage options.
 //
 
@@ -73,7 +76,7 @@ namespace Magick
     void texture(const std::string &texture_);
     std::string texture(void) const;
 
-    // Thumbnail rows and colmns
+    // Thumbnail rows and columns
     void tile(const Geometry &tile_);
     Geometry tile(void) const;
 

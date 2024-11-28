@@ -2,101 +2,146 @@
 
 
 
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
 <head>
-  <meta charset="utf-8"  />
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,shrink-to-fit=no"  />
-  <title>ImageMagick - PerlMagick, Perl API</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ImageMagick – PerlMagick, Perl API</title>
+  <meta name="keywords" content="PerlMagick, Perl API, Image Processing, Digital Image Editing, Image Conversion, Open-Source Software, Image Manipulation, Command-Line Image Tools" />
+  <meta name="description" content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta name="application-name" content="ImageMagick" />
-  <meta name="description" content="Use ImageMagick® to create, edit, compose, and convert bitmap images. Resize an image, crop it, change its shades and colors, add captions, and more." />
   <meta name="application-url" content="https://imagemagick.org" />
-  <meta name="generator" content="PHP" />
-  <meta name="keywords" content="perlmagick, perl, api, image converter, image resizer, image editor, photo editor, jpg converter, png converter, tiff converter, vector images, online, free, swiss army" />
-  <meta name="rating" content="GENERAL" />
-  <meta name="robots" content="INDEX, FOLLOW" />
-  <meta name="generator" content="ImageMagick Studio LLC" />
-  <meta name="author" content="ImageMagick Studio LLC" />
-  <meta name="revisit-after" content="2 DAYS" />
-  <meta name="resource-type" content="document" />
-  <meta name="copyright" content="Copyright (c) 1999-2020 ImageMagick Studio LLC" />
-  <meta name="distribution" content="Global" />
-  <meta name="magick-serial" content="P131-S030410-R485315270133-P82224-A6668-G1245-1" />
+  <meta name="copyright" content="Copyright (c) 1999 ImageMagick Studio LLC" />
+  <meta itemprop='url' content='../' />
+  <meta itemprop='title' content='ImageMagick' />
+  <meta itemprop='description' content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta property='og:url' content='../' />
-  <meta property='og:title' content='ImageMagick' />
+  <meta property='og:name' content='ImageMagick' />
   <meta property='og:image' content='../images/logo.png' />
   <meta property='og:type' content='website' />
   <meta property='og:site_name' content='ImageMagick' />
-  <meta property='og:description' content="Create, Edit, Compose, or Convert Bitmap Images" />
+  <meta property='og:description' content="ImageMagick is a powerful, open-source software suite for creating, editing, converting, and manipulating images in over 200 formats. Ideal for web developers, graphic designers, and researchers, it offers versatile tools for image processing, including batch processing, format conversion, and complex image transformations." />
   <meta name="google-site-verification" content="_bMOCDpkx9ZAzBwb2kF3PRHbfUUdFj2uO8Jd1AXArz4" />
+  <link type="images/png" sizes="64x64" href="../images/wand.png" rel="icon" />
+  <link type="images/icon" sizes="16x16" href="../images/wand.ico" rel="shortcut icon" />
   <link href="perl-magick.html" rel="canonical" />
-  <link href="../images/wand.png" rel="icon" />
-  <link href="../images/wand.ico" rel="shortcut icon" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" />
   <link href="assets/magick.css" rel="stylesheet" />
+  <script src="assets/color-modes.js" ></script>
+  <script async src="https://localhost/pagead/js/adsbygoogle.js?client=ca-pub-3129977114552745" crossorigin="anonymous"></script>
+  <script async src="https://localhost/cse.js?cx=006134137889097767902:turn9fku95u"> </script>
 </head>
 <body>
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+    <symbol id="check2" viewBox="0 0 16 16">
+      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+    </symbol>
+    <symbol id="circle-half" viewBox="0 0 16 16">
+      <path d="M8 15A7 7 0 1 0 8 1v14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"/>
+    </symbol>
+    <symbol id="moon-stars-fill" viewBox="0 0 16 16">
+      <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+      <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
+    </symbol>
+    <symbol id="sun-fill" viewBox="0 0 16 16">
+      <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+    </symbol>
+  </svg>
+  <div class="dropdown position-fixed bottom-0 end-0 mb-3 me-3 bd-mode-toggle">
+    <button class="btn btn-bd-secondary py-2 dropdown-toggle d-flex align-items-center"
+            id="bd-theme"
+            type="button"
+            aria-expanded="false"
+            data-bs-toggle="dropdown"
+            aria-label="Toggle theme (auto)">
+      <svg class="bi my-1 theme-icon-active" width="1em" height="1em"><use href="#circle-half"></use></svg>
+      <span class="visually-hidden" id="bd-theme-text">Toggle theme</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bd-theme-text">
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#sun-fill"></use></svg>
+          Light
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="dark" aria-pressed="false">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#moon-stars-fill"></use></svg>
+          Dark
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="true">
+          <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#circle-half"></use></svg>
+          Auto
+          <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+        </button>
+      </li>
+    </ul>
+  </div>
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+    <symbol id="arrow-right-circle" viewBox="0 0 16 16">
+      <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+    </symbol>
+    <symbol id="color-mode" viewBox="0 0 118 94">
+      <title>Color Modes</title>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M24.509 0c-6.733 0-11.715 5.893-11.492 12.284.214 6.14-.064 14.092-2.066 20.577C8.943 39.365 5.547 43.485 0 44.014v5.972c5.547.529 8.943 4.649 10.951 11.153 2.002 6.485 2.28 14.437 2.066 20.577C12.794 88.106 17.776 94 24.51 94H93.5c6.733 0 11.714-5.893 11.491-12.284-.214-6.14.064-14.092 2.066-20.577 2.009-6.504 5.396-10.624 10.943-11.153v-5.972c-5.547-.529-8.934-4.649-10.943-11.153-2.002-6.484-2.28-14.437-2.066-20.577C105.214 5.894 100.233 0 93.5 0H24.508zM80 57.863C80 66.663 73.436 72 62.543 72H44a2 2 0 01-2-2V24a2 2 0 012-2h18.437c9.083 0 15.044 4.92 15.044 12.474 0 5.302-4.01 10.049-9.119 10.88v.277C75.317 46.394 80 51.21 80 57.863zM60.521 28.34H49.948v14.934h8.905c6.884 0 10.68-2.772 10.68-7.727 0-4.643-3.264-7.207-9.012-7.207zM49.948 49.2v16.458H60.91c7.167 0 10.964-2.876 10.964-8.281 0-5.406-3.903-8.178-11.425-8.178H49.948z"></path>
+    </symbol>
+  </svg>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
     <a class="navbar-brand" href="../index.html"><img class="d-block" id="icon" alt="ImageMagick" width="32" height="32" src="../images/wand.ico"/></a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsMagick" aria-controls="navbarsMagick" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#magick-navbars" aria-controls="magick-navbars" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="navbar-collapse collapse" id="navbarsMagick" style="">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item ">
-        <a class="nav-link" href="../index.html">Home <span class="sr-only">(current)</span></a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="download.html">Download</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="command-line-tools.html">Tools</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="command-line-processing.html">Command-line</a>
-      </li>
-      <li class="nav-item ">
-        <a class="nav-link" href="develop.html">Develop</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" target="_blank" href="https://github.com/ImageMagick/ImageMagick/discussions">Community</a>
-      </li>
-      <li class="nav-item">
-          
-      </li>
-      <li class="nav-item">
-        <iframe src="https://github.com/sponsors/ImageMagick/button" title="Sponsor ImageMagick" height="35" width="107" style="border: 0;"></iframe>
-      </li>
-    </ul>
+    <div class="collapse navbar-collapse" id="magick-navbars">
+      <ul class="navbar-nav me-auto mb-2 mb-md-0">
+        <li class="nav-item">
+          <a class="nav-link " href="download.html">Download</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="command-line-tools.html">Tools</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="command-line-processing.html">CLI</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link " href="develop.html">Develop</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" target="_blank" href="https://github.com/ImageMagick/ImageMagick/discussions">Community</a>
+        </li>
+        <li class="nav-item">
+          <iframe src="https://github.com/sponsors/ImageMagick/button" title="Sponsor ImageMagick" height="35" width="107" style="border: 0;"></iframe>
+        </li>
+      </ul>
+      <form class="d-flex form-inline" action="search.html">
+        <input class="form-control me-2" type="text" name="q" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-success" type="submit" name="sa">Search</button>
+      </form>
     </div>
-    <form class="form-inline my-2 my-md-0" action="https://imagemagick.org/script/search.php">
-      <input class="form-control mr-sm-2" type="text" name="q" placeholder="Search" aria-label="Search">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit" name="sa">Search</button>
-    </form>
-  </nav>
-  <div class="container">
-   <script async="async" src="https://localhost/pagead/js/adsbygoogle.js"></script>    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-3129977114552745"
-         data-ad-slot="6345125851"
-         data-full-width-responsive="true"
-         data-ad-format="horizontal"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-
   </div>
+  </nav>
 
-  <main role="main" class="container">
-    <div class="magick-template">
-<div class="magick-header">
-<h1 class="text-center">PerlMagick Image API for Perl</h1>
-<p class="text-center"><a href="perl-magick.html#installation">Installation</a> • <a href="perl-magick.html#overview">Overview</a> • <a href="perl-magick.html#example">Example Script</a> • <a href="perl-magick.html#read">Read or Write an Image</a> • <a href="perl-magick.html#manipulate">Manipulate an Image</a> • <a href="perl-magick.html#set-attribute">Set an Image Attribute</a> • <a href="perl-magick.html#get-attribute">Get an Image Attribute</a> • <a href="perl-magick.html#compare">Compare an Image to its Reconstruction</a> • <a href="perl-magick.html#montage">Create an Image Montage</a> • <a href="perl-magick.html#blobs">Working with Blobs</a> • <a href="perl-magick.html#direct-access">Direct-access to Image Pixels</a> • <a href="perl-magick.html#miscellaneous">Miscellaneous Methods</a> • <a href="perl-magick.html#exceptions">Handling Exceptions</a>• <a href="perl-magick.html#constants">Constant</a> </p>
+<div class="col-lg-8 mx-auto p-4 py-md-5 text-body-secondary">
+  <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+    <a href="../index.html" class="d-flex align-items-center text-decoration-none">
+      <h1 class="fs-4">PerlMagick, Perl API</h1>
+    </a>
+  </header>
+
+  <main class="container">
+<div> 
+<p class="text-center"><a href="#installation">Installation</a> • <a href="#overview">Overview</a> • <a href="#example">Example Script</a> • <a href="#read">Read or Write an Image</a> • <a href="#manipulate">Manipulate an Image</a> • <a href="#set-attribute">Set an Image Attribute</a> • <a href="#get-attribute">Get an Image Attribute</a> • <a href="#compare">Compare an Image to its Reconstruction</a> • <a href="#montage">Create an Image Montage</a> • <a href="#blobs">Working with Blobs</a> • <a href="#direct-access">Direct-access to Image Pixels</a> • <a href="#miscellaneous">Miscellaneous Methods</a> • <a href="#exceptions">Handling Exceptions</a>• <a href="#constants">Constant</a> </p>
 
 <a class="anchor" id="introduction"></a>
-<p class="lead magick-description"><a href="download.html">PerlMagick</a> is an objected-oriented <a href="http://www.perl.com/perl/">Perl</a> interface to ImageMagick. Use the module to read, manipulate, or write an image or image sequence from within a Perl script. This makes it very suitable for Web CGI scripts. You must have ImageMagick 6.5.5 or above and Perl version 5.005_02 or greater installed on your system for PerlMagick to build properly.</p>
+<p class="lead"><a href="download.html">PerlMagick</a> is an objected-oriented <a href="http://www.perl.com/perl/">Perl</a> interface to ImageMagick. Use the module to read, manipulate, or write an image or image sequence from within a Perl script. This makes it very suitable for Web CGI scripts. You must have ImageMagick 6.5.5 or above and Perl version 5.005_02 or greater installed on your system for PerlMagick to build properly.</p>
 
-<p>There are a number of useful scripts available to show you the value of PerlMagick. You can do Web based image manipulation and conversion with <a href="https://imagemagick.org/download/perl">MagickStudio</a>, or use <a href="https://github.com/ImageMagick/ImageMagick/tree/master/PerlMagick/demo/tree.pl">L-systems</a> to create images of plants using mathematical constructs, and finally navigate through collections of thumbnail images and select the image to view with the <a href="http://webmagick.sourceforge.net/">WebMagick Image Navigator</a>.</p>
+<p>There are a number of useful scripts available to show you the value of PerlMagick. You can do Web based image manipulation and conversion with <a href="../archive/perl">MagickStudio</a>, or use <a href="https://github.com/ImageMagick/ImageMagick/tree/main/PerlMagick/demo/tree.pl">L-systems</a> to create images of plants using mathematical constructs, and finally navigate through collections of thumbnail images and select the image to view with the <a href="../index.html">WebMagick Image Navigator</a>.</p>
 
 <p>You can try PerlMagick from your Web browser at the <a href="../MagickStudio/scripts/MagickStudio.cgi">ImageMagick Studio</a>. Or, you can see <a href="examples.html">examples</a> of select PerlMagick functions.</p>
 
@@ -106,63 +151,68 @@
 
 <p>Is PerlMagick available from your system RPM repository?  For example, on our CentOS system, we install PerlMagick thusly:</p>
 
-<pre class="highlight"><code>yum install ImageMagick-perl
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>yum install ImageMagick-perl
+</samp></pre>
 
-<p>If not, you must install PerlMagick from the ImageMagick source distribution.  Download the latest <a href="https://imagemagick.org/download/ImageMagick.tar.gz">source</a> release.</p>
+<p>If not, you must install PerlMagick from the ImageMagick source distribution.  Download the latest <a href="../archive/ImageMagick.tar.gz">source</a> release.</p>
 
 <p>Unpack the distribution with this command:</p>
 
-<pre class="highlight"><code>tar xvzf ImageMagick.tar.gz
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>tar xvzf ImageMagick.tar.gz
+</samp></pre>
 
 <p>Next configure and compile ImageMagick:</p>
 
-<pre><span class="crtprompt">$ </span><span class='crtin'>cd ImageMagick-7.0.10<br/>$ ./configure -with-perl<br/>$ make</span></pre>
+<ul><pre class="bg-light text-dark"><code><span class="crtprompt"><br/>$ </span><span class='crtin'>cd ImageMagick-7.1.1<br/>$ ./configure -with-perl<br/>$ make</span></code></pre></ul>
 <p>If ImageMagick / PerlMagick configured and compiled without complaint, you are ready to install it on your system.  Administrator privileges are required to install.  To install, type</p>
 
-<pre class="highlight"><code>sudo make install
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>sudo make install
+</samp></pre>
 
 <p>You may need to configure the dynamic linker run-time bindings:</p>
 
-<pre class="highlight"><code>sudo ldconfig /usr/local/lib
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>sudo ldconfig /usr/local/lib
+</samp></pre>
 
 
 <p>Finally, verify the PerlMagick install worked properly, type</p>
 
-<pre class="highlight"><code>perl -MImage::Magick -le 'print Image::Magick->QuantumDepth'
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>perl -MImage::Magick -le 'print Image::Magick->QuantumDepth'
+</samp></pre>
 
-<p>Congratulations, you have a working ImageMagick distribution and you are ready to use PerlMagick to <a href="https://legacy.imagemagick.org/Usage/">convert, compose, or edit</a> your images.</p>
+<p>Congratulations, you have a working ImageMagick distribution and you are ready to use PerlMagick to <a href="../index.html">convert, compose, or edit</a> your images.</p>
 
 <p><b>Windows XP / Windows 2000</b></p>
 
-<p>ImageMagick must already be installed on your system. Also, the ImageMagick source distribution for <a href="download.html">Windows 2000</a> is required. You must also have the <code>nmake</code> from the Visual C++ or J++ development environment. Copy <code>\bin\IMagick.dll</code> and <code>\bin\X11.dll</code> to a directory in your dynamic load path such as <code>c:\perl\site\5.00502</code>.</p>
+<p>ImageMagick must already be installed on your system. Also, the ImageMagick source distribution for <a href="download.html">Windows 2000</a> is required. You must also have the <samp>nmake</samp> from the Visual C++ or J++ development environment. Copy <samp>\bin\IMagick.dll</samp> and <samp>\bin\X11.dll</samp> to a directory in your dynamic load path such as <samp>c:\perl\site\5.00502</samp>.</p>
 
 <p>Next, type</p>
 
-<pre class="highlight"><code>cd PerlMagick
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>cd PerlMagick
 perl Makefile.nt
 nmake
 nmake install
-</code></pre>
+</samp></pre>
 
-<p>See the <a href="http://www.dylanbeattie.net/magick/">PerlMagick Windows HowTo</a> page for further installation instructions.</p>
 
 <p><b>Running the Regression Tests</b></p>
 
 <p>To verify a correct installation, type</p>
 
-<pre class="highlight"><code>make test
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>make test
+</samp></pre>
 
-<p>Use <code>nmake test</code> under Windows. There are a few demonstration scripts available to exercise many of the functions PerlMagick can perform. Type</p>
+<p>Use <samp>nmake test</samp> under Windows. There are a few demonstration scripts available to exercise many of the functions PerlMagick can perform. Type</p>
 
-<pre class="highlight"><code>cd demo
+<p>Use the <samp>prove</samp> utility to execute a test from the build folder:</p>
+
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>prove --blib blib -I `pwd` -bv ./t/read.t
+</samp></pre>
+
+
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>cd demo
 make
-</code></pre>
+</samp></pre>
 
 <p>You are now ready to utilize the PerlMagick methods from within your Perl scripts.</p>
 
@@ -170,52 +220,52 @@ make
 
 <p>Any script that wants to use PerlMagick methods must first define the methods within its namespace and instantiate an image object. Do this with:</p>
 
-<pre class="highlight"><code>use Image::Magick;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>use Image::Magick;
 
 $image = Image::Magick-&gt;new;
-</code></pre>
+</samp></pre>
 
 <p>PerlMagick is <var>quantum</var> aware.  You can request a specific quantum depth when you instantiate an image object:</p>
 
-<pre class="highlight"><code>use Image::Magick::Q16;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>use Image::Magick::Q16;
 
 $image = Image::Magick::Q16-&gt;new;
-</code></pre>
+</samp></pre>
 
-<p>The new() method takes the same parameters as <a href="perl-magick.html#set-attribute">SetAttribute</a> . For example,</p>
+<p>The new() method takes the same parameters as <a href="#set-attribute">SetAttribute</a> . For example,</p>
 
-<pre class="highlight"><code>$image = Image::Magick-&gt;new(size=&gt;'384x256');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image = Image::Magick-&gt;new(size=&gt;'384x256');
+</samp></pre>
 
-<p>Next you will want to read an image or image sequence, manipulate it, and then display or write it. The input and output methods for PerlMagick are defined in <a href="perl-magick.html#read">Read or Write an Image</a>. See <a href="perl-magick.html#set-attribute">Set an Image Attribute</a> for methods that affect the way an image is read or written. Refer to <a href="perl-magick.html#manipulate">Manipulate an Image</a> for a list of methods to transform an image. <a href="perl-magick.html#get-attribute">Get an Image Attribute</a> describes how to retrieve an attribute for an image. Refer to <a href="perl-magick.html#montage">Create an Image Montage</a> for details about tiling your images as thumbnails on a background. Finally, some methods do not neatly fit into any of the categories just mentioned. Review <a href="perl-magick.html#misc">Miscellaneous Methods</a> for a list of these methods.</p>
+<p>Next you will want to read an image or image sequence, manipulate it, and then display or write it. The input and output methods for PerlMagick are defined in <a href="#read">Read or Write an Image</a>. See <a href="#set-attribute">Set an Image Attribute</a> for methods that affect the way an image is read or written. Refer to <a href="#manipulate">Manipulate an Image</a> for a list of methods to transform an image. <a href="#get-attribute">Get an Image Attribute</a> describes how to retrieve an attribute for an image. Refer to <a href="#montage">Create an Image Montage</a> for details about tiling your images as thumbnails on a background. Finally, some methods do not neatly fit into any of the categories just mentioned. Review <a href="#miscellaneous">Miscellaneous Methods</a> for a list of these methods.</p>
 
-<p>Once you are finished with a PerlMagick object you should consider destroying it. Each image in an image sequence is stored in virtual memory. This can potentially add up to mebibytes of memory. Upon destroying a PerlMagick object, the memory is returned for use by other Perl methods. The recommended way to destroy an object is with <code>undef</code>:</p>
+<p>Once you are finished with a PerlMagick object you should consider destroying it. Each image in an image sequence is stored in virtual memory. This can potentially add up to mebibytes of memory. Upon destroying a PerlMagick object, the memory is returned for use by other Perl methods. The recommended way to destroy an object is with <samp>undef</samp>:</p>
 
-<pre class="highlight"><code>undef $image;
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>undef $image;
+</samp></pre>
 
-<p>To delete all the images but retain the <code>Image::Magick</code> object use</p>
+<p>To delete all the images but retain the <samp>Image::Magick</samp> object use</p>
 
-<pre class="highlight"><code>@$image = ();
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@$image = ();
+</samp></pre>
 
 <p>and finally, to delete a single image from a multi-image sequence, use</p>
 
-<pre class="highlight"><code>undef $image-&gt;[$x];
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>undef $image-&gt;[$x];
+</samp></pre>
 
 <p>The next section illustrates how to use various PerlMagick methods to manipulate an image sequence.</p>
 
-<p>Some of the PerlMagick methods require external programs such as <a href="http://www.cs.wisc.edu/~ghost/">Ghostscript</a>. This may require an explicit path in your PATH environment variable to work properly. For example (in Unix),</p>
+<p>Some of the PerlMagick methods require external programs such as <a href="http://www.cs.wisc.edu/~ghost/">Ghostscript</a>. This may require an explicit path in your PATH environment variable to work properly. For example (in Linux),</p>
 
-<pre class="highlight"><code>$ENV{PATH}' . "='/../bin:/usr/bin:/usr/local/bin';
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$ENV{PATH}' . "='/../bin:/usr/bin:/usr/local/bin';
+</samp></pre>
 
 <h2><a class="anchor" id="example"></a>Example Script</h2>
 
 <p>Here is an example script to get you started:</p>
 
-<pre class="highlight"><code>#!/usr/local/bin/perl
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>#!/usr/local/bin/perl
 use Image::Magick;<br />
 my($image, $x);<br />
 $image = Image::Magick-&gt;new;
@@ -225,11 +275,11 @@ $x = $image-&gt;Crop(geometry=&gt;'100x100+100+100');
 warn "$x" if "$x";<br />
 $x = $image-&gt;Write('x.png');
 warn "$x" if "$x";
-</code></pre>
+</samp></pre>
 
 <p>The script reads three images, crops them, and writes a single image as a GIF animation sequence. In many cases you may want to access individual images of a sequence. The next example illustrates how this done:</p>
 
-<pre class="pre-scrollable"><code>#!/usr/local/bin/perl
+<pre class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>#!/usr/local/bin/perl
 use Image::Magick;<br />
 my($image, $p, $q);<br />
 $image = new Image::Magick;
@@ -247,70 +297,71 @@ $p-&gt;Draw(stroke=&gt;'red', primitive=&gt;'rectangle', points=&gt;20,20 100,10
 $q = $p-&gt;Montage();
 undef $image;
 $q-&gt;Write('x.miff');
-</code></pre>
+</samp></pre>
 
 <p>Suppose you want to start out with a 100 by 100 pixel white canvas with a red pixel in the center. Try</p>
 
-<pre class="highlight"><code>$image = Image::Magick-&gt;new;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image = Image::Magick-&gt;new;
 $image-&gt;Set(size=&gt;'100x100');
 $image-&gt;ReadImage('canvas:white');
 $image-&gt;Set('pixel[49,49]'=&gt;'red');
-</code></pre>
+</samp></pre>
 
 <p>Here we reduce the intensity of the red component at (1,1) by half:</p>
 
-<pre class="highlight"><code>@pixels = $image-&gt;GetPixel(x=&gt;1,y=&gt;1);
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@pixels = $image-&gt;GetPixel(x=&gt;1,y=&gt;1);
 $pixels[0]*=0.5;
 $image-&gt;SetPixel(x=&gt;1,y=&gt;1,color=&gt;\@pixels);
-</code></pre>
+</samp></pre>
 
 <p>Or suppose you want to convert your color image to grayscale:</p>
 
-<pre class="highlight"><code>$image-&gt;Quantize(colorspace=&gt;'gray');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Quantize(colorspace=&gt;'gray');
+</samp></pre>
 
 <p>Let's annotate an image with a Taipai TrueType font:</p>
 
-<pre class="highlight"><code>$text = 'Works like magick!';
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$text = 'Works like magick!';
 $image-&gt;Annotate(font=&gt;'kai.ttf', pointsize=&gt;40, fill=&gt;'green', text=&gt;$text);
-</code></pre>
+</samp></pre>
 
 <p>Perhaps you want to extract all the pixel intensities from an image and write them to STDOUT:</p>
 
-<pre class="highlight"><code>@pixels = $image-&gt;GetPixels(map=&gt;'I', height=&gt;$height, width=&gt;$width, normalize=&gt;true);
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@pixels = $image-&gt;GetPixels(map=&gt;'I', height=&gt;$height, width=&gt;$width, normalize=&gt;true);
 binmode STDOUT;
 print pack('B*',join('',@pixels));
-</code></pre>
+</samp></pre>
 
 <p>Other clever things you can do with a PerlMagick objects include</p>
 
-<pre class="highlight"><code>$i = $#$p"+1";   # return the number of images associated with object p
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$i = $#$p"+1";   # return the number of images associated with object p
 push(@$q, @$p);  # push the images from object p onto object q
 @$p = ();        # delete the images but not the object p
 $p-&gt;Convolve([1, 2, 1, 2, 4, 2, 1, 2, 1]);   # 3x3 Gaussian kernel
-</code></pre>
+</samp></pre>
 
   <h2><a class="anchor" id="read"></a>Read or Write an Image</h2>
 
 <p>Use the methods listed below to either read, write, or display an image or image sequence:</p>
 
-<table class="table table-sm table-hover">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
 <caption>Read or Write Methods</caption>
-<colgroup>
-  <col width="20%" />
-  <col width="20%" />
-  <col width="20%" />
-  <col width="40%" />
-</colgroup>
-<tbody>
-
+<thead>
+  <colgroup>
+    <col width="20%" />
+    <col width="20%" />
+    <col width="20%" />
+    <col width="40%" />
+  </colgroup>
   <tr>
     <th>Method</th>
     <th>Parameters</th>
     <th>Return Value</th>
     <th>Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>Read</td>
     <td>one or more filenames</td>
@@ -341,39 +392,39 @@ $p-&gt;Convolve([1, 2, 1, 2, 4, 2, 1, 2, 1]);   # 3x3 Gaussian kernel
 </tbody>
 </table>
 
-<p>For convenience, methods Write(), Display(), and Animate() can take any parameter that <a href="perl-magick.html#set-attribute">SetAttribute</a> knows about. For example,</p>
+<p>For convenience, methods Write(), Display(), and Animate() can take any parameter that <a href="#set-attribute">SetAttribute</a> knows about. For example,</p>
 
-<pre class="highlight"><code>$image-&gt;Write(filename=&gt;'image.png', compression=&gt;'None');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Write(filename=&gt;'image.png', compression=&gt;'None');
+</samp></pre>
 
-<p>Use <code>-</code> as the filename to method Read() to read from standard in or to method Write() to write to standard out:</p>
+<p>Use <samp>-</samp> as the filename to method Read() to read from standard in or to method Write() to write to standard out:</p>
 
-<pre class="highlight"><code>binmode STDOUT;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>binmode STDOUT;
 $image-&gt;Write('png:-');
-</code></pre>
+</samp></pre>
 
 <p>To read an image in the GIF format from a PERL filehandle, use:</p>
 
-<pre class="highlight"><code>$image = Image::Magick-&gt;new;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image = Image::Magick-&gt;new;
 open(IMAGE, 'image.gif');
 $image-&gt;Read(file=&gt;\*IMAGE);
 close(IMAGE);
-</code></pre>
+</samp></pre>
 
 <p>To write an image in the PNG format to a PERL filehandle, use:</p>
 
-<pre class="highlight"><code>$filename = "image.png";
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$filename = "image.png";
 open(IMAGE, ">$filename");
 $image-&gt;Write(file=&gt;\*IMAGE, filename=&gt;$filename);
 close(IMAGE);
-</code></pre>
+</samp></pre>
 
 <p>Note, reading from or writing to a Perl filehandle may fail under Windows due to different versions of the C-runtime libraries between ImageMagick and the ActiveState Perl distributions or if one of the DLL's is linked with the /MT option.  See <a href="http://msdn.microsoft.com/en-us/library/ms235460.aspx">Potential Errors Passing CRT Objects Across DLL Boundaries</a> for an explanation.</p>
 
-<p>If <code>%0Nd, %0No, or %0Nx</code> appears in the filename, it is interpreted as a printf format specification and the specification is replaced with the specified decimal, octal, or hexadecimal encoding of the scene number. For example,</p>
+<p>If <samp>%0Nd, %0No, or %0Nx</samp> appears in the filename, it is interpreted as a printf format specification and the specification is replaced with the specified decimal, octal, or hexadecimal encoding of the scene number. For example,</p>
 
-<pre class="highlight"><code>image%03d.miff
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>image%03d.miff
+</samp></pre>
 
 <p>converts files image000.miff, image001.miff, etc.</p>
 
@@ -383,21 +434,24 @@ close(IMAGE);
 
 <p>Once you create an image with, for example, method ReadImage() you may want to operate on it. Below is a list of all the image manipulations methods available to you with PerlMagick.  There are <a href="examples.html">examples</a> of select PerlMagick methods. Here is an example call to an image manipulation method:</p>
 
-<pre class="highlight"><code>$image-&gt;Crop(geometry=&gt;'100x100+10+20');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Crop(geometry=&gt;'100x100+10+20');
 $image-&gt;[$x]-&gt;Frame("100x200");
-</code></pre>
+</samp></pre>
 
 <p>And here is a list of other image manipulation methods you can call:</p>
 
-<table class="table table-sm table-hover">
+<div class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
 <caption>Image Manipulation Methods</caption>
-<tbody>
+<thead>
   <tr>
     <th>Method</th>
     <th style="width: 40%">Parameters</th>
     <th style="width: 40%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>AdaptiveBlur</td>
     <td>geometry=&gt;<i>geometry</i>, radius=&gt;<i>double</i>, sigma=&gt;<i>double</i>, bias=&gt;<i>double</i>, channel=&gt;{All, Default, Alpha, Black, Blue, CMYK, Cyan, Gray, Green, Index, Magenta, Alpha, Red, RGB, Yellow}</td>
@@ -407,7 +461,7 @@ $image-&gt;[$x]-&gt;Frame("100x200");
   <tr>
     <td>AdaptiveResize</td>
     <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, filter=&gt;{Point, Box, Triangle, Hermite, Hanning, Hamming, Blackman, Gaussian, Quadratic, Cubic, Catrom, Mitchell, Lanczos, Bessel, Sinc}, support=&gt;<i>double</i>, blur=&gt;<i>double</i></td>
-    <td>adaptively resize image using data dependant triangulation. Specify <code>blur</code> &gt; 1 for blurry or &lt; 1 for sharp</td>
+    <td>adaptively resize image using data dependant triangulation. Specify <samp>blur</samp> &gt; 1 for blurry or &lt; 1 for sharp</td>
   </tr>
 
   <tr>
@@ -442,8 +496,8 @@ $image-&gt;[$x]-&gt;Frame("100x200");
 
   <tr>
     <td>Annotate</td>
-    <td>text=&gt;<i>string</i>, font=&gt;<i>string</i>, family=&gt;<i>string</i>, style=&gt;{Normal, Italic, Oblique, Any}, stretch=&gt;{Normal, UltraCondensed, ExtraCondensed, Condensed, SemiCondensed, SemiExpanded, Expanded, ExtraExpanded, UltraExpanded}, weight=&gt;<i>integer</i>, pointsize=&gt;<i>integer</i>, density=&gt;<i>geometry</i>, stroke=&gt;<i><a href="color.html">color name</a></i>, strokewidth=&gt;<i>integer</i>, fill=&gt;<i><a href="color.html">color name</a></i>, undercolor=&gt;<i><a href="color.html">color name</a></i>, kerning=&gt;<i>float</i>, geometry=&gt;<i>geometry</i>, gravity=&gt;{NorthWest, North, NorthEast, West, Center, East, SouthWest, South, SouthEast}, antialias=&gt;{true, false}, x=&gt;<i>integer</i>, y=&gt;<i>integer</i>, affine=&gt;<i>array of float values</i>, translate=&gt;<i>float, float</i>, scale=&gt;<i>float, float</i>, rotate=&gt;<i>float</i>. skewX=&gt;<i>float</i>, skewY=&gt; <i>float</i>, align=&gt;{Left, Center, Right}, encoding=&gt;{UTF-8}, interline-spacing=&gt;<i>double</i>, interword-spacing=&gt;<i>double</i>, direction=&gt;{right-to-left, left-to-right}, decorate=&gt;{none, underline, overline, line-through}</td>
-    <td>annotate an image with text. See <a href="perl-magick.html#misc">QueryFontMetrics</a> to get font metrics without rendering any text.</td>
+    <td>text=&gt;<i>string</i>, font=&gt;<i>string</i>, family=&gt;<i>string</i>, style=&gt;{Normal, Italic, Oblique, Any}, stretch=&gt;{Normal, UltraCondensed, ExtraCondensed, Condensed, SemiCondensed, SemiExpanded, Expanded, ExtraExpanded, UltraExpanded}, weight=&gt;<i>integer</i>, pointsize=&gt;<i>integer</i>, density=&gt;<i>geometry</i>, stroke=&gt;<i><a href="color.html">color name</a></i>, strokewidth=&gt;<i>integer</i>, fill=&gt;<i><a href="color.html">color name</a></i>, undercolor=&gt;<i><a href="color.html">color name</a></i>, kerning=&gt;<i>float</i>, geometry=&gt;<i>geometry</i>, gravity=&gt;{NorthWest, North, NorthEast, West, Center, East, SouthWest, South, SouthEast}, antialias=&gt;{true, false}, x=&gt;<i>integer</i>, y=&gt;<i>integer</i>, affine=&gt;<i>array of float values</i>, translate=&gt;<i>float, float</i>, scale=&gt;<i>float, float</i>, rotate=&gt;<i>float</i>. skewX=&gt;<i>float</i>, skewY=&gt; <i>float</i>, align=&gt;{Left, Center, Right}, encoding=&gt;{UTF-8}, interline-spacing=&gt;<i>double</i>, interword-spacing=&gt;<i>double</i>, direction=&gt;{right-to-left, left-to-right}, decorate=&gt;{none, underline, overline, line-through}, word-break=&gt;{normal, break-word}</td>
+    <td>annotate an image with text. See <a href="#miscellaneous">QueryFontMetrics</a> to get font metrics without rendering any text.</td>
   </tr>
 
   <tr>
@@ -468,6 +522,12 @@ $image-&gt;[$x]-&gt;Frame("100x200");
     <td>AutoThreshold</td>
     <td>method=&gt;{Kapur, OTSU, Triangle}</td>
     <td>automatically perform image thresholding</td>
+  </tr>
+
+  <tr>
+    <td>BilateralSmoothing</td>
+    <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, intensity-sigma=&gt;<i>double</i>, spatial-sigma=&gt;<i>double</i>, channel=&gt;{All, Default, Alpha, Black, Blue, CMYK, Cyan, Gray, Green, Index, Magenta, Alpha, Red, RGB, Yellow}</td>
+    <td>a non-linear, edge-preserving, and noise-reducing smoothing filter for images.  It replaces the intensity of each pixel with a weighted average of intensity values from nearby pixels. This weight is based on a Gaussian distribution.  The weights depend not only on Euclidean distance of pixels, but also on the radiometric differences (e.g., range differences, such as color intensity, depth distance, etc.). This preserves sharp edges. The default value for the intensity and spatial sigmas are <var>2*diameter</var> and <var>0.5*diameter</var> respectively.</td>
   </tr>
 
   <tr>
@@ -623,7 +683,7 @@ $image-&gt;[$x]-&gt;Frame("100x200");
   <tr>
     <td>CopyPixels</td>
     <td>image=&gt;<i>image-handle</i>, geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, x=&gt;<i>integer</i>, y=&gt;<i>integer</i>, offset=&gt;<i>geometry</i>, gravity=&gt;{NorthWest, North, NorthEast, West, Center, East, SouthWest, South, SouthEast}, dx=&gt;<i>integer</i>, dy=&gt;<i>integer</i></td>
-    <td>copy pixels from the image as defined by the <code>width</code>x<code>height</code>+<code>x</code>+<code>y</code> to image at offset +<code>dx</code>,+<code>dy</code>.</td>
+    <td>copy pixels from the image as defined by the <samp>width</samp>x<samp>height</samp>+<samp>x</samp>+<samp>y</samp> to image at offset +<samp>dx</samp>,+<samp>dy</samp>.</td>
   </tr>
 
   <tr>
@@ -676,7 +736,7 @@ $image-&gt;[$x]-&gt;Frame("100x200");
 
   <tr>
     <td>Draw</td>
-    <td>primitive=&gt;{point, line, rectangle, arc, ellipse, circle, path, polyline, polygon, bezier, color, matte, text, @<i>filename</i>}, points=&gt;<i>string</i> , method=&gt;<i>{Point, Replace, Floodfill, FillToBorder, Reset}</i>, stroke=&gt;<i><a href="color.html">color name</a></i>, fill=&gt;<i><a href="color.html">color name</a></i>, font=&gt;<i>string</i>, pointsize=&gt;<i>integer</i>, strokewidth=&gt;<i>float</i>, antialias=&gt;{true, false}, bordercolor=&gt;<i><a href="color.html">color name</a></i>, x=&gt;<i>float</i>, y=&gt;<i>float</i>, dash-offset=&gt;<i>float</i>, dash-pattern=&gt;<i>array of float values</i>, affine=&gt;<i>array of float values</i>, translate=&gt;<i>float, float</i>, scale=&gt;<i>float, float</i>, rotate=&gt;<i>float</i>,  skewX=&gt;<i>float</i>, skewY=&gt;<i>float</i>, interpolate=&gt;{undefined, average, bicubic, bilinear, mesh, nearest-neighbor, spline}, kerning=&gt;<i>float</i>, text=&gt;<i>string</i>, vector-graphics=&gt;<i>string</i>, interline-spacing=&gt;<i>double</i>, interword-spacing=&gt;<i>double</i>, direction=&gt;{right-to-left, left-to-right}</td>
+    <td>primitive=&gt;{point, line, rectangle, arc, ellipse, circle, path, polyline, polygon, bezier, color, matte, text, @<i>filename</i>}, points=&gt;<i>string</i> , method=&gt;<i>{Point, Replace, Floodfill, FillToBorder, Reset}</i>, stroke=&gt;<i><a href="color.html">color name</a></i>, fill=&gt;<i><a href="color.html">color name</a></i>, font=&gt;<i>string</i>, pointsize=&gt;<i>integer</i>, strokewidth=&gt;<i>float</i>, antialias=&gt;{true, false}, bordercolor=&gt;<i><a href="color.html">color name</a></i>, x=&gt;<i>float</i>, y=&gt;<i>float</i>, dash-offset=&gt;<i>float</i>, dash-pattern=&gt;<i>array of float values</i>, affine=&gt;<i>array of float values</i>, translate=&gt;<i>float, float</i>, scale=&gt;<i>float, float</i>, rotate=&gt;<i>float</i>,  skewX=&gt;<i>float</i>, skewY=&gt;<i>float</i>, interpolate=&gt;{undefined, average, bicubic, bilinear, mesh, nearest-neighbor, spline}, kerning=&gt;<i>float</i>, text=&gt;<i>string</i>, vector-graphics=&gt;<i>string</i>, interline-spacing=&gt;<i>double</i>, interword-spacing=&gt;<i>double</i>, direction=&gt;{right-to-left, left-to-right}, word-break=&gt;{normal, break-word}</td>
     <td>annotate an image with one or more graphic primitives.</td>
   </tr>
 
@@ -816,6 +876,12 @@ $image-&gt;[$x]-&gt;Frame("100x200");
     <td>Implode</td>
     <td>amount=&gt;<i>double</i>, interpolate=&gt;{undefined, average, bicubic, bilinear, mesh, nearest-neighbor, spline}</td>
     <td>implode image pixels about the center</td>
+  </tr>
+
+  <tr>
+    <td>Integral</td>
+    <td> </td>
+    <td>calculate the sum of values (pixel values) in the image.</td>
   </tr>
 
   <tr>
@@ -984,7 +1050,7 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
   <tr>
     <td>Profile</td>
     <td>name=&gt;<i>string</i>, profile=&gt;<i>blob</i>, rendering-intent=&gt;{Undefined, Saturation, Perceptual, Absolute, Relative}, black-point-compensation=&gt;{True, False}</td>
-    <td>add or remove ICC or IPTC image profile; name is formal name (e.g. ICC or filename; set profile to <code>''</code> to remove profile</td>
+    <td>add or remove ICC or IPTC image profile; name is formal name (e.g. ICC or filename; set profile to <samp>''</samp> to remove profile</td>
   </tr>
 
   <tr>
@@ -1020,13 +1086,13 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
   <tr>
     <td>Resample</td>
     <td>density=&gt;<i>geometry</i>, x=&gt;<i>double</i>, y=&gt;<i>double</i>, filter=&gt;{Point, Box, Triangle, Hermite, Hanning, Hamming, Blackman, Gaussian, Quadratic, Cubic, Catrom, Mitchell, Lanczos, Bessel, Sinc}, support=&gt;<i>double</i></td>
-    <td>resample image to desired resolution. Specify <code>blur</code> &gt; 1 for blurry or &lt; 1 for sharp</td>
+    <td>resample image to desired resolution. Specify <samp>blur</samp> &gt; 1 for blurry or &lt; 1 for sharp</td>
   </tr>
 
   <tr>
     <td>Resize</td>
     <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, filter=&gt;{Point, Box, Triangle, Hermite, Hanning, Hamming, Blackman, Gaussian, Quadratic, Cubic, Catrom, Mitchell, Lanczos, Bessel, Sinc}, support=&gt;<i>double</i>, blur=&gt;<i>double</i></td>
-    <td>scale image to desired size. Specify <code>blur</code> &gt; 1 for blurry or &lt; 1 for sharp</td>
+    <td>scale image to desired size. Specify <samp>blur</samp> &gt; 1 for blurry or &lt; 1 for sharp</td>
   </tr>
 
   <tr>
@@ -1121,7 +1187,7 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
   <tr>
     <td>SigmoidalContrast</td>
     <td>geometry=&gt;<i>string</i>, 'contrast'=&gt;<i>double</i>, 'mid-point'=&gt;<i>double</i> channel=&gt;{Red, RGB, All, etc.}, sharpen=&gt;{True, False}</td>
-    <td>sigmoidal non-lineraity contrast control.  Increase the contrast of the image using a sigmoidal transfer function without saturating highlights or shadows. <var>Contrast</var> indicates how much to increase the contrast (0 is none; 3 is typical; 20 is a lot);  <var>mid-point</var> indicates where midtones fall in the resultant image (0 is white; 50% is middle-gray; 100% is black). To decrease contrast, set sharpen to False.</td>
+    <td>sigmoidal non-linearity contrast control.  Increase the contrast of the image using a sigmoidal transfer function without saturating highlights or shadows. <var>Contrast</var> indicates how much to increase the contrast (0 is none; 3 is typical; 20 is a lot);  <var>mid-point</var> indicates where midtones fall in the resultant image (0 is white; 50% is middle-gray; 100% is black). To decrease contrast, set sharpen to False.</td>
   </tr>
 
   <tr>
@@ -1140,6 +1206,12 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
     <td>Solarize</td>
     <td>geometry=&gt;<i>string</i>, threshold=&gt;<i>double</i>, channel=&gt;{All, Default, Alpha, Black, Blue, CMYK, Cyan, Gray, Green, Index, Magenta, Alpha, Red, RGB, Yellow}</td>
     <td>negate all pixels above the threshold level</td>
+  </tr>
+
+  <tr>
+    <td>SortPixels</td>
+    <td><br /></td>
+    <td>sorts pixels within each scanline in ascending order of intensity.</td>
   </tr>
 
   <tr>
@@ -1162,7 +1234,7 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
 
   <tr>
     <td>Statistic</td>
-    <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, channel=&gt;{All, Default, Alpha, Black, Blue, CMYK, Cyan, Gray, Green, Index, Magenta, Alpha, Red, RGB, Yellow}, type=&gt;{Median, Mode, Mean, Maximum, Minimum, ReduceNoise, RMS}</td>
+    <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, channel=&gt;{All, Default, Alpha, Black, Blue, CMYK, Cyan, Gray, Green, Index, Magenta, Alpha, Red, RGB, Yellow}, type=&gt;{Contrast, Median, Mode, Mean, Maximum, Minimum, ReduceNoise, RMS}</td>
     <td>replace each pixel with corresponding statistic from the neighborhood.</td>
   </tr>
   <tr>
@@ -1274,30 +1346,31 @@ fill=&gt;<i><a href="color.html">color name</a></i>, channel=&gt;{All, Default, 
   </tr>
 </tbody>
 </table>
+</div>
 
-<p>Note, that the <code>geometry</code> parameter is a short cut for the <code>width</code> and <code>height</code> parameters (e.g.  <code>geometry=&gt;'106x80'</code> is equivalent to <code>width=&gt;106, height=&gt;80</code> ).</p>
+<p>Note, that the <samp>geometry</samp> parameter is a short cut for the <samp>width</samp> and <samp>height</samp> parameters (e.g.  <samp>geometry=&gt;'106x80'</samp> is equivalent to <samp>width=&gt;106, height=&gt;80</samp> ).</p>
 
-<p>You can specify <code>@filename</code> in both Annotate() and Draw(). This reads the text or graphic primitive instructions from a file on disk. For example,</p>
+<p>You can specify <samp>@filename</samp> in both Annotate() and Draw(). This reads the text or graphic primitive instructions from a file on disk. For example,</p>
 
-<pre class="highlight"><code>image-&gt;Draw(fill=&gt;'red', primitive=&gt;'rectangle',
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>image-&gt;Draw(fill=&gt;'red', primitive=&gt;'rectangle',
  points=&gt;'20,20 100,100  40,40 200,200  60,60 300,300');
-</code></pre>
+</samp></pre>
 
 <p>Is equivalent to</p>
 
-<pre class="highlight"><code>$image-&gt;Draw(fill=&gt;'red', primitive=&gt;'@draw.txt');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Draw(fill=&gt;'red', primitive=&gt;'@draw.txt');
+</samp></pre>
 
-<p>Where <code>draw.txt</code> is a file on disk that contains this:</p>
+<p>Where <samp>draw.txt</samp> is a file on disk that contains this:</p>
 
-<pre class="highlight"><code>rectangle 20, 20 100, 100
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>rectangle 20, 20 100, 100
 rectangle 40, 40 200, 200
 rectangle 60, 60 300, 300
-</code></pre>
+</samp></pre>
 
 <p>The <i>text</i> parameter for methods, Annotate(), Comment(), Draw(), and Label() can include the image filename, type, width, height, or other image attribute by embedding these special format characters:</p>
 
-<pre class="pre-scrollable"><code>%b   file size
+<pre class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>%b   file size
 %c   comment
 %d   directory
 %e   filename extension
@@ -1333,12 +1406,12 @@ rectangle 60, 60 300, 300
 %%   a percent sign
 \n   newline
 \r   carriage return
-</code></pre>
+</samp></pre>
 
 <p>For example,</p>
 
-<pre class="highlight"><code>text=&gt;"%m:%f %wx%h"
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>text=&gt;"%m:%f %wx%h"
+</samp></pre>
 
 <p>produces an annotation of <b>MIFF:bird.miff 512x480</b> for an image titled <b>bird.miff</b> and whose width is 512 and height is 480.</p>
 
@@ -1350,9 +1423,9 @@ rectangle 60, 60 300, 300
 
 <p>Use method Set() to set an image attribute. For example,</p>
 
-<pre class="highlight"><code>$image-&gt;Set(dither=&gt;'True');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Set(dither=&gt;'True');
 $image-&gt;[$x]-&gt;Set(delay=&gt;3);
-</code></pre>
+</samp></pre>
 
 <p>Where this example uses 'True' and this document says '{True, False}',
 you can use the case-insensitive strings 'True' and 'False', or you
@@ -1362,21 +1435,23 @@ can use the integers 1 and 0.</p>
 
 <p>And here is a list of all the image attributes you can set:</p>
 
-<table class="table table-sm table-hover">
-  <caption>Image Attributes</caption>
-  <tbody>
+<div class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
+<caption>Image Attributes</caption>
+<thead>
   <tr>
     <th>Attribute</th>
     <th style="width: 40%">Values</th>
     <th style="width: 40%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>adjoin</td>
     <td>{True, False}</td>
     <td>join images into a single multi-image file</td>
-  </tr>
-
+  </tr> 
   <tr>
     <td>alpha</td>
     <td>{On, Off, Opaque, Transparent, Copy, Extract, Set}</td>
@@ -1638,7 +1713,7 @@ can use the integers 1 and 0.</p>
 
   <tr>
     <td>orientation</td>
-    <td>{top-left, top-right, bottom-right, bottom-left, left-top, right-top, right-bottom, left-bottom}</td>
+    <td>{TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom}</td>
     <td>image orientation</td>
   </tr>
 
@@ -1727,6 +1802,12 @@ can use the integers 1 and 0.</p>
   </tr>
 
   <tr>
+    <td>title</td>
+    <td><i>string</i></td>
+    <td>set the image title</td>
+  </tr>
+
+  <tr>
     <td>type</td>
     <td>{Bilevel, Grayscale, GrayscaleMatte, Palette, PaletteMatte, TrueColor, TrueColorMatte, ColorSeparation, ColorSeparationMatte}</td>
     <td>image type</td>
@@ -1757,8 +1838,9 @@ can use the integers 1 and 0.</p>
   </tr>
   </tbody>
 </table>
+</div>
 
-<p>Note, that the <code>geometry</code> parameter is a short cut for the <code>width</code> and <code>height</code> parameters (e.g.  <code>geometry=&gt;'106x80'</code> is equivalent to <code>width=&gt;106, height=&gt;80</code>).</p>
+<p>Note, that the <samp>geometry</samp> parameter is a short cut for the <samp>width</samp> and <samp>height</samp> parameters (e.g.  <samp>geometry=&gt;'106x80'</samp> is equivalent to <samp>width=&gt;106, height=&gt;80</samp>).</p>
 
 <p>SetAttribute() is an alias for method Set().</p>
 
@@ -1769,21 +1851,24 @@ can use the integers 1 and 0.</p>
 
 <p>Use method Get() to get an image attribute. For example,</p>
 
-<pre class="highlight"><code>($a, $b, $c) = $image-&gt;Get('colorspace', 'magick', 'adjoin');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>($a, $b, $c) = $image-&gt;Get('colorspace', 'magick', 'adjoin');
 $width = $image-&gt;[3]-&gt;Get('columns');
-</code></pre>
+</samp></pre>
 
-<p>In addition to all the attributes listed in <a href="perl-magick.html#set-attribute">Set an Image Attribute</a> , you can get these additional attributes:</p>
+<p>In addition to all the attributes listed in <a href="#set-attribute">Set an Image Attribute</a> , you can get these additional attributes:</p>
 
-<table class="table table-sm table-hover">
-  <caption>Image Attributes</caption>
-  <tbody>
+<div class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
+<caption>Image Attributes</caption>
+<thead>
   <tr>
     <th>Attribute</th>
     <th>Values</th>
     <th style="width: 60%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>area</td>
     <td><i>integer</i></td>
@@ -2031,6 +2116,7 @@ $width = $image-&gt;[3]-&gt;Get('columns');
   </tr>
   </tbody>
 </table>
+</div>
 
 <p>GetAttribute() is an alias for method Get().</p>
 
@@ -2041,15 +2127,17 @@ $width = $image-&gt;[3]-&gt;Get('columns');
 
 <p>Mathematically and visually annotate the difference between an image and its reconstruction with the Compare() method.  The method supports these parameters:</p>
 
-<table class="table table-sm table-hover">
-  <caption>Compare Parameters</caption>
-  <tbody>
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
+<caption>Compare Parameters</caption>
+<thead>
   <tr>
     <th>Parameter</th>
     <th style="width: 40%">Values</th>
     <th style="width: 40%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>channel</td>
     <td><i>double</i></td>
@@ -2078,7 +2166,7 @@ $width = $image-&gt;[3]-&gt;Get('columns');
 
 <p>In this example, we compare the ImageMagick logo to a sharpened reconstruction:</p>
 
-<pre class="highlight"><code>use Image::Magick;
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>use Image::Magick;
 
 $logo=Image::Magick->New();
 $logo->Read('logo:');
@@ -2088,7 +2176,7 @@ $sharp->Sharpen('0x1');
 $difference=$logo->Compare(image=>$sharp, metric=>'rmse');
 print $difference->Get('error'), "\n";
 $difference->Display();
-</code></pre>
+</samp></pre>
 
 <p>In addition to the reported root mean squared error of around 0.024, a difference image is displayed so you can visually identify the difference between the images.</p>
 
@@ -2096,20 +2184,23 @@ $difference->Display();
 
 <p>Use method Montage() to create a composite image by combining several separate images. The images are tiled on the composite image with the name of the image optionally appearing just below the individual tile. For example,</p>
 
-<pre class="highlight"><code>$image-&gt;Montage(geometry=&gt;'160x160', tile=&gt;'2x2', texture=&gt;'granite:');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Montage(geometry=&gt;'160x160', tile=&gt;'2x2', texture=&gt;'granite:');
+</samp></pre>
 
 <p>And here is a list of Montage() parameters you can set:</p>
 
-<table class="table table-sm table-hover">
-  <caption>Montage Parameters</caption>
-  <tbody>
+<div class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
+<caption>Montage Parameters</caption>
+<thead>
   <tr>
     <th>Parameter</th>
     <th style="width: 40%">Values</th>
     <th style="width: 40%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>background</td>
     <td><i><a href="color.html">color name</a></i></td>
@@ -2215,8 +2306,9 @@ South, SouthEast</td>
   </tr>
   </tbody>
 </table>
+</div>
 
-<p>Note, that the <code>geometry</code> parameter is a short cut for the <code>width</code> and <code>height</code> parameters (e.g.  <code>geometry=&gt;'106x80'</code> is equivalent to <code>width=&gt;106, height=&gt;80</code>).</p>
+<p>Note, that the <samp>geometry</samp> parameter is a short cut for the <samp>width</samp> and <samp>height</samp> parameters (e.g.  <samp>geometry=&gt;'106x80'</samp> is equivalent to <samp>width=&gt;106, height=&gt;80</samp>).</p>
 
 <p>MontageImage() is an alias for method Montage().</p>
 
@@ -2228,19 +2320,21 @@ South, SouthEast</td>
 format in memory instead of on disk. PerlMagick supports
 blobs in any of these image <a href="formats.html">formats</a> and provides methods to convert a blob to or from a particular image format.</p>
 
-<table class="table table-sm table-hover">
-  <caption>Blob Methods</caption>
-  <tbody>
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
+<caption>Blob Methods</caption>
+<thead>
   <tr>
     <th>Method</th>
     <th>Parameters</th>
     <th>Return Value</th>
     <th>Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>ImageToBlob</td>
-    <td>any image <a href="perl-magick.html#set-attribute">attribute</a></td>
+    <td>any image <a href="#set-attribute">attribute</a></td>
     <td>an array of image data in the respective image format</td>
     <td>convert an image or image sequence to an array of blobs</td>
   </tr>
@@ -2256,33 +2350,35 @@ blobs in any of these image <a href="formats.html">formats</a> and provides meth
 
 <p>ImageToBlob() returns the image data in their respective formats. You can then print it, save it to an ODBC database, write it to a file, or pipe it to a display program:</p>
 
-<pre class="highlight"><code>@blobs = $image-&gt;ImageToBlob();
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@blobs = $image-&gt;ImageToBlob();
 open(DISPLAY,"| display -") || die;
 binmode DISPLAY;
 print DISPLAY $blobs[0];
 close DISPLAY;
-</code></pre>
+</samp></pre>
 
 <p>Method BlobToImage() returns an image or image sequence converted from the supplied blob:</p>
 
-<pre class="highlight"><code>@blob=$db-&gt;GetImage();
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@blob=$db-&gt;GetImage();
 $image=Image::Magick-&gt;new(magick=&gt;'jpg');
 $image-&gt;BlobToImage(@blob);
-</code></pre>
+</samp></pre>
 
 <h2><a class="anchor" id="direct-access"></a>Direct-access to Image Pixels</h2>
 
 <p>Use these methods to obtain direct access to the image pixels:</p>
 
-<table class="table table-sm table-hover">
+<table class="table table-sm table-hover table-striped table-responsive caption-top">
 <caption>Direct-access to Image Pixels</caption>
-<tbody>
+<thead>
   <tr>
     <th>Method</th>
     <th>Parameters</th>
     <th style="width: 50%">Description</th>
   </tr>
+</thead>
 
+<tbody>
   <tr>
     <td>GetAuthenticPixels</td>
     <td>geometry=&gt;<i>geometry</i>, width=&gt;<i>integer</i>, height=&gt;<i>integer</i>, x=&gt;<i>integer</i>, y=&gt;<i>integer</i></td>
@@ -2320,17 +2416,17 @@ $image-&gt;BlobToImage(@blob);
 
 <p>The Append() method append a set of images. For example,</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Append(stack=&gt;{true,false});
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Append(stack=&gt;{true,false});
+</samp></pre>
 
-<p>appends all the images associated with object <code>$image</code>. By default, images are stacked left-to-right. Set <code>stack</code> to True to stack them top-to-bottom.</p>
+<p>appends all the images associated with object <samp>$image</samp>. By default, images are stacked left-to-right. Set <samp>stack</samp> to True to stack them top-to-bottom.</p>
 
 <p>The Clone() method copies a set of images. For example,</p>
 
-<pre class="highlight"><code>$q = $p-&gt;Clone();
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$q = $p-&gt;Clone();
+</samp></pre>
 
-<p>copies all the images from object <code>$p</code> to <code>$q</code>. You can use this method for single or multi-image sequences.</p>
+<p>copies all the images from object <samp>$p</samp> to <samp>$q</samp>. You can use this method for single or multi-image sequences.</p>
 
 <p>Coalesce() composites a set of images while respecting any page
 offsets and disposal methods.  GIF, MIFF, and MNG animation sequences
@@ -2339,40 +2435,40 @@ varies in size and offset.  A new image sequence is returned with all
 images the same size as the first images virtual canvas and composited
 with the next image in the sequence.. For example,</p>
 
-<pre class="highlight"><code>$q = $p-&gt;Coalesce();
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$q = $p-&gt;Coalesce();
+</samp></pre>
 
 <p>The ComplexImages() method performs complex mathematics on an image sequence. For example,</p>
 
-<pre class="highlight"><code>$p = $image-&gt;ComplexImages('conjugate');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;ComplexImages('conjugate');
+</samp></pre>
 
 <p>The EvaluateImages() method applies an arithmetic, logical or relational expression to a set of images. For example,</p>
 
 
-<pre class="highlight"><code>$p = $image-&gt;EvaluateImages('mean');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;EvaluateImages('mean');
+</samp></pre>
 
-<p>averages all the images associated with object <code>$image</code>.</p>
+<p>averages all the images associated with object <samp>$image</samp>.</p>
 
-<p>The Features() method returns features for each channel in the image in each of four directions (horizontal, vertical, left and right diagonals) for the specified distance.  The features include the angular second momentum, contrast, correlation, sum of squares: variance, inverse difference moment, sum average, sum varience, sum entropy, entropy, difference variance, difference entropy, information measures of correlation 1, information measures of correlation 2, and maximum correlation coefficient.  Values in RGB, CMYK, RGBA, or CMYKA order (depending on the image type).</p>
+<p>The Features() method returns features for each channel in the image in each of four directions (horizontal, vertical, left and right diagonals) for the specified distance.  The features include the angular second momentum, contrast, correlation, sum of squares: variance, inverse difference moment, sum average, sum variance, sum entropy, entropy, difference variance, difference entropy, information measures of correlation 1, information measures of correlation 2, and maximum correlation coefficient.  Values in RGB, CMYK, RGBA, or CMYKA order (depending on the image type).</p>
 
-<pre class="highlight"><code>@features = $image-&gt;Features(1);
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@features = $image-&gt;Features(1);
+</samp></pre>
 
 <p>The Flatten() method flattens a set of images and returns it. For example,</p>
 
-<pre class="highlight"><code>$p = $images-&gt;Flatten(background=&gt;'none');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $images-&gt;Flatten(background=&gt;'none');
 $p-&gt;Write('flatten.png');
-</code></pre>
+</samp></pre>
 
 <p>The sequence of images is replaced by a single image created by composing each image after the first over the first image.</p>
 
 <p>The Fx() method applies a mathematical expression to a set of images and returns the results. For example,</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Fx(expression=&gt;'(g+b)/2.0',channel=&gt;'red');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Fx(expression=&gt;'(g+b)/2.0',channel=&gt;'red');
 $p-&gt;Write('fx.miff');
-</code></pre>
+</samp></pre>
 
 <p>replaces the red channel with the average of the green and blue channels.</p>
 
@@ -2382,55 +2478,55 @@ $p-&gt;Write('fx.miff');
 
 <p>The Morph() method morphs a set of images. Both the image pixels and size are linearly interpolated to give the appearance of a meta-morphosis from one image to the next:</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Morph(frames=&gt;<i>integer</i>);
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Morph(frames=&gt;<i>integer</i>);
+</samp></pre>
 
 <p>where <i>frames</i> is the number of in-between images to generate.  The default is 1.</p>
 
 <p>Mosaic() creates an mosaic from an image sequence.</p>
 
-<p>Method Mogrify() is a single entry point for the image manipulation methods (<a href="perl-magick.html#manipulate">Manipulate an Image</a>). The parameters are the name of a method followed by any parameters the method may require. For example, these calls are equivalent:</p>
+<p>Method Mogrify() is a single entry point for the image manipulation methods (<a href="#manipulate">Manipulate an Image</a>). The parameters are the name of a method followed by any parameters the method may require. For example, these calls are equivalent:</p>
 
-<pre class="highlight"><code>$image-&gt;Crop('340x256+0+0');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;Crop('340x256+0+0');
 $image-&gt;Mogrify('crop', '340x256+0+0');
-</code></pre>
+</samp></pre>
 
 <p>Method MogrifyRegion() applies a transform to a region of the image. It is similar to Mogrify() but begins with the region geometry. For example, suppose you want to brighten a 100x100 region of your image at location (40, 50):</p>
 
-<pre class="highlight"><code>$image-&gt;MogrifyRegion('100x100+40+50', 'modulate', brightness=&gt;50);
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;MogrifyRegion('100x100+40+50', 'modulate', brightness=&gt;50);
+</samp></pre>
 
 <p>PerceptualHash() maps visually identical images to the same or similar hash-- useful in image retrieval, authentication, indexing, or copy detection as well as digital watermarking.  For each channel and for the sRGB and the HCLp colorspaces, 7 hash values are returned  For an sRGB images, for example, expect 42 perceptual hashes.</p>
 
-<pre class="highlight"><code>@phash = $image-&gt;PerceptualHash();</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@phash = $image-&gt;PerceptualHash();</samp></pre>
 
 <p>Ping() is a convenience method that returns information about an image without having to read the image into memory. It returns the width, height, file size in bytes, and the file format of the image. You can specify more than one filename but only one filehandle:</p>
 
-<pre class="highlight"><code>($width, $height, $size, $format) = $image-&gt;Ping('logo.png');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>($width, $height, $size, $format) = $image-&gt;Ping('logo.png');
 ($width, $height, $size, $format) = $image-&gt;Ping(file=&gt;\*IMAGE);
 ($width, $height, $size, $format) = $image-&gt;Ping(blob=&gt;$blob);
-</code></pre>
+</samp></pre>
 
 <p>This a more efficient and less memory intensive way to query if an image exists and what its characteristics are.</p>
 
 <p>Poly() builds a polynomial from the image sequence and the corresponding terms (coefficients and degree pairs):</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Poly([0.5,1.0,0.25,2.0,1.0,1.0]);
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Poly([0.5,1.0,0.25,2.0,1.0,1.0]);
+</samp></pre>
 
-<p>PreviewImage() tiles 9 thumbnails of the specified image with an image processing operation applied at varying strengths. This may be helpful pin-pointing an appropriate parameter for a particular image processing operation. Choose from these operations: <code>Rotate, Shear, Roll, Hue, Saturation, Brightness, Gamma, Spiff, Dull, Grayscale, Quantize, Despeckle, ReduceNoise, AddNoise, Sharpen, Blur, Threshold, EdgeDetect, Spread, Solarize, Shade, Raise, Segment, Swirl, Implode, Wave, OilPaint, CharcoalDrawing, JPEG</code>. Here is an example:</p>
+<p>PreviewImage() tiles 9 thumbnails of the specified image with an image processing operation applied at varying strengths. This may be helpful pin-pointing an appropriate parameter for a particular image processing operation. Choose from these operations: <samp>Rotate, Shear, Roll, Hue, Saturation, Brightness, Gamma, Spiff, Dull, Grayscale, Quantize, Despeckle, ReduceNoise, AddNoise, Sharpen, Blur, Threshold, EdgeDetect, Spread, Solarize, Shade, Raise, Segment, Swirl, Implode, Wave, OilPaint, CharcoalDrawing, JPEG</samp>. Here is an example:</p>
 
-<pre class="highlight"><code>$preview = $image-&gt;Preview('Gamma');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$preview = $image-&gt;Preview('Gamma');
 $preview-&gt;Display();
-</code></pre>
+</samp></pre>
 
 <p>To have full control over text positioning you need font metric information. Use</p>
 
-<pre class="highlight"><code>($x_ppem, $y_ppem, $ascender, $descender, $width, $height, $max_advance) =
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>($x_ppem, $y_ppem, $ascender, $descender, $width, $height, $max_advance) =
   $image-&gt;QueryFontMetrics(<i>parameters</i>);
-</code></pre>
+</samp></pre>
 
-<p>Where <i>parameters</i> is any parameter of the <a href="perl-magick.html#manipulate">Annotate</a> method. The return values are:</p>
+<p>Where <i>parameters</i> is any parameter of the <a href="#manipulate">Annotate</a> method. The return values are:</p>
 
 <ol>
   <li>character width</li>
@@ -2452,55 +2548,55 @@ $preview-&gt;Display();
 
 <p>Call QueryColor() with no parameters to return a list of known colors names or specify one or more color names to get these attributes: red, green, blue, and opacity value.</p>
 
-<pre class="highlight"><code>@colors = $image-&gt;QueryColor();
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@colors = $image-&gt;QueryColor();
 ($red, $green, $blue) = $image-&gt;QueryColor('cyan');
 ($red, $green, $blue, $alpha) = $image-&gt;QueryColor('#716baeff');
-</code></pre>
+</samp></pre>
 
 <p>QueryColorname() accepts a color value and returns its respective name or hex value;</p>
 
-<pre class="highlight"><code>$name = $image-&gt;QueryColorname('rgba(80,60,0,0)');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$name = $image-&gt;QueryColorname('rgba(80,60,0,0)');
+</samp></pre>
 
 <p>Call QueryFont() with no parameters to return a list of known fonts or specify one or more font names to get these attributes: font name, description, family, style, stretch, weight, encoding, foundry, format, metrics, and glyphs values.</p>
 
-<pre class="highlight"><code>@fonts = $image-&gt;QueryFont();
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@fonts = $image-&gt;QueryFont();
 $weight = ($image-&gt;QueryFont('Helvetica'))[5];
-</code></pre>
+</samp></pre>
 
 <p>Call QueryFormat() with no parameters to return a list of known image formats or specify one or more format names to get these attributes: adjoin, blob support, raw, decoder, encoder, description, and module.</p>
 
-<pre class="highlight"><code>@formats = $image-&gt;QueryFormat();
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@formats = $image-&gt;QueryFormat();
 ($adjoin, $blob_support, $raw, $decoder, $encoder, $description, $module) =
   $image-&gt;QueryFormat('gif');
-</code></pre>
+</samp></pre>
 
-<p>Call MagickToMime() with the image format name to get its MIME type such as <code>images/tiff</code> from <code>tif</code>.</p>
+<p>Call MagickToMime() with the image format name to get its MIME type such as <samp>images/tiff</samp> from <samp>tif</samp>.</p>
 
-<pre class="highlight"><code>$mime = $image-&gt;MagickToMime('tif');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$mime = $image-&gt;MagickToMime('tif');
+</samp></pre>
 
 <p>Use RemoteCommand() to send a command to an already running <a href="display.html">display</a> or <a href="animate.html">animate</a> application. The only parameter is the name of the image file to display or animate.</p>
 
-<pre class="highlight"><code>$image-&gt;RemoteCommand('image.jpg');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$image-&gt;RemoteCommand('image.jpg');
+</samp></pre>
 
 <p>The Smush() method smushes a set of images together. For example,</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Smush(stack=&gt;{true,false},offset=&gt;<var>integer</var>);
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Smush(stack=&gt;{true,false},offset=&gt;<var>integer</var>);
+</samp></pre>
 
-<p>smushes together all the images associated with object <code>$image</code>. By default, images are smushed left-to-right. Set <code>stack</code> to True to smushed them top-to-bottom.</p>
+<p>smushes together all the images associated with object <samp>$image</samp>. By default, images are smushed left-to-right. Set <samp>stack</samp> to True to smushed them top-to-bottom.</p>
 
 <p>Statistics() returns the image statistics for each channel in the image. The returned values are an array of depth, minima, maxima, mean, standard deviation, kurtosis, skewness, and entropy values in RGB, CMYK, RGBA, or CMYKA order (depending on the image type).</p>
 
-<pre class="highlight"><code>@statistics = $image-&gt;Statistics();
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>@statistics = $image-&gt;Statistics();
+</samp></pre>
 
 <p>Finally, the Transform() method accepts a fully-qualified geometry specification for cropping or resizing one or more images.  For example,</p>
 
-<pre class="highlight"><code>$p = $image-&gt;Transform(crop=&gt;'100x100+0+0');
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$p = $image-&gt;Transform(crop=&gt;'100x100+0+0');
+</samp></pre>
 
 <p>You can optionally add <i>Image</i> to any method name above. For example, PingImage() is an alias for method Ping().</p>
 
@@ -2510,48 +2606,48 @@ $weight = ($image-&gt;QueryFont('Helvetica'))[5];
 
 <p>Methods which return a number (e.g. Read(), Write()):</p>
 
-<pre class="highlight"><code>$x = $image-&gt;Read(...);
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$x = $image-&gt;Read(...);
 warn "$x" if "$x";      # print the error message
 $x =~ /(\d+)/;
 print $1;               # print the error number
 print 0+$x;             # print the number of images read
-</code></pre>
+</samp></pre>
 
 <p>Methods which operate on an image (e.g. Resize(), Crop()):</p>
 
-<pre class="highlight"><code>$x = $image-&gt;Crop(...);
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$x = $image-&gt;Crop(...);
 warn "$x" if "$x";      # print the error message
 $x =~ /(\d+)/;
 print $1;               # print the error number
-</code></pre>
+</samp></pre>
 
 <p>Methods which return images (EvaluateSequence(), Montage(), Clone()) should be checked for errors this way:</p>
 
-<pre class="highlight"><code>$x = $image-&gt;Montage(...);
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$x = $image-&gt;Montage(...);
 warn "$x" if !ref($x);  # print the error message
 $x =~ /(\d+)/;
 print $1;               # print the error number
-</code></pre>
+</samp></pre>
 
 <p>Here is an example error message:</p>
 
-<pre class="highlight"><code>Error 400: Memory allocation failed
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>Error 400: Memory allocation failed
+</samp></pre>
 
 <p>Review the complete list of <a href="exception.html">error and warning codes</a>.</p>
 
 <p>The following illustrates how you can use a numeric status code:</p>
 
-<pre class="highlight"><code>$x = $image-&gt;Read('rose.png');
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>$x = $image-&gt;Read('rose.png');
 $x =~ /(\d+)/;
 die "unable to continue" if ($1 == ResourceLimitError);
-</code></pre>
+</samp></pre>
 
 <h2><a class="anchor" id="constants"></a>Constants</h2>
 
 <p>PerlMagick includes these constants:</p>
 
-<pre class="pre-scrollable"><code>BlobError
+<pre class="pre-scrollable p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>BlobError
 BlobWarning
 CacheError
 CacheWarning
@@ -2593,40 +2689,41 @@ TypeWarning
 WarningException
 XServerError
 XServerWarning
-</code></pre>
+</samp></pre>
 
 <p>You can access them like this:</p>
 
-<pre class="highlight"><code>Image::Magick-&gt;QuantumDepth
-</code></pre>
+<pre class="p-3 mb-2 text-body-secondary bg-body-tertiary"><samp>Image::Magick-&gt;QuantumDepth
+</samp></pre>
 
 </div>
-    </div>
+  </div>
   </main><!-- /.container -->
-  <footer class="magick-footer">
-    <div class="container">
-    <p><a href="security-policy.html">Security</a> •
-    <a href="news.html">News</a>
+  <footer class="py-5 text-center text-body-secondary bg-body-tertiary">
+    <div class="container-fluid">
+      <a href="security-policy.html">Security</a> •
+      <a href="news.html">News</a>
      
-    <a href="perl-magick.html#"><img class="d-inline" id="wand" alt="And Now a Touch of Magick" width="16" height="16" src="../images/wand.ico"/></a>
+      <a href="#"><img class="d-inline" id="wand" alt="And Now a Touch of Magick" width="16" height="16" src="../images/wand.ico"/></a>
      
-    <a href="links.html">Related</a> •
-     <a href="sitemap.html">Sitemap</a>
+      <a href="links.html">Related</a> •
+      <a href="sitemap.html">Sitemap</a>
+   <br/>
+     <a href="support.html">Sponsor</a> •
+     <a href="cite.html">Cite</a> •
+     <a href="http://pgp.mit.edu/pks/lookup?op=get&amp;search=0x89AB63D48277377A">Public Key</a> •
+     <a href="https://imagemagick.org/script/contact.php">Contact Us</a>
+   <br/>
+     <a href="https://github.com/imagemagick/imagemagick" target="_blank" rel="noopener" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 499.36" width="2%" height="2%" role="img" focusable="false"><title>GitHub</title><path fill="currentColor" fill-rule="evenodd" d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z"/></svg></a> •
+     <a href="https://twitter.com/imagemagick" target="_blank" rel="noopener" aria-label="Twitter"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 300 300" width="2%" height="2%" role="img" focusable="false"><title>Twitter</title><path d="M178.57 127.15 290.27 0h-26.46l-97.03 110.38L89.34 0H0l117.13 166.93L0 300.25h26.46l102.4-116.59 81.8 116.59h89.34M36.01 19.54H76.66l187.13 262.13h-40.66"/></svg></a>
     <br/>
-    <a href="support.html">Sponsor</a> •
-    <a href="cite.html">Cite</a> •
-    <a href="http://pgp.mit.edu/pks/lookup?op=get&amp;search=0x89AB63D48277377A">Public Key</a> •
-    <a href="https://imagemagick.org/script/contact.php">Contact Us</a> 
-    <br/>
-    <a href="https://github.com/imagemagick/imagemagick" target="_blank" rel="noopener" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 499.36" width="2%" height="2%" role="img" focusable="false"><title>GitHub</title><path fill="currentColor" fill-rule="evenodd" d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z"/></svg></a> •
-        <a href="https://twitter.com/imagemagick" target="_blank" rel="noopener" aria-label="Twitter"><svg xmlns="http://www.w3.org/2000/svg" class="navbar-nav-svg" viewBox="0 0 512 416.32" width="2%" height="2%" role="img" focusable="false"><title>Twitter</title><path fill="currentColor" d="M160.83 416.32c193.2 0 298.92-160.22 298.92-298.92 0-4.51 0-9-.2-13.52A214 214 0 0 0 512 49.38a212.93 212.93 0 0 1-60.44 16.6 105.7 105.7 0 0 0 46.3-58.19 209 209 0 0 1-66.79 25.37 105.09 105.09 0 0 0-181.73 71.91 116.12 116.12 0 0 0 2.66 24c-87.28-4.3-164.73-46.3-216.56-109.82A105.48 105.48 0 0 0 68 159.6a106.27 106.27 0 0 1-47.53-13.11v1.43a105.28 105.28 0 0 0 84.21 103.06 105.67 105.67 0 0 1-47.33 1.84 105.06 105.06 0 0 0 98.14 72.94A210.72 210.72 0 0 1 25 370.84a202.17 202.17 0 0 1-25-1.43 298.85 298.85 0 0 0 160.83 46.92"/></svg></a>
-    <br/>
-    <small>© 1999-2020 ImageMagick Studio LLC</small></p>
-    <div>
+    <small>Copyright © 1999 ImageMagick Studio LLC</small>
+    </div>
   </footer>
+</div>
 
   <!-- Javascript assets -->
-  <script>window.jQuery || document.write('<script src="assets/jquery.slim.min.js"><\/script>')</script><script src="assets/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous">
-</body>
+  <script src="assets/magick.js" ></script>
+  </body>
 </html>
-<!-- Magick Cache 19th November 2020 23:22 -->
+<!-- Magick Cache 3rd November 2024 16:46 -->

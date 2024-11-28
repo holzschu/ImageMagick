@@ -17,7 +17,7 @@
 %                                October 1994                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -72,7 +72,7 @@
 */
 void closedir(DIR *directory)
 {
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   assert(directory != (DIR *) NULL);
   directory->pattern=DestroyString(directory->pattern);
@@ -171,10 +171,10 @@ struct dirent *readdir(DIR *directory)
   int
     status;
 
-  register char
+  char
     *p;
 
-  register int
+  int
     i;
 
   struct dsc$descriptor_s
@@ -196,7 +196,7 @@ struct dirent *readdir(DIR *directory)
   buffer[sizeof(buffer)-1]='\0';
   for (p=buffer; *p; p++)
     if (isupper((int) ((unsigned char) *p)))
-      *p=LocaleLowercase(*p);
+      *p=LocaleToLowercase(*p);
   /*
     Skip any directory component and just copy the name.
   */
@@ -246,7 +246,7 @@ MagickExport MagickBooleanType VMSIsMagickConflict(const char *magick)
     item_list[2];
 
   int
-    device_class,
+    device_class = 0,
     status;
 
   struct dsc$descriptor_s

@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -17,13 +17,14 @@
 #include "coders/coders-private.h"
 
 #define MagickSVGHeaders \
-  MagickCoderHeader("SVG", 1, "?XML") \
-  MagickCoderHeader("SVG", 1, "?xml") \
-  MagickCoderHeader("SVG", 1, "SVG") \
-  MagickCoderHeader("SVG", 1, "svg")
+  MagickExtendedCoderHeader("SVG", 1, "?XML", MagickTrue) \
+  MagickExtendedCoderHeader("SVG", 1, "?xml", MagickTrue) \
+  MagickExtendedCoderHeader("SVG", 1, "SVG", MagickTrue) \
+  MagickExtendedCoderHeader("SVG", 1, "svg", MagickTrue)
 
 #define MagickSVGAliases \
   MagickCoderAlias("SVG", "SVGZ") \
+  MagickCoderAlias("SVG", "RSVG") \
   MagickCoderAlias("SVG", "MSVG")
 
 #if defined(__cplusplus) || defined(c_plusplus)

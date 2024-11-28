@@ -17,7 +17,7 @@
 %                                 July 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -33,9 +33,36 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  Segregate our memory requirements from any program that calls our API.  This
-%  should help reduce the risk of others changing our program state or causing
-%  memory corruption.
+%  We provide these memory allocators:
+%
+%    AcquireCriticalMemory(): allocate a small memory request with
+%      AcquireMagickMemory(), however, on fail throw a fatal exception and exit.
+%      Free the memory reserve with RelinquishMagickMemory().
+%    AcquireAlignedMemory(): allocate a small memory request that is aligned
+%      on a cache line.  On fail, return NULL for possible recovery.
+%      Free the memory reserve with RelinquishMagickMemory().
+%    AcquireMagickMemory()/ResizeMagickMemory(): allocate a small to medium
+%      memory request, typically with malloc()/realloc(). On fail, return NULL
+%      for possible recovery.  Free the memory reserve with
+%      RelinquishMagickMemory().
+%    AcquireQuantumMemory()/ResizeQuantumMemory(): allocate a small to medium
+%      memory request.  This is a secure memory allocator as it accepts two
+%      parameters, count and quantum, to ensure the request does not overflow.
+%      It also check to ensure the request does not exceed the maximum memory
+%      per the security policy.  Free the memory reserve with
+%      RelinquishMagickMemory().
+%    AcquireVirtualMemory(): allocate a large memory request either in heap,
+%      memory-mapped, or memory-mapped on disk depending on whether heap
+%      allocation fails or if the request exceeds the maximum memory policy.
+%      Free the memory reserve with RelinquishVirtualMemory().
+%    ResetMagickMemory(): fills the bytes of the memory area with a constant
+%      byte.
+%    
+%  In addition, we provide hooks for your own memory constructor/destructors.
+%  You can also utilize our internal custom allocator as follows: Segregate
+%  our memory requirements from any program that calls our API.  This should
+%  help reduce the risk of others changing our program state or causing memory
+%  corruption.
 %
 %  Our custom memory allocation manager implements a best-fit allocation policy
 %  using segregated free lists.  It uses a linear distribution of size classes
@@ -172,6 +199,7 @@ typedef struct _MemoryPool
 */
 static size_t
   max_memory_request = 0,
+  max_profile_size = 0,
   virtual_anonymous_memory = 0;
 
 #if defined _MSC_VER
@@ -377,7 +405,7 @@ MagickExport void *AcquireAlignedMemory(const size_t count,const size_t quantum)
 
 static inline size_t AllocationPolicy(size_t size)
 {
-  register size_t
+  size_t
     blocksize;
 
   /*
@@ -405,7 +433,7 @@ static inline size_t AllocationPolicy(size_t size)
 
 static inline void InsertFreeBlock(void *block,const size_t i)
 {
-  register void
+  void
     *next,
     *previous;
 
@@ -432,7 +460,7 @@ static inline void InsertFreeBlock(void *block,const size_t i)
 
 static inline void RemoveFreeBlock(void *block,const size_t i)
 {
-  register void
+  void
     *next,
     *previous;
 
@@ -448,10 +476,10 @@ static inline void RemoveFreeBlock(void *block,const size_t i)
 
 static void *AcquireBlock(size_t size)
 {
-  register size_t
+  size_t
     i;
 
-  register void
+  void
     *block;
 
   /*
@@ -524,7 +552,7 @@ static void *AcquireBlock(size_t size)
 */
 MagickExport void *AcquireMagickMemory(const size_t size)
 {
-  register void
+  void
     *memory;
 
 #if !defined(MAGICKCORE_ANONYMOUS_MEMORY_SUPPORT)
@@ -537,7 +565,7 @@ MagickExport void *AcquireMagickMemory(const size_t size)
       LockSemaphoreInfo(memory_semaphore);
       if (free_segments == (DataSegmentInfo *) NULL)
         {
-          register ssize_t
+          ssize_t
             i;
 
           assert(2*sizeof(size_t) > (size_t) (~SizeMask));
@@ -598,7 +626,7 @@ MagickExport void *AcquireMagickMemory(const size_t size)
 */
 MagickExport void *AcquireCriticalMemory(const size_t size)
 {
-  register void
+  void
     *memory;
 
   /*
@@ -744,7 +772,7 @@ MagickExport MemoryInfo *AcquireVirtualMemory(const size_t count,
               MagickOffsetType
                 offset;
 
-              offset=(MagickOffsetType) lseek(file,size-1,SEEK_SET);
+              offset=(MagickOffsetType) lseek(file,(off_t) (size-1),SEEK_SET);
               if ((offset == (MagickOffsetType) (size-1)) &&
                   (write(file,"",1) == 1))
                 {
@@ -810,10 +838,10 @@ MagickExport MemoryInfo *AcquireVirtualMemory(const size_t count,
 MagickExport void *CopyMagickMemory(void *magick_restrict destination,
   const void *magick_restrict source,const size_t size)
 {
-  register const unsigned char
+  const unsigned char
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
   assert(destination != (void *) NULL);
@@ -824,14 +852,14 @@ MagickExport void *CopyMagickMemory(void *magick_restrict destination,
     switch (size)
     {
       default: return(memcpy(destination,source,size));
-      case 8: *q++=(*p++);
-      case 7: *q++=(*p++);
-      case 6: *q++=(*p++);
-      case 5: *q++=(*p++);
-      case 4: *q++=(*p++);
-      case 3: *q++=(*p++);
-      case 2: *q++=(*p++);
-      case 1: *q++=(*p++);
+      case 8: *q++=(*p++); magick_fallthrough;
+      case 7: *q++=(*p++); magick_fallthrough;
+      case 6: *q++=(*p++); magick_fallthrough;
+      case 5: *q++=(*p++); magick_fallthrough;
+      case 4: *q++=(*p++); magick_fallthrough;
+      case 3: *q++=(*p++); magick_fallthrough;
+      case 2: *q++=(*p++); magick_fallthrough;
+      case 1: *q++=(*p++); magick_fallthrough;
       case 0: return(destination);
     }
   return(memmove(destination,source,size));
@@ -858,7 +886,7 @@ MagickExport void *CopyMagickMemory(void *magick_restrict destination,
 MagickExport void DestroyMagickMemory(void)
 {
 #if defined(MAGICKCORE_ANONYMOUS_MEMORY_SUPPORT)
-  register ssize_t
+  ssize_t
     i;
 
   if (memory_semaphore == (SemaphoreInfo *) NULL)
@@ -910,10 +938,10 @@ static MagickBooleanType ExpandHeap(size_t size)
   MagickBooleanType
     mapped;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register void
+  void
     *block;
 
   size_t
@@ -1007,7 +1035,7 @@ MagickExport void GetMagickMemoryMethods(
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  GetMaxMemoryRequest() returns the max_memory_request value.
+%  GetMaxMemoryRequest() returns the max memory request value.
 %
 %  The format of the GetMaxMemoryRequest method is:
 %
@@ -1023,7 +1051,7 @@ MagickExport size_t GetMaxMemoryRequest(void)
       char
         *value;
 
-      max_memory_request=(size_t) MagickULLConstant(~0);
+      max_memory_request=(size_t) MAGICK_SSIZE_MAX;
       value=GetPolicyValue("system:max-memory-request");
       if (value != (char *) NULL)
         {
@@ -1035,7 +1063,45 @@ MagickExport size_t GetMaxMemoryRequest(void)
           value=DestroyString(value);
         }
     }
-  return(max_memory_request);
+  return(MagickMin(max_memory_request,(size_t) MAGICK_SSIZE_MAX));
+}
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
++   G e t M a x P r o f i l e S i z e                                         %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  GetMaxProfileSize() returns the max profile size value.
+%
+%  The format of the GetMaxMemoryRequest method is:
+%
+%      size_t GetMaxProfileSize(void)
+%
+*/
+MagickExport size_t GetMaxProfileSize(void)
+{
+  if (max_profile_size == 0)
+    {
+      char
+        *value;
+
+      max_profile_size=(size_t) MAGICK_SSIZE_MAX;
+      value=GetPolicyValue("system:max-profile-size");
+      if (value != (char *) NULL)
+        {
+          /*
+            The security policy sets a max profile size limit.
+          */
+          max_profile_size=StringToSizeType(value,100.0);
+          value=DestroyString(value);
+        }
+    }
+  return(MagickMin(max_profile_size,(size_t) MAGICK_SSIZE_MAX));
 }
 
 /*
@@ -1208,6 +1274,7 @@ MagickExport MemoryInfo *RelinquishVirtualMemory(MemoryInfo *memory_info)
     {
       case AlignedVirtualMemory:
       {
+        (void) ShredMagickMemory(memory_info->blob,memory_info->length);
         memory_info->blob=RelinquishAlignedMemory(memory_info->blob);
         break;
       }
@@ -1222,6 +1289,7 @@ MagickExport MemoryInfo *RelinquishVirtualMemory(MemoryInfo *memory_info)
       case UnalignedVirtualMemory:
       default:
       {
+        (void) ShredMagickMemory(memory_info->blob,memory_info->length);
         memory_info->blob=RelinquishMagickMemory(memory_info->blob);
         break;
       }
@@ -1242,26 +1310,36 @@ MagickExport MemoryInfo *RelinquishVirtualMemory(MemoryInfo *memory_info)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  ResetMagickMemory() fills the first size bytes of the memory area pointed to
-%  by memory with the constant byte c.
+%  ResetMagickMemory() fills the first size bytes of the memory area pointed to %  by memory with the constant byte c.  We use a volatile pointer when
+%  updating the byte string.  Most compilers will avoid optimizing away access
+%  to a volatile pointer, even if the pointer appears to be unused after the
+%  call.
 %
 %  The format of the ResetMagickMemory method is:
 %
-%      void *ResetMagickMemory(void *memory,int byte,const size_t size)
+%      void *ResetMagickMemory(void *memory,int c,const size_t size)
 %
 %  A description of each parameter follows:
 %
 %    o memory: a pointer to a memory allocation.
 %
-%    o byte: set the memory to this value.
+%    o c: set the memory to this value.
 %
 %    o size: size of the memory to reset.
 %
 */
-MagickExport void *ResetMagickMemory(void *memory,int byte,const size_t size)
+MagickExport void *ResetMagickMemory(void *memory,int c,const size_t size)
 {
+  volatile unsigned char
+    *p = (volatile unsigned char *) memory;
+
+  size_t
+    n = size;
+
   assert(memory != (void *) NULL);
-  return(memset(memory,byte,size));
+  while (n-- != 0)
+  	*p++=(unsigned char) c;
+  return(memory);
 }
 
 /*
@@ -1340,7 +1418,7 @@ MagickPrivate void ResetVirtualAnonymousMemory(void)
 #if defined(MAGICKCORE_ANONYMOUS_MEMORY_SUPPORT)
 static inline void *ResizeBlock(void *block,size_t size)
 {
-  register void
+  void
     *memory;
 
   if (block == (void *) NULL)
@@ -1359,7 +1437,7 @@ static inline void *ResizeBlock(void *block,size_t size)
 
 MagickExport void *ResizeMagickMemory(void *memory,const size_t size)
 {
-  register void
+  void
     *block;
 
   if (memory == (void *) NULL)
@@ -1513,4 +1591,155 @@ MagickExport void SetMagickMemoryMethods(
     memory_methods.resize_memory_handler=resize_memory_handler;
   if (destroy_memory_handler != (DestroyMemoryHandler) NULL)
     memory_methods.destroy_memory_handler=destroy_memory_handler;
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
++   S e t M a x M e m o r y R e q u e s t                                     %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SetMaxMemoryRequest() sets the max memory request value.
+%
+%  The format of the SetMaxMemoryRequest method is:
+%
+%      void SetMaxMemoryRequest(const MagickSizeType limit)
+%
+%  A description of each parameter follows:
+%
+%    o limit: the maximum memory request limit.
+%
+*/
+MagickPrivate void SetMaxMemoryRequest(const MagickSizeType limit)
+{
+  max_memory_request=MagickMin(limit,GetMaxMemoryRequest());
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
++   S e t M a x P r o f i l e S i z e                                         %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SetMaxProfileSize() sets the max profile size value.
+%
+%  The format of the SetMaxProfileSize method is:
+%
+%      void SetMaxProfileSize(const MagickSizeType limit)
+%
+%  A description of each parameter follows:
+%
+%    o limit: the maximum profile size limit.
+%
+*/
+MagickPrivate void SetMaxProfileSize(const MagickSizeType limit)
+{
+  max_profile_size=MagickMin(limit,GetMaxProfileSize());
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   S h r e d M a g i c k M e m o r y                                         %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  ShredMagickMemory() overwrites the specified memory buffer with random data.
+%  The overwrite is optional and is only required to help keep the contents of
+%  the memory buffer private.
+%
+%  The format of the ShredMagickMemory method is:
+%
+%      MagickBooleanType ShredMagickMemory(void *memory,const size_t length)
+%
+%  A description of each parameter follows.
+%
+%    o memory:  Specifies the memory buffer.
+%
+%    o length:  Specifies the length of the memory buffer.
+%
+*/
+MagickPrivate MagickBooleanType ShredMagickMemory(void *memory,
+  const size_t length)
+{
+  RandomInfo
+    *random_info;
+
+  size_t
+    quantum;
+
+  ssize_t
+    i;
+
+  static ssize_t
+    passes = -1;
+
+  StringInfo
+    *key;
+
+  if ((memory == NULL) || (length == 0))
+    return(MagickFalse);
+  if (passes == -1)
+    {
+      char
+        *property;
+
+      passes=0;
+      property=GetEnvironmentValue("MAGICK_SHRED_PASSES");
+      if (property != (char *) NULL)
+        {
+          passes=(ssize_t) StringToInteger(property);
+          property=DestroyString(property);
+        }
+      property=GetPolicyValue("system:shred");
+      if (property != (char *) NULL)
+        {
+          passes=(ssize_t) StringToInteger(property);
+          property=DestroyString(property);
+        }
+    }
+  if (passes == 0)
+    return(MagickTrue);
+  /*
+    Overwrite the memory buffer with random data.
+  */
+  quantum=(size_t) MagickMin(length,MagickMinBufferExtent);
+  random_info=AcquireRandomInfo();
+  key=GetRandomKey(random_info,quantum);
+  for (i=0; i < passes; i++)
+  {
+    size_t
+      j;
+
+    unsigned char
+      *p = (unsigned char *) memory;
+
+    for (j=0; j < length; j+=quantum)
+    {
+      if (i != 0)
+        SetRandomKey(random_info,quantum,GetStringInfoDatum(key));
+      (void) memcpy(p,GetStringInfoDatum(key),(size_t)
+        MagickMin(quantum,length-j));
+      p+=(ptrdiff_t) quantum;
+    }
+    if (j < length)
+      break;
+  }
+  key=DestroyStringInfo(key);
+  random_info=DestroyRandomInfo(random_info);
+  return(i < passes ? MagickFalse : MagickTrue);
 }

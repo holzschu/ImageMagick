@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -18,9 +18,11 @@
 
 #define MagickHEICHeaders \
   MagickCoderHeader("AVIF", 4, "ftypavif") \
+  MagickCoderHeader("AVIF", 4, "ftypavis") \
   MagickCoderHeader("HEIC", 4, "ftypheic") \
   MagickCoderHeader("HEIC", 4, "ftypheix") \
-  MagickCoderHeader("HEIC", 4, "ftypmif1")
+  MagickCoderHeader("HEIC", 4, "ftypmif1") \
+  MagickCoderHeader("HEIC", 4, "ftypmsf1")
 
 #define MagickHEICAliases \
   MagickCoderAlias("HEIC", "AVIF") \

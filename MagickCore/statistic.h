@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -46,6 +46,13 @@ typedef struct _ChannelStatistics
     skewness,
     entropy,
     median;
+
+  long double
+    sumLD,
+    M1,
+    M2,
+    M3,
+    M4;
 } ChannelStatistics;
 
 typedef struct _ChannelMoments
@@ -140,7 +147,8 @@ typedef enum
   ModeStatistic,
   NonpeakStatistic,
   RootMeanSquareStatistic,
-  StandardDeviationStatistic
+  StandardDeviationStatistic,
+  ContrastStatistic
 } StatisticType;
 
 extern MagickExport ChannelStatistics

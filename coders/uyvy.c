@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -102,10 +102,10 @@ static Image *ReadUYVYImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
   ssize_t
@@ -122,11 +122,11 @@ static Image *ReadUYVYImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   if ((image->columns == 0) || (image->rows == 0))
     ThrowReaderException(OptionError,"MustSpecifyImageSize");
@@ -137,7 +137,7 @@ static Image *ReadUYVYImage(const ImageInfo *image_info,
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(DestroyImage(image));
-  if (DiscardBlobBytes(image,image->offset) == MagickFalse)
+  if (DiscardBlobBytes(image,(MagickSizeType) image->offset) == MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
   image->depth=8;
@@ -166,11 +166,11 @@ static Image *ReadUYVYImage(const ImageInfo *image_info,
       SetPixelRed(image,ScaleCharToQuantum(y1),q);
       SetPixelGreen(image,ScaleCharToQuantum(u),q);
       SetPixelBlue(image,ScaleCharToQuantum(v),q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
       SetPixelRed(image,ScaleCharToQuantum(y2),q);
       SetPixelGreen(image,ScaleCharToQuantum(u),q);
       SetPixelBlue(image,ScaleCharToQuantum(v),q);
-      q+=GetPixelChannels(image);
+      q+=(ptrdiff_t) GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
@@ -183,7 +183,10 @@ static Image *ReadUYVYImage(const ImageInfo *image_info,
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 
@@ -299,10 +302,10 @@ static MagickBooleanType WriteUYVYImage(const ImageInfo *image_info,
     full,
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -315,7 +318,7 @@ static MagickBooleanType WriteUYVYImage(const ImageInfo *image_info,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if ((image->columns % 2) != 0)
     image->columns++;
@@ -342,8 +345,8 @@ static MagickBooleanType WriteUYVYImage(const ImageInfo *image_info,
     {
       if (full != MagickFalse)
         {
-          pixel.green=(pixel.green+GetPixelGreen(uyvy_image,p))/2;
-          pixel.blue=(pixel.blue+GetPixelBlue(uyvy_image,p))/2;
+          pixel.green=(pixel.green+(double) GetPixelGreen(uyvy_image,p))/2;
+          pixel.blue=(pixel.blue+(double) GetPixelBlue(uyvy_image,p))/2;
           (void) WriteBlobByte(image,ScaleQuantumToChar((Quantum) pixel.green));
           (void) WriteBlobByte(image,ScaleQuantumToChar((Quantum) pixel.red));
           (void) WriteBlobByte(image,ScaleQuantumToChar((Quantum) pixel.blue));
@@ -354,7 +357,7 @@ static MagickBooleanType WriteUYVYImage(const ImageInfo *image_info,
       pixel.green=(double) GetPixelGreen(uyvy_image,p);
       pixel.blue=(double) GetPixelBlue(uyvy_image,p);
       full=full == MagickFalse ? MagickTrue : MagickFalse;
-      p+=GetPixelChannels(uyvy_image);
+      p+=(ptrdiff_t) GetPixelChannels(uyvy_image);
     }
     status=SetImageProgress(image,LoadImageTag,(MagickOffsetType) y,
       image->rows);
@@ -362,6 +365,7 @@ static MagickBooleanType WriteUYVYImage(const ImageInfo *image_info,
       break;
   }
   uyvy_image=DestroyImage(uyvy_image);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

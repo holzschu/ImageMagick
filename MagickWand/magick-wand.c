@@ -23,7 +23,7 @@
 %                                 August 2003                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -120,10 +120,7 @@ WandExport MagickWand *CloneMagickWand(const MagickWand *wand)
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  clone_wand=(MagickWand *) AcquireMagickMemory(sizeof(*clone_wand));
-  if (clone_wand == (MagickWand *) NULL)
-    ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
-      wand->name);
+  clone_wand=(MagickWand *) AcquireCriticalMemory(sizeof(*clone_wand));
   (void) memset(clone_wand,0,sizeof(*clone_wand));
   clone_wand->id=AcquireWandId();
   (void) FormatLocaleString(clone_wand->name,MagickPathExtent,"%s-%.20g",
@@ -258,6 +255,9 @@ WandExport MagickBooleanType MagickClearException(MagickWand *wand)
 %
 %  MagickGetException() returns the severity, reason, and description of any
 %  error that occurs when using other methods in this API.
+%
+%  Use RelinquishMagickMemory() to free the description when its no longer in
+%  use.
 %
 %  The format of the MagickGetException method is:
 %
@@ -419,8 +419,8 @@ WandExport char *MagickQueryConfigureOption(const char *option)
   value=(char *) NULL;
   if (number_options != 0)
     value=AcquireString(configure_info[0]->value);
-  configure_info=(const ConfigureInfo **)
-    RelinquishMagickMemory((void *) configure_info);
+  configure_info=(const ConfigureInfo **) RelinquishMagickMemory((void *)
+    configure_info);
   return(value);
 }
 
@@ -449,7 +449,6 @@ WandExport char *MagickQueryConfigureOption(const char *option)
 %    o pattern: Specifies a pointer to a text string containing a pattern.
 %
 %    o number_options:  Returns the number of configure options in the list.
-%
 %
 */
 WandExport char **MagickQueryConfigureOptions(const char *pattern,
@@ -703,7 +702,6 @@ WandExport double *MagickQueryMultilineFontMetrics(MagickWand *wand,
 %
 %    o number_fonts:  Returns the number of fonts in the list.
 %
-%
 */
 WandExport char **MagickQueryFonts(const char *pattern,
   size_t *number_fonts)
@@ -786,7 +784,8 @@ WandExport char **MagickQueryFormats(const char *pattern,
 */
 WandExport void *MagickRelinquishMemory(void *memory)
 {
-  (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   return(RelinquishMagickMemory(memory));
 }
 
@@ -1015,7 +1014,29 @@ WandExport void MagickWandGenesis(void)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  MagickWandTerminus() terminates the MagickWand environment.
+%  MagickWandTerminus() is a function in the ImageMagick library that is
+%  used to clean up and release resources when shutting down an application
+%  that uses ImageMagick. This function should be called in the primary thread
+%  of the application's process during the shutdown process. It's crucial that
+%  this function is invoked only after any threads that are using ImageMagick
+%  functions have terminated.
+%
+%  ImageMagick might internally use threads via OpenMP (a method for parallel
+%  programming). As a result, it's important to ensure that any function calls
+%  into ImageMagick have completed before calling MagickWandTerminus(). This
+%  prevents issues with OpenMP worker threads accessing resources that are
+%  destroyed by this termination function.
+%
+%  If OpenMP is being used (starting from version 5.0), the OpenMP
+%  implementation itself handles starting and stopping worker threads and
+%  allocating and freeing resources using its own methods. This means that
+%  after calling MagickWandTerminus(), some OpenMP resources and worker
+%  threads might still remain allocated. To address this, the function
+%  omp_pause_resource_all(omp_pause_hard) can be invoked. This function,
+%  introduced in OpenMP version 5.0, ensures that any resources allocated by
+%  OpenMP (such as threads and thread-specific memory) are freed. It's
+%  recommended to call this function after MagickWandTerminus() has completed
+%  its execution.
 %
 %  The format of the MagickWandTerminus method is:
 %
@@ -1051,19 +1072,10 @@ WandExport void MagickWandTerminus(void)
 */
 WandExport MagickWand *NewMagickWand(void)
 {
-  const char
-    *quantum;
-
   MagickWand
     *wand;
 
-  size_t
-    depth;
-
-  depth=MAGICKCORE_QUANTUM_DEPTH;
-  quantum=GetMagickQuantumDepth(&depth);
-  if (depth != MAGICKCORE_QUANTUM_DEPTH)
-    ThrowWandFatalException(WandError,"QuantumDepthMismatch",quantum);
+  CheckMagickCoreCompatibility();
   wand=(MagickWand *) AcquireMagickMemory(sizeof(*wand));
   if (wand == (MagickWand *) NULL)
     ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",

@@ -29,7 +29,7 @@ my ($x,$y) = (50,50);
 
 foreach my $word (@words){
 
-  $image->Annotate(
+  $image->Annotate(font=>'Generic.ttf',
          pointsize => 24,
          fill      => '#000000ff', #last 2 digits transparency in hex ff=max
          text      => $word,
@@ -65,7 +65,4 @@ foreach my $word (@words){
 
 }
 
-$image->Write("show:");
-
-exit;
-
+$image->Write(magick=>'SHOW',title=>"Annotate Words");

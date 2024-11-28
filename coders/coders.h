@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -23,6 +23,7 @@
 #include "coders/art.h"
 #include "coders/ashlar.h"
 #include "coders/avs.h"
+#include "coders/bayer.h"
 #include "coders/bgr.h"
 #include "coders/bmp.h"
 #include "coders/braille.h"
@@ -69,6 +70,7 @@
   #include "coders/flif.h"
 #endif
 #include "coders/fpx.h"
+#include "coders/ftxt.h"
 #include "coders/gif.h"
 #include "coders/gradient.h"
 #include "coders/gray.h"
@@ -139,6 +141,7 @@
 #include "coders/ps.h"
 #include "coders/psd.h"
 #include "coders/pwp.h"
+#include "coders/qoi.h"
 #include "coders/raw.h"
 #include "coders/rgb.h"
 #include "coders/rgf.h"
@@ -151,6 +154,7 @@
 #include "coders/sgi.h"
 #include "coders/sixel.h"
 #include "coders/stegano.h"
+#include "coders/strimg.h"
 #include "coders/sun.h"
 #include "coders/svg.h"
 #include "coders/tga.h"
@@ -165,6 +169,9 @@
   #include "coders/ttf.h"
 #endif
 #include "coders/txt.h"
+#if defined(MAGICKCORE_UHDR_DELEGATE)
+  #include "coders/uhdr.h"
+#endif
 #include "coders/uil.h"
 #include "coders/url.h"
 #include "coders/uyvy.h"
@@ -189,9 +196,9 @@
 #include "coders/xcf.h"
 #include "coders/xpm.h"
 #include "coders/xps.h"
-#include "coders/xtrn.h"
 #if defined(MAGICKCORE_X11_DELEGATE)
   #include "coders/xwd.h"
 #endif
+#include "coders/yaml.h"
 #include "coders/ycbcr.h"
 #include "coders/yuv.h"

@@ -1,6 +1,7 @@
 // This may look like C code, but it is really -*- C++ -*-
 //
-// Copyright Dirk Lemstra 2018
+// Copyright @ 2018 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
 //
 // Definition of the security policy.
 //
@@ -28,6 +29,9 @@ namespace Magick
 
     // The memory request limit in bytes.
     static bool maxMemoryRequest(const MagickSizeType limit_);
+
+    // The maximum size of a profile in bytes.
+    static bool maxProfileSize(const MagickSizeType limit_);
 
     // The number of passes to use when shredding files.
     static bool shred(const int passes_);

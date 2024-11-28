@@ -17,7 +17,7 @@
 %                                 July 2018                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -124,7 +124,7 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
   MemoryInfo
     *cube_info;
 
-  register char
+  char
     *p;
 
   size_t
@@ -141,11 +141,11 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -240,24 +240,25 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
     }
   for (b=0; b < (ssize_t) (hald_level*hald_level); b++)
   {
-    register ssize_t
+    ssize_t
       g;
 
     if (status == MagickFalse)
       continue;
     for (g=0; g < (ssize_t) (hald_level*hald_level); g++)
     {
-      register Quantum
+      Quantum
         *magick_restrict q;
 
-      register ssize_t
+      ssize_t
         r;
 
       if (status == MagickFalse)
         continue;
-      q=QueueAuthenticPixels(image,(g % hald_level)*(hald_level*hald_level),
-        (b*hald_level)+((g/hald_level) % (hald_level*hald_level)),hald_level*
-        hald_level,1,exception);
+      q=QueueAuthenticPixels(image,(g % (ssize_t) hald_level)*((ssize_t)
+        hald_level*(ssize_t) hald_level),(b*(ssize_t) hald_level)+((g/(ssize_t)
+        hald_level) % ((ssize_t) hald_level*(ssize_t) hald_level)),
+        hald_level*hald_level,1,exception);
       if (q == (Quantum *) NULL)
         {
           status=MagickFalse;
@@ -304,14 +305,15 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
           cube[FlattenCube(cube_level,index.b,index.g,index.r)].b+scale.b*(
           cube[FlattenCube(cube_level,next.b,index.g,index.r)].b-
           cube[FlattenCube(cube_level,index.b,index.g,index.r)].b))),q);
-        q+=GetPixelChannels(image);
+        q+=(ptrdiff_t) GetPixelChannels(image);
       }
       if (SyncAuthenticPixels(image,exception) == MagickFalse)
         status=MagickFalse;
     }
   }
   cube_info=RelinquishVirtualMemory(cube_info);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
   if (image_info->scene != 0)

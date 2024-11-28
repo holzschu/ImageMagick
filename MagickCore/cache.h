@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -57,6 +57,7 @@ extern MagickExport MagickBooleanType
     const ssize_t,const ssize_t,PixelInfo *,ExceptionInfo *),
   PersistPixelCache(Image *,const char *,const MagickBooleanType,
     MagickOffsetType *,ExceptionInfo *),
+  ReshapePixelCache(Image *,const size_t,const size_t,ExceptionInfo *),
   SyncAuthenticPixels(Image *,ExceptionInfo *) magick_hot_spot;
 
 extern MagickExport MagickSizeType

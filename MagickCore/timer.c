@@ -17,7 +17,7 @@
 %                              January 1993                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -43,11 +43,14 @@
 #include "MagickCore/studio.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/locale_.h"
 #include "MagickCore/log.h"
 #include "MagickCore/memory_.h"
 #include "MagickCore/memory-private.h"
 #include "MagickCore/nt-base-private.h"
+#include "MagickCore/registry.h"
+#include "MagickCore/resource_.h"
 #include "MagickCore/string-private.h"
 #include "MagickCore/timer.h"
 #include "MagickCore/timer-private.h"
@@ -67,6 +70,12 @@ static double
 
 static void
   StopTimer(TimerInfo *);
+
+/*
+  Static declarations.
+*/
+static ssize_t
+  date_precision = -1;
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -262,11 +271,26 @@ MagickExport ssize_t FormatMagickTime(const time_t time,const size_t length,
     utc_time;
 
   assert(timestamp != (char *) NULL);
-  GetMagickUTCtime(&time,&utc_time);
+  if (date_precision == -1)
+    {
+      char
+        *limit;
+
+      date_precision=0;
+      limit=GetEnvironmentValue("MAGICK_DATE_PRECISION");
+      if (limit != (char *) NULL)
+        {
+          date_precision=StringToInteger(limit);
+          limit=DestroyString(limit);
+        }
+    }
+  GetMagickUTCTime(&time,&utc_time);
   count=FormatLocaleString(timestamp,length,
     "%04d-%02d-%02dT%02d:%02d:%02d%+03d:00",utc_time.tm_year+1900,
     utc_time.tm_mon+1,utc_time.tm_mday,utc_time.tm_hour,utc_time.tm_min,
     utc_time.tm_sec,0);
+  if ((date_precision > 0) && (date_precision < (ssize_t) strlen(timestamp)))
+    timestamp[date_precision]='\0';
   return(count);
 }
 
@@ -318,33 +342,38 @@ MagickExport double GetElapsedTime(TimerInfo *time_info)
 %
 %  GetMagickTime() returns the time as the number of seconds since the Epoch.
 %
-%  The format of the GetElapsedTime method is:
+%  The format of the GetMagickTime method is:
 %
 %      time_t GetElapsedTime(void)
 %
 */
 MagickExport time_t GetMagickTime(void)
 {
-  static const char
-    *source_date_epoch = (const char *) NULL;
+  static time_t
+    magick_epoch = (time_t) 0;
 
   static MagickBooleanType
-    epoch_initalized = MagickFalse;
+    epoch_initialized = MagickFalse;
 
-  if (epoch_initalized == MagickFalse)
+  if (epoch_initialized == MagickFalse)
     {
+      const char
+        *source_date_epoch;
+
       source_date_epoch=getenv("SOURCE_DATE_EPOCH");
-      epoch_initalized=MagickTrue;
-    }
-  if (source_date_epoch != (const char *) NULL)
-    {
-      time_t
-        epoch;
+      if (source_date_epoch != (const char *) NULL)
+        {
+          time_t
+            epoch;
 
-      epoch=(time_t) StringToDouble(source_date_epoch,(char **) NULL);
-      if ((epoch > 0) && (epoch <= time((time_t *) NULL)))
-        return(epoch);
+          epoch=(time_t) StringToMagickOffsetType(source_date_epoch,100.0);
+          if ((epoch > 0) && (epoch <= time((time_t *) NULL)))
+            magick_epoch=epoch;
+        }
+      epoch_initialized=MagickTrue;
     }
+  if (magick_epoch != 0)
+    return(magick_epoch);
   return(time((time_t *) NULL));
 }
 
@@ -446,6 +475,33 @@ MagickExport void ResetTimer(TimerInfo *time_info)
   StopTimer(time_info);
   time_info->elapsed.stop=0.0;
   time_info->user.stop=0.0;
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   S e t M a g i c k D a t e P r e c i s i o n                               %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SetMagickDatePrecision() sets the pseudo-random number generator secret key.
+%
+%  The format of the SetMagickDatePrecision method is:
+%
+%      void SetMagickDatePrecision(const unsigned long precision)
+%
+%  A description of each parameter follows:
+%
+%    o key: the date precision.
+%
+*/
+MagickPrivate void SetMagickDatePrecision(const unsigned long precision)
+{
+  date_precision=(ssize_t) precision;
 }
 
 /*
@@ -561,7 +617,7 @@ static double UserTime(void)
   return((double) (timer.tms_utime+timer.tms_stime)/sysconf(_SC_CLK_TCK));
 #else
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
-  return(NTUserTime());
+  return(NTElapsedTime());
 #else
   return((double) clock()/CLOCKS_PER_SEC);
 #endif

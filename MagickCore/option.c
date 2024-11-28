@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -43,6 +43,7 @@
 #include "MagickCore/studio.h"
 #include "MagickCore/artifact.h"
 #include "MagickCore/cache.h"
+#include "MagickCore/channel.h"
 #include "MagickCore/color.h"
 #include "MagickCore/compare.h"
 #include "MagickCore/constitute.h"
@@ -69,6 +70,7 @@
 #include "MagickCore/property.h"
 #include "MagickCore/quantize.h"
 #include "MagickCore/quantum.h"
+#include "MagickCore/registry.h"
 #include "MagickCore/resample.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/splay-tree.h"
@@ -79,6 +81,11 @@
 #include "MagickCore/utility.h"
 #include "MagickCore/visual-effects.h"
 #include "ios_error.h"
+
+/*
+  Define declarations.
+*/
+#define MetaPixelChannelBit(bit) ((ssize_t) 1 << (MetaPixelChannels+bit))
 
 /*
   ImageMagick options.
@@ -107,6 +114,7 @@ static const OptionInfo
     { "Disassociate", DisassociateAlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "Extract", ExtractAlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "Off", OffAlphaChannel, UndefinedOptionFlag, MagickFalse },
+    { "OffIfOpaque", OffIfOpaqueAlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "On", OnAlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "Opaque", OpaqueAlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "Remove", RemoveAlphaChannel, UndefinedOptionFlag, MagickFalse },
@@ -147,7 +155,7 @@ static const OptionInfo
     /* special */
     { "All", CompositeChannels, UndefinedOptionFlag, MagickFalse },
     { "Sync", SyncChannels, UndefinedOptionFlag, MagickFalse },
-    { "Default", DefaultChannels, UndefinedOptionFlag, MagickFalse },
+    { "Default", AllChannels, UndefinedOptionFlag, MagickFalse },
     /* individual channel */
     { "A", AlphaChannel, UndefinedOptionFlag, MagickFalse },
     { "Alpha", AlphaChannel, UndefinedOptionFlag, MagickFalse },
@@ -171,45 +179,134 @@ static const OptionInfo
     { "Magenta", MagentaChannel, UndefinedOptionFlag, MagickFalse },
     { "Matte", AlphaChannel, DeprecateOptionFlag, MagickTrue },/*depreciate*/
     { "Meta", MetaChannel, UndefinedOptionFlag, MagickFalse },
-    { "Opacity", AlphaChannel, DeprecateOptionFlag, MagickTrue },/*depreciate*/
+    { "Meta0", MetaPixelChannelBit(0), UndefinedOptionFlag, MagickFalse },
+    { "Meta1", MetaPixelChannelBit(1), UndefinedOptionFlag, MagickFalse },
+    { "Meta2", MetaPixelChannelBit(2), UndefinedOptionFlag, MagickFalse },
+    { "Meta3", MetaPixelChannelBit(3), UndefinedOptionFlag, MagickFalse },
+    { "Meta4", MetaPixelChannelBit(4), UndefinedOptionFlag, MagickFalse },
+    { "Meta5", MetaPixelChannelBit(5), UndefinedOptionFlag, MagickFalse },
+    { "Meta6", MetaPixelChannelBit(6), UndefinedOptionFlag, MagickFalse },
+    { "Meta7", MetaPixelChannelBit(7), UndefinedOptionFlag, MagickFalse },
+    { "Meta8", MetaPixelChannelBit(8), UndefinedOptionFlag, MagickFalse },
+    { "Meta9", MetaPixelChannelBit(9), UndefinedOptionFlag, MagickFalse },
+    { "Meta10", MetaPixelChannelBit(10), UndefinedOptionFlag, MagickFalse },
+    { "Meta11", MetaPixelChannelBit(11), UndefinedOptionFlag, MagickFalse },
+    { "Meta12", MetaPixelChannelBit(12), UndefinedOptionFlag, MagickFalse },
+    { "Meta13", MetaPixelChannelBit(13), UndefinedOptionFlag, MagickFalse },
+    { "Meta14", MetaPixelChannelBit(14), UndefinedOptionFlag, MagickFalse },
+    { "Meta15", MetaPixelChannelBit(15), UndefinedOptionFlag, MagickFalse },
+    { "Meta16", MetaPixelChannelBit(16), UndefinedOptionFlag, MagickFalse },
+    { "Meta17", MetaPixelChannelBit(17), UndefinedOptionFlag, MagickFalse },
+    { "Meta18", MetaPixelChannelBit(18), UndefinedOptionFlag, MagickFalse },
+    { "Meta19", MetaPixelChannelBit(19), UndefinedOptionFlag, MagickFalse },
+    { "Meta20", MetaPixelChannelBit(20), UndefinedOptionFlag, MagickFalse },
+    { "Meta21", MetaPixelChannelBit(21), UndefinedOptionFlag, MagickFalse },
+#if defined(MAGICKCORE_64BIT_CHANNEL_MASK_SUPPORT)
+    { "Meta22", MetaPixelChannelBit(22), UndefinedOptionFlag, MagickFalse },
+    { "Meta23", MetaPixelChannelBit(23), UndefinedOptionFlag, MagickFalse },
+    { "Meta24", MetaPixelChannelBit(24), UndefinedOptionFlag, MagickFalse },
+    { "Meta25", MetaPixelChannelBit(25), UndefinedOptionFlag, MagickFalse },
+    { "Meta26", MetaPixelChannelBit(26), UndefinedOptionFlag, MagickFalse },
+    { "Meta27", MetaPixelChannelBit(27), UndefinedOptionFlag, MagickFalse },
+    { "Meta28", MetaPixelChannelBit(28), UndefinedOptionFlag, MagickFalse },
+    { "Meta29", MetaPixelChannelBit(29), UndefinedOptionFlag, MagickFalse },
+    { "Meta30", MetaPixelChannelBit(30), UndefinedOptionFlag, MagickFalse },
+    { "Meta31", MetaPixelChannelBit(31), UndefinedOptionFlag, MagickFalse },
+    { "Meta32", MetaPixelChannelBit(32), UndefinedOptionFlag, MagickFalse },
+    { "Meta33", MetaPixelChannelBit(33), UndefinedOptionFlag, MagickFalse },
+    { "Meta34", MetaPixelChannelBit(34), UndefinedOptionFlag, MagickFalse },
+    { "Meta35", MetaPixelChannelBit(35), UndefinedOptionFlag, MagickFalse },
+    { "Meta36", MetaPixelChannelBit(36), UndefinedOptionFlag, MagickFalse },
+    { "Meta37", MetaPixelChannelBit(37), UndefinedOptionFlag, MagickFalse },
+    { "Meta38", MetaPixelChannelBit(38), UndefinedOptionFlag, MagickFalse },
+    { "Meta39", MetaPixelChannelBit(39), UndefinedOptionFlag, MagickFalse },
+    { "Meta40", MetaPixelChannelBit(40), UndefinedOptionFlag, MagickFalse },
+    { "Meta41", MetaPixelChannelBit(41), UndefinedOptionFlag, MagickFalse },
+    { "Meta42", MetaPixelChannelBit(42), UndefinedOptionFlag, MagickFalse },
+    { "Meta43", MetaPixelChannelBit(43), UndefinedOptionFlag, MagickFalse },
+    { "Meta44", MetaPixelChannelBit(44), UndefinedOptionFlag, MagickFalse },
+    { "Meta45", MetaPixelChannelBit(45), UndefinedOptionFlag, MagickFalse },
+    { "Meta46", MetaPixelChannelBit(46), UndefinedOptionFlag, MagickFalse },
+    { "Meta47", MetaPixelChannelBit(47), UndefinedOptionFlag, MagickFalse },
+    { "Meta48", MetaPixelChannelBit(48), UndefinedOptionFlag, MagickFalse },
+    { "Meta49", MetaPixelChannelBit(49), UndefinedOptionFlag, MagickFalse },
+    { "Meta50", MetaPixelChannelBit(50), UndefinedOptionFlag, MagickFalse },
+    { "Meta51", MetaPixelChannelBit(51), UndefinedOptionFlag, MagickFalse },
+    { "Meta52", MetaPixelChannelBit(52), UndefinedOptionFlag, MagickFalse },
+#endif
     { "R", RedChannel, UndefinedOptionFlag, MagickFalse },
+    { "ReadMask", ReadMaskChannel, UndefinedOptionFlag, MagickFalse },
     { "Red", RedChannel, UndefinedOptionFlag, MagickFalse },
     { "S", GreenChannel, UndefinedOptionFlag, MagickFalse },
     { "Saturation", GreenChannel, UndefinedOptionFlag, MagickFalse },
+    { "WriteMask", WriteMaskChannel, UndefinedOptionFlag, MagickFalse },
     { "Y", YellowChannel, UndefinedOptionFlag, MagickFalse },
     { "Yellow", YellowChannel, UndefinedOptionFlag, MagickFalse },
-    { "0", (ssize_t) (1L << 0), UndefinedOptionFlag, MagickFalse },
-    { "1", (ssize_t) (1L << 1), UndefinedOptionFlag, MagickFalse },
-    { "2", (ssize_t) (1L << 2), UndefinedOptionFlag, MagickFalse },
-    { "3", (ssize_t) (1L << 3), UndefinedOptionFlag, MagickFalse },
-    { "4", (ssize_t) (1L << 4), UndefinedOptionFlag, MagickFalse },
-    { "5", (ssize_t) (1L << 5), UndefinedOptionFlag, MagickFalse },
-    { "6", (ssize_t) (1L << 6), UndefinedOptionFlag, MagickFalse },
-    { "7", (ssize_t) (1L << 7), UndefinedOptionFlag, MagickFalse },
-    { "8", (ssize_t) (1L << 8), UndefinedOptionFlag, MagickFalse },
-    { "9", (ssize_t) (1L << 9), UndefinedOptionFlag, MagickFalse },
-    { "10", (ssize_t) (1L << 10), UndefinedOptionFlag, MagickFalse },
-    { "11", (ssize_t) (1L << 11), UndefinedOptionFlag, MagickFalse },
-    { "12", (ssize_t) (1L << 12), UndefinedOptionFlag, MagickFalse },
-    { "13", (ssize_t) (1L << 13), UndefinedOptionFlag, MagickFalse },
-    { "14", (ssize_t) (1L << 14), UndefinedOptionFlag, MagickFalse },
-    { "15", (ssize_t) (1L << 15), UndefinedOptionFlag, MagickFalse },
-    { "16", (ssize_t) (1L << 16), UndefinedOptionFlag, MagickFalse },
-    { "17", (ssize_t) (1L << 17), UndefinedOptionFlag, MagickFalse },
-    { "18", (ssize_t) (1L << 18), UndefinedOptionFlag, MagickFalse },
-    { "19", (ssize_t) (1L << 19), UndefinedOptionFlag, MagickFalse },
-    { "20", (ssize_t) (1L << 20), UndefinedOptionFlag, MagickFalse },
-    { "21", (ssize_t) (1L << 21), UndefinedOptionFlag, MagickFalse },
-    { "22", (ssize_t) (1L << 22), UndefinedOptionFlag, MagickFalse },
-    { "23", (ssize_t) (1L << 23), UndefinedOptionFlag, MagickFalse },
-    { "24", (ssize_t) (1L << 24), UndefinedOptionFlag, MagickFalse },
-    { "25", (ssize_t) (1L << 25), UndefinedOptionFlag, MagickFalse },
-    { "26", (ssize_t) (1L << 26), UndefinedOptionFlag, MagickFalse },
-    { "27", (ssize_t) (1L << 27), UndefinedOptionFlag, MagickFalse },
-    { "28", (ssize_t) (1L << 28), UndefinedOptionFlag, MagickFalse },
-    { "29", (ssize_t) (1L << 29), UndefinedOptionFlag, MagickFalse },
-    { "30", (ssize_t) (1L << 30), UndefinedOptionFlag, MagickFalse },
-    { "31", (ssize_t) (1L << 31), UndefinedOptionFlag, MagickFalse },
+    { "0", RedChannel, UndefinedOptionFlag, MagickFalse },
+    { "1", GreenChannel, UndefinedOptionFlag, MagickFalse },
+    { "2", BlueChannel, UndefinedOptionFlag, MagickFalse },
+    { "3", BlackChannel, UndefinedOptionFlag, MagickFalse },
+    { "4", AlphaChannel, UndefinedOptionFlag, MagickFalse },
+    { "5", IndexChannel, UndefinedOptionFlag, MagickFalse },
+    { "6", ReadMaskChannel, UndefinedOptionFlag, MagickFalse },
+    { "7", WriteMaskChannel, UndefinedOptionFlag, MagickFalse },
+    { "8", MetaChannel, UndefinedOptionFlag, MagickFalse },
+    { "9", CompositeMaskChannel, UndefinedOptionFlag, MagickFalse },
+    { "10", MetaPixelChannelBit(0), UndefinedOptionFlag, MagickFalse },
+    { "11", MetaPixelChannelBit(1), UndefinedOptionFlag, MagickFalse },
+    { "12", MetaPixelChannelBit(2), UndefinedOptionFlag, MagickFalse },
+    { "13", MetaPixelChannelBit(3), UndefinedOptionFlag, MagickFalse },
+    { "14", MetaPixelChannelBit(4), UndefinedOptionFlag, MagickFalse },
+    { "15", MetaPixelChannelBit(5), UndefinedOptionFlag, MagickFalse },
+    { "16", MetaPixelChannelBit(6), UndefinedOptionFlag, MagickFalse },
+    { "17", MetaPixelChannelBit(7), UndefinedOptionFlag, MagickFalse },
+    { "18", MetaPixelChannelBit(8), UndefinedOptionFlag, MagickFalse },
+    { "19", MetaPixelChannelBit(9), UndefinedOptionFlag, MagickFalse },
+    { "20", MetaPixelChannelBit(10), UndefinedOptionFlag, MagickFalse },
+    { "21", MetaPixelChannelBit(11), UndefinedOptionFlag, MagickFalse },
+    { "22", MetaPixelChannelBit(12), UndefinedOptionFlag, MagickFalse },
+    { "23", MetaPixelChannelBit(13), UndefinedOptionFlag, MagickFalse },
+    { "24", MetaPixelChannelBit(14), UndefinedOptionFlag, MagickFalse },
+    { "25", MetaPixelChannelBit(15), UndefinedOptionFlag, MagickFalse },
+    { "26", MetaPixelChannelBit(16), UndefinedOptionFlag, MagickFalse },
+    { "27", MetaPixelChannelBit(17), UndefinedOptionFlag, MagickFalse },
+    { "28", MetaPixelChannelBit(18), UndefinedOptionFlag, MagickFalse },
+    { "29", MetaPixelChannelBit(19), UndefinedOptionFlag, MagickFalse },
+    { "30", MetaPixelChannelBit(20), UndefinedOptionFlag, MagickFalse },
+    { "31", MetaPixelChannelBit(21), UndefinedOptionFlag, MagickFalse },
+#if defined(MAGICKCORE_64BIT_CHANNEL_MASK_SUPPORT)
+    { "32", MetaPixelChannelBit(22), UndefinedOptionFlag, MagickFalse },
+    { "33", MetaPixelChannelBit(23), UndefinedOptionFlag, MagickFalse },
+    { "34", MetaPixelChannelBit(24), UndefinedOptionFlag, MagickFalse },
+    { "35", MetaPixelChannelBit(25), UndefinedOptionFlag, MagickFalse },
+    { "36", MetaPixelChannelBit(26), UndefinedOptionFlag, MagickFalse },
+    { "37", MetaPixelChannelBit(27), UndefinedOptionFlag, MagickFalse },
+    { "38", MetaPixelChannelBit(28), UndefinedOptionFlag, MagickFalse },
+    { "39", MetaPixelChannelBit(29), UndefinedOptionFlag, MagickFalse },
+    { "40", MetaPixelChannelBit(30), UndefinedOptionFlag, MagickFalse },
+    { "41", MetaPixelChannelBit(31), UndefinedOptionFlag, MagickFalse },
+    { "42", MetaPixelChannelBit(32), UndefinedOptionFlag, MagickFalse },
+    { "43", MetaPixelChannelBit(33), UndefinedOptionFlag, MagickFalse },
+    { "44", MetaPixelChannelBit(34), UndefinedOptionFlag, MagickFalse },
+    { "45", MetaPixelChannelBit(35), UndefinedOptionFlag, MagickFalse },
+    { "46", MetaPixelChannelBit(36), UndefinedOptionFlag, MagickFalse },
+    { "47", MetaPixelChannelBit(37), UndefinedOptionFlag, MagickFalse },
+    { "48", MetaPixelChannelBit(38), UndefinedOptionFlag, MagickFalse },
+    { "49", MetaPixelChannelBit(39), UndefinedOptionFlag, MagickFalse },
+    { "50", MetaPixelChannelBit(40), UndefinedOptionFlag, MagickFalse },
+    { "51", MetaPixelChannelBit(41), UndefinedOptionFlag, MagickFalse },
+    { "52", MetaPixelChannelBit(42), UndefinedOptionFlag, MagickFalse },
+    { "53", MetaPixelChannelBit(43), UndefinedOptionFlag, MagickFalse },
+    { "54", MetaPixelChannelBit(44), UndefinedOptionFlag, MagickFalse },
+    { "55", MetaPixelChannelBit(45), UndefinedOptionFlag, MagickFalse },
+    { "56", MetaPixelChannelBit(46), UndefinedOptionFlag, MagickFalse },
+    { "57", MetaPixelChannelBit(47), UndefinedOptionFlag, MagickFalse },
+    { "58", MetaPixelChannelBit(48), UndefinedOptionFlag, MagickFalse },
+    { "59", MetaPixelChannelBit(49), UndefinedOptionFlag, MagickFalse },
+    { "60", MetaPixelChannelBit(50), UndefinedOptionFlag, MagickFalse },
+    { "61", MetaPixelChannelBit(51), UndefinedOptionFlag, MagickFalse },
+    { "62", MetaPixelChannelBit(52), UndefinedOptionFlag, MagickFalse },
+#endif
     { (char *) NULL, UndefinedChannel, UndefinedOptionFlag, MagickFalse }
   },
   ClassOptions[] =
@@ -333,6 +430,7 @@ static const OptionInfo
     { "  gaussian-blur", 0, UndefinedOptionFlag, MagickFalse },
     { "  grayscale", 0, UndefinedOptionFlag, MagickFalse },
     { "  implode", 0, UndefinedOptionFlag, MagickFalse },
+    { "  integral", 0, UndefinedOptionFlag, MagickFalse },
     { "  kmeans", 0, UndefinedOptionFlag, MagickFalse },
     { "  lat", 0, UndefinedOptionFlag, MagickFalse },
     { "  level", 0, UndefinedOptionFlag, MagickFalse },
@@ -354,6 +452,7 @@ static const OptionInfo
     { "  random-threshold", 0, UndefinedOptionFlag, MagickFalse },
     { "  range-threshold", 0, UndefinedOptionFlag, MagickFalse },
     { "  resample", 0, UndefinedOptionFlag, MagickFalse },
+    { "  reshape", 0, UndefinedOptionFlag, MagickFalse },
     { "  resize", 0, UndefinedOptionFlag, MagickFalse },
     { "  roll", 0, UndefinedOptionFlag, MagickFalse },
     { "  rotate", 0, UndefinedOptionFlag, MagickFalse },
@@ -438,6 +537,7 @@ static const OptionInfo
     { "  page", 0, UndefinedOptionFlag, MagickFalse },
     { "  region", 0, UndefinedOptionFlag, MagickFalse },
     { "  repage", 0, UndefinedOptionFlag, MagickFalse },
+    { "  reshape", 0, UndefinedOptionFlag, MagickFalse },
     { "  resize", 0, UndefinedOptionFlag, MagickFalse },
     { "  sample", 0, UndefinedOptionFlag, MagickFalse },
     { "  scale", 0, UndefinedOptionFlag, MagickFalse },
@@ -463,9 +563,11 @@ static const OptionInfo
   ColorspaceOptions[] =
   {
     { "Undefined", UndefinedColorspace, UndefinedOptionFlag, MagickTrue },
+    { "Adobe98", Adobe98Colorspace, UndefinedOptionFlag, MagickFalse },
     { "CIELab", LabColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMY", CMYColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMYK", CMYKColorspace, UndefinedOptionFlag, MagickFalse },
+    { "DisplayP3", DisplayP3Colorspace, UndefinedOptionFlag, MagickFalse },
     { "Gray", GRAYColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCL", HCLColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCLp", HCLpColorspace, UndefinedOptionFlag, MagickFalse },
@@ -484,6 +586,9 @@ static const OptionInfo
     { "Log", LogColorspace, UndefinedOptionFlag, MagickFalse },
     { "Luv", LuvColorspace, UndefinedOptionFlag, MagickFalse },
     { "OHTA", OHTAColorspace, UndefinedOptionFlag, MagickFalse },
+    { "Oklab", OklabColorspace, UndefinedOptionFlag, MagickFalse },
+    { "Oklch", OklchColorspace, UndefinedOptionFlag, MagickFalse },
+    { "ProPhoto", ProPhotoColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec601YCbCr", Rec601YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec709YCbCr", Rec709YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "RGB", RGBColorspace, UndefinedOptionFlag, MagickFalse },
@@ -535,6 +640,8 @@ static const OptionInfo
     { "-virtual-pixel", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+blur", 0L, DeprecateOptionFlag, MagickTrue },
     { "-blur", 1L, SimpleOperatorFlag, MagickFalse },
+    { "+reshape", 1L, DeprecateOptionFlag, MagickTrue },
+    { "-reshape", 1L, SimpleOperatorFlag, MagickFalse },
     { "+resize", 1L, DeprecateOptionFlag, MagickTrue },
     { "-resize", 1L, SimpleOperatorFlag, MagickFalse },
     { "(", 0L, NoImageOperatorFlag, MagickTrue },
@@ -772,7 +879,7 @@ static const OptionInfo
     { "-function", 2L,SimpleOperatorFlag | AlwaysInterpretArgsFlag, MagickFalse },
     { "+fuzz", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-fuzz", 1L, ImageInfoOptionFlag, MagickFalse },
-    { "+fx", 1L, DeprecateOptionFlag | FireOptionFlag | NeverInterpretArgsFlag, MagickTrue },
+    { "+fx", 1L, SimpleOperatorFlag | FireOptionFlag | NeverInterpretArgsFlag, MagickFalse },
     { "-fx", 1L, ListOperatorFlag | FireOptionFlag | NeverInterpretArgsFlag, MagickFalse },
     { "-gamma", 1L, SimpleOperatorFlag, MagickFalse },
     { "+gamma", 1L, SimpleOperatorFlag, MagickFalse },
@@ -790,8 +897,8 @@ static const OptionInfo
     { "-green-primary", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+hald-clut", 0L, DeprecateOptionFlag | FireOptionFlag, MagickTrue },
     { "-hald-clut", 0L, ListOperatorFlag | FireOptionFlag, MagickFalse },
-    { "+highlight-color", 0L, NonMagickOptionFlag | ImageInfoOptionFlag, MagickFalse },
-    { "-highlight-color", 1L, NonMagickOptionFlag | ImageInfoOptionFlag, MagickFalse },
+    { "+highlight-color", 0L, ImageInfoOptionFlag, MagickFalse },
+    { "-highlight-color", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+hough-lines", 1L, DeprecateOptionFlag, MagickTrue },
     { "-hough-lines", 1L, SimpleOperatorFlag, MagickTrue },
     { "+iconGeometry", 0L, NonMagickOptionFlag, MagickFalse },
@@ -808,6 +915,10 @@ static const OptionInfo
     { "-implode", 1L, SimpleOperatorFlag, MagickFalse },
     { "+insert", 0L, ListOperatorFlag | FireOptionFlag, MagickFalse },
     { "-insert", 1L, ListOperatorFlag | FireOptionFlag, MagickFalse },
+    { "+illuminant", 1L, ImageInfoOptionFlag, MagickFalse },
+    { "-illuminant", 1L, ImageInfoOptionFlag, MagickFalse },
+    { "+integral", 0L, SimpleOperatorFlag, MagickFalse },
+    { "-integral", 0L, SimpleOperatorFlag, MagickFalse },
     { "+intensity", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-intensity", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+intent", 0L, ImageInfoOptionFlag, MagickFalse },
@@ -851,8 +962,8 @@ static const OptionInfo
     { "-log", 1L, GlobalOptionFlag, MagickFalse },
     { "+loop", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-loop", 1L, ImageInfoOptionFlag, MagickFalse },
-    { "+lowlight-color", 0L, NonMagickOptionFlag | ImageInfoOptionFlag, MagickFalse },
-    { "-lowlight-color", 1L, NonMagickOptionFlag | ImageInfoOptionFlag, MagickFalse },
+    { "+lowlight-color", 0L, ImageInfoOptionFlag, MagickFalse },
+    { "-lowlight-color", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+magnify", 0L, DeprecateOptionFlag, MagickTrue },
     { "-magnify", 0L, SimpleOperatorFlag, MagickFalse },
     { "+map", 0L, ReplacedOptionFlag | ListOperatorFlag | FireOptionFlag, MagickTrue },
@@ -961,6 +1072,8 @@ static const OptionInfo
     { "-resample", 1L, SimpleOperatorFlag, MagickFalse },
     { "-respect-parenthesis", 0L, ImageInfoOptionFlag, MagickFalse },
     { "+respect-parenthesis", 0L, ImageInfoOptionFlag, MagickFalse },
+    { "-respect-parentheses", 0L, ImageInfoOptionFlag, MagickFalse },
+    { "+respect-parentheses", 0L, ImageInfoOptionFlag, MagickFalse },
     { "+reverse", 0L, DeprecateOptionFlag | FireOptionFlag, MagickTrue },
     { "-reverse", 0L, ListOperatorFlag | FireOptionFlag, MagickFalse },
     { "+roll", 1L, DeprecateOptionFlag, MagickTrue },
@@ -973,9 +1086,9 @@ static const OptionInfo
     { "+sampling-factor", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-sampling-factor", 1L, ImageInfoOptionFlag, MagickFalse },
     { "-sans0", 0L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue },
-    { "+sans0", 0L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue }, /* equivelent to 'noop' */
+    { "+sans0", 0L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue }, /* equivalent to 'noop' */
     { "+sans1", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue },
-    { "-sans1", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue }, /* equivelent to 'sans' */
+    { "-sans1", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue }, /* equivalent to 'sans' */
     { "-sans", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue },
     { "+sans", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue },
     { "-sans2", 2L, NoImageOperatorFlag | NeverInterpretArgsFlag, MagickTrue },
@@ -1027,6 +1140,8 @@ static const OptionInfo
     { "-snaps", 1L, NonMagickOptionFlag, MagickFalse },
     { "+solarize", 1L, DeprecateOptionFlag, MagickTrue },
     { "-solarize", 1L, SimpleOperatorFlag, MagickFalse },
+    { "+sort-pixels", 0L, DeprecateOptionFlag, MagickTrue },
+    { "-sort-pixels", 0L, SimpleOperatorFlag, MagickFalse },
     { "+sparse-color", 1L, DeprecateOptionFlag, MagickTrue },
     { "-sparse-color", 2L, SimpleOperatorFlag | AlwaysInterpretArgsFlag, MagickFalse },
     { "+splice", 1L, DeprecateOptionFlag, MagickTrue },
@@ -1134,6 +1249,8 @@ static const OptionInfo
     { "-window", 1L, NonMagickOptionFlag, MagickFalse },
     { "+window-group", 0L, NonMagickOptionFlag, MagickFalse },
     { "-window-group", 1L, NonMagickOptionFlag, MagickFalse },
+    { "+word-break", 0L, ImageInfoOptionFlag | DrawInfoOptionFlag, MagickFalse },
+    { "-word-break", 1L, ImageInfoOptionFlag | DrawInfoOptionFlag, MagickFalse },
     { "-write", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag | FireOptionFlag, MagickFalse },
     { "+write", 1L, NoImageOperatorFlag | NeverInterpretArgsFlag | FireOptionFlag, MagickFalse },
     { "+write-mask", 0L, SimpleOperatorFlag | NeverInterpretArgsFlag, MagickFalse },
@@ -1223,6 +1340,8 @@ static const OptionInfo
     { "RMSE", RMSECompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Saturate", SaturateCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Screen", ScreenCompositeOp, UndefinedOptionFlag, MagickFalse },
+    { "SaliencyBlend", SaliencyBlendCompositeOp, UndefinedOptionFlag, MagickFalse },
+    { "SeamlessBlend", SeamlessBlendCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "SoftBurn", SoftBurnCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "SoftDodge", SoftDodgeCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "SoftLight", SoftLightCompositeOp, UndefinedOptionFlag, MagickFalse },
@@ -1250,12 +1369,14 @@ static const OptionInfo
     { "DXT1", DXT1Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT3", DXT3Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT5", DXT5Compression, UndefinedOptionFlag, MagickFalse },
+    { "BC7", BC7Compression, UndefinedOptionFlag, MagickFalse },
     { "Fax", FaxCompression, UndefinedOptionFlag, MagickFalse },
     { "Group4", Group4Compression, UndefinedOptionFlag, MagickFalse },
     { "JBIG1", JBIG1Compression, UndefinedOptionFlag, MagickFalse },
     { "JBIG2", JBIG2Compression, UndefinedOptionFlag, MagickFalse },
     { "JPEG2000", JPEG2000Compression, UndefinedOptionFlag, MagickFalse },
     { "JPEG", JPEGCompression, UndefinedOptionFlag, MagickFalse },
+    { "LERC", LERCCompression, UndefinedOptionFlag, MagickFalse },
     { "LosslessJPEG", LosslessJPEGCompression, UndefinedOptionFlag, MagickFalse },
     { "Lossless", LosslessJPEGCompression, UndefinedOptionFlag, MagickFalse },
     { "LZMA", LZMACompression, UndefinedOptionFlag, MagickFalse },
@@ -1293,7 +1414,11 @@ static const OptionInfo
   {
     { "Undefined", UndefinedDirection, UndefinedOptionFlag, MagickTrue },
     { "right-to-left", RightToLeftDirection, UndefinedOptionFlag, MagickFalse },
+    { "RTL", RightToLeftDirection, UndefinedOptionFlag, MagickFalse },
     { "left-to-right", LeftToRightDirection, UndefinedOptionFlag, MagickFalse },
+    { "LTR", LeftToRightDirection, UndefinedOptionFlag, MagickFalse },
+    { "top-to-bottom", TopToBottomDirection, UndefinedOptionFlag, MagickFalse },
+    { "TTB", TopToBottomDirection, UndefinedOptionFlag, MagickFalse },
     { (char *) NULL, UndefinedDirection, UndefinedOptionFlag, MagickFalse }
   },
   DisposeOptions[] =
@@ -1419,6 +1544,8 @@ static const OptionInfo
     { "Lanczos2Sharp", Lanczos2SharpFilter, UndefinedOptionFlag, MagickFalse },
     { "LanczosRadius", LanczosRadiusFilter, UndefinedOptionFlag, MagickFalse },
     { "LanczosSharp", LanczosSharpFilter, UndefinedOptionFlag, MagickFalse },
+    { "MagicKernelSharp2013", MagicKernelSharp2013Filter, UndefinedOptionFlag, MagickFalse },
+    { "MagicKernelSharp2021", MagicKernelSharp2021Filter, UndefinedOptionFlag, MagickFalse },
     { "Mitchell", MitchellFilter, UndefinedOptionFlag, MagickFalse },
     { "Parzen", ParzenFilter, UndefinedOptionFlag, MagickFalse },
     { "Point", PointFilter, UndefinedOptionFlag, MagickFalse },
@@ -1465,6 +1592,22 @@ static const OptionInfo
     { "SouthWest", SouthWestGravity, UndefinedOptionFlag, MagickFalse },
     { "West", WestGravity, UndefinedOptionFlag, MagickFalse },
     { (char *) NULL, UndefinedGravity, UndefinedOptionFlag, MagickFalse }
+  },
+  IlluminantOptions[] =
+  {
+    { "Undefined", UndefinedIlluminant, UndefinedOptionFlag, MagickTrue },
+    { "A", AIlluminant, UndefinedOptionFlag, MagickFalse },
+    { "B", BIlluminant, UndefinedOptionFlag, MagickFalse },
+    { "C", CIlluminant, UndefinedOptionFlag, MagickFalse },
+    { "D50", D50Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "D55", D55Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "D65", D65Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "D75", D75Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "E", EIlluminant, UndefinedOptionFlag, MagickFalse },
+    { "F2", F2Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "F7", F7Illuminant, UndefinedOptionFlag, MagickFalse },
+    { "F11", F11Illuminant, UndefinedOptionFlag, MagickFalse },
+    { (char *) NULL, UndefinedIntent, UndefinedOptionFlag, MagickFalse }
   },
   IntentOptions[] =
   {
@@ -1621,6 +1764,7 @@ static const OptionInfo
     { "Function", MagickFunctionOptions, UndefinedOptionFlag, MagickFalse },
     { "Gradient", MagickGradientOptions, UndefinedOptionFlag, MagickFalse },
     { "Gravity", MagickGravityOptions, UndefinedOptionFlag, MagickFalse },
+    { "Illuminant", MagickIlluminantOptions, UndefinedOptionFlag, MagickFalse },
     { "Intensity", MagickPixelIntensityOptions, UndefinedOptionFlag, MagickFalse },
     { "Intent", MagickIntentOptions, UndefinedOptionFlag, MagickFalse },
     { "Interlace", MagickInterlaceOptions, UndefinedOptionFlag, MagickFalse },
@@ -1642,6 +1786,7 @@ static const OptionInfo
     { "Module", MagickModuleOptions, UndefinedOptionFlag, MagickFalse },
     { "Noise", MagickNoiseOptions, UndefinedOptionFlag, MagickFalse },
     { "Orientation", MagickOrientationOptions, UndefinedOptionFlag, MagickFalse },
+    { "Pagesize", MagickPagesizeOptions, UndefinedOptionFlag, MagickFalse },
     { "PixelChannel", MagickPixelChannelOptions, UndefinedOptionFlag, MagickFalse },
     { "PixelIntensity", MagickPixelIntensityOptions, UndefinedOptionFlag, MagickFalse },
     { "PixelMask", MagickPixelMaskOptions, UndefinedOptionFlag, MagickFalse },
@@ -1666,6 +1811,7 @@ static const OptionInfo
     { "Validate", MagickValidateOptions, UndefinedOptionFlag, MagickFalse },
     { "VirtualPixel", MagickVirtualPixelOptions, UndefinedOptionFlag, MagickFalse },
     { "Weight", MagickWeightOptions, UndefinedOptionFlag, MagickFalse },
+    { "WordBreak", MagickWordBreakOptions, UndefinedOptionFlag, MagickFalse },
     { (char *) NULL, MagickUndefinedOptions, UndefinedOptionFlag, MagickFalse }
   },
   LogEventOptions[] =
@@ -1811,7 +1957,62 @@ static const OptionInfo
     { "K", BlackPixelChannel, UndefinedOptionFlag, MagickFalse },
     { "M", MagentaPixelChannel, UndefinedOptionFlag, MagickFalse },
     { "Magenta", MagentaPixelChannel, UndefinedOptionFlag, MagickFalse },
-    { "Meta", MetaPixelChannel, UndefinedOptionFlag, MagickFalse },
+    { "Meta", MetaPixelChannels, UndefinedOptionFlag, MagickFalse },
+    { "Meta0", MetaPixelChannels+0, UndefinedOptionFlag, MagickFalse },
+    { "Meta1", MetaPixelChannels+1, UndefinedOptionFlag, MagickFalse },
+    { "Meta2", MetaPixelChannels+2, UndefinedOptionFlag, MagickFalse },
+    { "Meta3", MetaPixelChannels+3, UndefinedOptionFlag, MagickFalse },
+    { "Meta4", MetaPixelChannels+4, UndefinedOptionFlag, MagickFalse },
+    { "Meta5", MetaPixelChannels+5, UndefinedOptionFlag, MagickFalse },
+    { "Meta6", MetaPixelChannels+6, UndefinedOptionFlag, MagickFalse },
+    { "Meta7", MetaPixelChannels+7, UndefinedOptionFlag, MagickFalse },
+    { "Meta8", MetaPixelChannels+8, UndefinedOptionFlag, MagickFalse },
+    { "Meta9", MetaPixelChannels+9, UndefinedOptionFlag, MagickFalse },
+    { "Meta10", MetaPixelChannels+10, UndefinedOptionFlag, MagickFalse },
+    { "Meta11", MetaPixelChannels+11, UndefinedOptionFlag, MagickFalse },
+    { "Meta12", MetaPixelChannels+12, UndefinedOptionFlag, MagickFalse },
+    { "Meta13", MetaPixelChannels+13, UndefinedOptionFlag, MagickFalse },
+    { "Meta14", MetaPixelChannels+14, UndefinedOptionFlag, MagickFalse },
+    { "Meta15", MetaPixelChannels+15, UndefinedOptionFlag, MagickFalse },
+    { "Meta16", MetaPixelChannels+16, UndefinedOptionFlag, MagickFalse },
+    { "Meta17", MetaPixelChannels+17, UndefinedOptionFlag, MagickFalse },
+    { "Meta18", MetaPixelChannels+18, UndefinedOptionFlag, MagickFalse },
+    { "Meta19", MetaPixelChannels+19, UndefinedOptionFlag, MagickFalse },
+    { "Meta20", MetaPixelChannels+20, UndefinedOptionFlag, MagickFalse },
+    { "Meta21", MetaPixelChannels+21, UndefinedOptionFlag, MagickFalse },
+    { "Meta22", MetaPixelChannels+22, UndefinedOptionFlag, MagickFalse },
+    { "Meta23", MetaPixelChannels+23, UndefinedOptionFlag, MagickFalse },
+    { "Meta24", MetaPixelChannels+24, UndefinedOptionFlag, MagickFalse },
+    { "Meta25", MetaPixelChannels+25, UndefinedOptionFlag, MagickFalse },
+    { "Meta26", MetaPixelChannels+26, UndefinedOptionFlag, MagickFalse },
+    { "Meta27", MetaPixelChannels+27, UndefinedOptionFlag, MagickFalse },
+    { "Meta28", MetaPixelChannels+28, UndefinedOptionFlag, MagickFalse },
+    { "Meta29", MetaPixelChannels+29, UndefinedOptionFlag, MagickFalse },
+    { "Meta30", MetaPixelChannels+30, UndefinedOptionFlag, MagickFalse },
+    { "Meta31", MetaPixelChannels+31, UndefinedOptionFlag, MagickFalse },
+    { "Meta32", MetaPixelChannels+32, UndefinedOptionFlag, MagickFalse },
+    { "Meta33", MetaPixelChannels+33, UndefinedOptionFlag, MagickFalse },
+    { "Meta34", MetaPixelChannels+34, UndefinedOptionFlag, MagickFalse },
+    { "Meta35", MetaPixelChannels+35, UndefinedOptionFlag, MagickFalse },
+    { "Meta36", MetaPixelChannels+36, UndefinedOptionFlag, MagickFalse },
+    { "Meta37", MetaPixelChannels+37, UndefinedOptionFlag, MagickFalse },
+    { "Meta38", MetaPixelChannels+38, UndefinedOptionFlag, MagickFalse },
+    { "Meta39", MetaPixelChannels+39, UndefinedOptionFlag, MagickFalse },
+    { "Meta40", MetaPixelChannels+40, UndefinedOptionFlag, MagickFalse },
+    { "Meta41", MetaPixelChannels+41, UndefinedOptionFlag, MagickFalse },
+    { "Meta42", MetaPixelChannels+42, UndefinedOptionFlag, MagickFalse },
+    { "Meta43", MetaPixelChannels+43, UndefinedOptionFlag, MagickFalse },
+    { "Meta44", MetaPixelChannels+44, UndefinedOptionFlag, MagickFalse },
+    { "Meta45", MetaPixelChannels+45, UndefinedOptionFlag, MagickFalse },
+    { "Meta46", MetaPixelChannels+46, UndefinedOptionFlag, MagickFalse },
+    { "Meta47", MetaPixelChannels+47, UndefinedOptionFlag, MagickFalse },
+    { "Meta48", MetaPixelChannels+48, UndefinedOptionFlag, MagickFalse },
+    { "Meta49", MetaPixelChannels+49, UndefinedOptionFlag, MagickFalse },
+    { "Meta50", MetaPixelChannels+50, UndefinedOptionFlag, MagickFalse },
+    { "Meta51", MetaPixelChannels+51, UndefinedOptionFlag, MagickFalse },
+    { "Meta52", MetaPixelChannels+52, UndefinedOptionFlag, MagickFalse },
+    { "Meta53", MetaPixelChannels+53, UndefinedOptionFlag, MagickFalse },
+    { "Meta54", MetaPixelChannels+54, UndefinedOptionFlag, MagickFalse },
     { "O", AlphaPixelChannel, UndefinedOptionFlag, MagickFalse },
     { "R", RedPixelChannel, UndefinedOptionFlag, MagickFalse },
     { "ReadMask", ReadMaskPixelChannel, UndefinedOptionFlag, MagickFalse },
@@ -1980,6 +2181,7 @@ static const OptionInfo
   StatisticOptions[] =
   {
     { "Undefined", UndefinedStatistic, UndefinedOptionFlag, MagickTrue },
+    { "Contrast", ContrastStatistic, UndefinedOptionFlag, MagickFalse },
     { "Gradient", GradientStatistic, UndefinedOptionFlag, MagickFalse },
     { "Maximum", MaximumStatistic, UndefinedOptionFlag, MagickFalse },
     { "Mean", MeanStatistic, UndefinedOptionFlag, MagickFalse },
@@ -2077,6 +2279,7 @@ static const OptionInfo
     { "FormatsMemory", FormatsMemoryValidate, UndefinedOptionFlag, MagickFalse },
     { "Identify", IdentifyValidate, UndefinedOptionFlag, MagickFalse },
     { "ImportExport", ImportExportValidate, UndefinedOptionFlag, MagickFalse },
+    { "Magick", MagickValidate, UndefinedOptionFlag, MagickFalse },
     { "Montage", MontageValidate, UndefinedOptionFlag, MagickFalse },
     { "Stream", StreamValidate, UndefinedOptionFlag, MagickFalse },
     { "None", NoValidate, UndefinedOptionFlag, MagickFalse },
@@ -2122,6 +2325,13 @@ static const OptionInfo
     { "Heavy", 900L, UndefinedOptionFlag, MagickFalse },
     { "Black", 900L, UndefinedOptionFlag, MagickFalse },
     { (char *) NULL, 0L, UndefinedOptionFlag, MagickFalse }
+  },
+  WordBreakOptions[] =
+  {
+    { "Undefined", UndefinedWordBreakType, UndefinedOptionFlag, MagickTrue },
+    { "Normal", NormalWordBreakType, UndefinedOptionFlag, MagickFalse },
+    { "BreakWord", BreakWordBreakType, UndefinedOptionFlag, MagickFalse },
+    { (char *) NULL, UndefinedWordBreakType, UndefinedOptionFlag, MagickFalse }
   };
 
 /*
@@ -2144,7 +2354,7 @@ static const OptionInfo
 %
 %  A description of each parameter follows:
 %
-%    o image_info: the image info to recieve the cloned options.
+%    o image_info: the image info to receive the cloned options.
 %
 %    o clone_info: the source image info for options to clone.
 %
@@ -2154,11 +2364,11 @@ MagickExport MagickBooleanType CloneImageOptions(ImageInfo *image_info,
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(clone_info != (const ImageInfo *) NULL);
   assert(clone_info->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   if (clone_info->options != (void *) NULL)
     {
       if (image_info->options != (void *) NULL)
@@ -2181,7 +2391,7 @@ MagickExport MagickBooleanType CloneImageOptions(ImageInfo *image_info,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  DefineImageOption() associates an assignment string of the form
-%  "key=value" with a global image option. It is equivelent to
+%  "key=value" with a global image option. It is equivalent to
 %  SetImageOption().
 %
 %  The format of the DefineImageOption method is:
@@ -2203,7 +2413,7 @@ MagickExport MagickBooleanType DefineImageOption(ImageInfo *image_info,
     key[MagickPathExtent],
     value[MagickPathExtent];
 
-  register char
+  char
     *p;
 
   assert(image_info != (ImageInfo *) NULL);
@@ -2251,7 +2461,7 @@ MagickExport MagickBooleanType DeleteImageOption(ImageInfo *image_info,
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -2286,7 +2496,7 @@ MagickExport void DestroyImageOptions(ImageInfo *image_info)
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options != (void *) NULL)
@@ -2326,7 +2536,7 @@ MagickExport const char *GetImageOption(const ImageInfo *image_info,
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -2398,6 +2608,7 @@ static const OptionInfo *GetOptionInfo(const CommandOption option)
     case MagickFunctionOptions: return(FunctionOptions);
     case MagickGradientOptions: return(GradientOptions);
     case MagickGravityOptions: return(GravityOptions);
+    case MagickIlluminantOptions: return(IlluminantOptions);
     case MagickIntentOptions: return(IntentOptions);
     case MagickInterlaceOptions: return(InterlaceOptions);
     case MagickInterpolateOptions: return(InterpolateOptions);
@@ -2434,6 +2645,7 @@ static const OptionInfo *GetOptionInfo(const CommandOption option)
     case MagickValidateOptions: return(ValidateOptions);
     case MagickVirtualPixelOptions: return(VirtualPixelOptions);
     case MagickWeightOptions: return(WeightOptions);
+    case MagickWordBreakOptions: return(WordBreakOptions);
     default: break;
   }
   return((const OptionInfo *) NULL);
@@ -2455,13 +2667,13 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -2539,7 +2751,7 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
 %
 %  The format of the GetCommandOptionInfo method is:
 %
-%      const char **GetCommandOptionInfo(const char *option)
+%      const OptionInfo *GetCommandOptionInfo(const char *option)
 %
 %  A description of each parameter follows:
 %
@@ -2548,7 +2760,7 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
 */
 MagickExport const OptionInfo *GetCommandOptionInfo(const char *option)
 {
-  register ssize_t
+  ssize_t
     i;
 
   for (i=0; CommandOptions[i].mnemonic != (char *) NULL; i++)
@@ -2587,7 +2799,7 @@ MagickExport char **GetCommandOptions(const CommandOption option)
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2629,7 +2841,7 @@ MagickExport char *GetNextImageOption(const ImageInfo *image_info)
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -2662,8 +2874,26 @@ MagickExport char *GetNextImageOption(const ImageInfo *image_info)
 */
 MagickExport MagickBooleanType IsCommandOption(const char *option)
 {
+  char
+    *value;
+
+  ExceptionInfo
+    *exception;
+
+  MagickBooleanType
+    pedantic;
+
   assert(option != (const char *) NULL);
   if ((*option != '-') && (*option != '+'))
+    return(MagickFalse);
+  exception=AcquireExceptionInfo();
+  value=(char *) GetImageRegistry(StringRegistryType,"option:pedantic",
+    exception);
+  exception=DestroyExceptionInfo(exception);
+  pedantic=IsStringTrue(value);
+  if (value != (char *) NULL)
+    value=DestroyString(value);
+  if ((pedantic == MagickFalse) && (IsPathAccessible(option) != MagickFalse))
     return(MagickFalse);
   if (strlen(option) == 1)
     return(((*option == '{') || (*option == '}') || (*option == '[') ||
@@ -2705,7 +2935,7 @@ MagickExport const char *CommandOptionToMnemonic(const CommandOption option,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2758,7 +2988,7 @@ MagickExport MagickBooleanType IsOptionMember(const char *option,
   MagickBooleanType
     member;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -2825,7 +3055,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   magick_unreferenced(exception);
@@ -2868,7 +3098,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
 */
 MagickExport ssize_t ParseChannelOption(const char *channels)
 {
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -3006,13 +3236,13 @@ MagickExport ssize_t ParseCommandOption(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -3152,7 +3382,7 @@ MagickExport char *RemoveImageOption(ImageInfo *image_info,const char *option)
 
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -3189,7 +3419,7 @@ MagickExport void ResetImageOptions(const ImageInfo *image_info)
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -3225,7 +3455,7 @@ MagickExport void ResetImageOptionIterator(const ImageInfo *image_info)
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   if (image_info->options == (void *) NULL)
@@ -3265,7 +3495,7 @@ MagickExport MagickBooleanType SetImageOption(ImageInfo *image_info,
 {
   assert(image_info != (ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
+  if (IsEventLogging() != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
       image_info->filename);
   /*

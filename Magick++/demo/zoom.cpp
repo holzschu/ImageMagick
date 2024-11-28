@@ -2,6 +2,9 @@
 //
 // Copyright Bob Friesenhahn, 2001, 2002, 2003
 //
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
+//
 // Resize image using specified resize algorithm with Magick++ API
 //
 // Usage: zoom [-density resolution] [-filter algorithm] [-geometry geometry]
@@ -9,6 +12,7 @@
 //
 
 #include <Magick++.h>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 using namespace std; 

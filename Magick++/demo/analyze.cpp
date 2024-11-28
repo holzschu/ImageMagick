@@ -4,15 +4,20 @@
 //
 // Copyright Bob Friesenhahn, 2003, 2004
 //
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
+//
 // Usage: analyze file...
 //
 
 #include <Magick++.h>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <list>
 using namespace std; 
 using namespace Magick;
+
 int main(int argc,char **argv) 
 {
   if ( argc < 2 )

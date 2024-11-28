@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -103,13 +103,13 @@ static Image *ReadMTVImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register Quantum
+  Quantum
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   ssize_t
@@ -128,11 +128,11 @@ static Image *ReadMTVImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
@@ -187,7 +187,7 @@ static Image *ReadMTVImage(const ImageInfo *image_info,ExceptionInfo *exception)
         SetPixelGreen(image,ScaleCharToQuantum(*p++),q);
         SetPixelBlue(image,ScaleCharToQuantum(*p++),q);
         SetPixelAlpha(image,OpaqueAlpha,q);
-        q+=GetPixelChannels(image);
+        q+=(ptrdiff_t) GetPixelChannels(image);
       }
       if (SyncAuthenticPixels(image,exception) == MagickFalse)
         break;
@@ -234,7 +234,8 @@ static Image *ReadMTVImage(const ImageInfo *image_info,ExceptionInfo *exception)
           break;
       }
   } while (count > 0);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
   return(GetFirstImageInList(image));
@@ -333,29 +334,25 @@ static MagickBooleanType WriteMTVImage(const ImageInfo *image_info,Image *image,
   char
     buffer[MagickPathExtent];
 
+  const Quantum
+    *p;
+
   MagickBooleanType
     status;
 
   MagickOffsetType
     scene;
 
-  register const Quantum
-    *p;
-
-  register ssize_t
-    x;
-
-  register unsigned char
-    *q;
-
   size_t
-    imageListLength;
+    number_scenes;
 
   ssize_t
+    x,
     y;
 
   unsigned char
-    *pixels;
+    *pixels,
+    *q;
 
   /*
     Open output image file.
@@ -364,21 +361,22 @@ static MagickBooleanType WriteMTVImage(const ImageInfo *image_info,Image *image,
   assert(image_info->signature == MagickCoreSignature);
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   status=OpenBlob(image_info,image,WriteBinaryBlobMode,exception);
   if (status == MagickFalse)
     return(status);
   scene=0;
-  imageListLength=GetImageListLength(image);
+  number_scenes=GetImageListLength(image);
   do
   {
     /*
       Allocate memory for pixels.
     */
-    (void) TransformImageColorspace(image,sRGBColorspace,exception);
+    if (IssRGBCompatibleColorspace(image->colorspace) == MagickFalse)
+      (void) TransformImageColorspace(image,sRGBColorspace,exception);
     pixels=(unsigned char *) AcquireQuantumMemory(image->columns,
       3UL*sizeof(*pixels));
     if (pixels == (unsigned char *) NULL)
@@ -400,7 +398,7 @@ static MagickBooleanType WriteMTVImage(const ImageInfo *image_info,Image *image,
         *q++=ScaleQuantumToChar(GetPixelRed(image,p));
         *q++=ScaleQuantumToChar(GetPixelGreen(image,p));
         *q++=ScaleQuantumToChar(GetPixelBlue(image,p));
-        p+=GetPixelChannels(image);
+        p+=(ptrdiff_t) GetPixelChannels(image);
       }
       (void) WriteBlob(image,(size_t) (q-pixels),pixels);
       if (image->previous == (Image *) NULL)
@@ -415,11 +413,12 @@ static MagickBooleanType WriteMTVImage(const ImageInfo *image_info,Image *image,
     if (GetNextImageInList(image) == (Image *) NULL)
       break;
     image=SyncNextImageInList(image);
-    status=SetImageProgress(image,SaveImagesTag,scene,imageListLength);
+    status=SetImageProgress(image,SaveImagesTag,scene,number_scenes);
     if (status == MagickFalse)
       break;
     scene++;
   } while (image_info->adjoin != MagickFalse);
-  (void) CloseBlob(image);
-  return(MagickTrue);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  return(status);
 }

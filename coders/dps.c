@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright @ 1999 ImageMagick Studio LLC, a non-profit organization         %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -113,13 +113,13 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Pixmap
     pixmap;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register Quantum
+  Quantum
     *q;
 
-  register size_t
+  size_t
     pixel;
 
   Screen
@@ -156,11 +156,11 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   assert(image_info != (const ImageInfo *) NULL);
   assert(image_info->signature == MagickCoreSignature);
-  if (image_info->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
-      image_info->filename);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
+  if (IsEventLogging() != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",
+      image_info->filename);
   display=XOpenDisplay(image_info->server_name);
   if (display == (Display *) NULL)
     return((Image *) NULL);
@@ -338,7 +338,7 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
     case DirectClass:
     default:
     {
-      register size_t
+      size_t
         color,
         index;
 
@@ -393,7 +393,7 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
             SetPixelGreen(image,ScaleShortToQuantum(colors[index].green),q);
             index=(pixel >> blue_shift) & blue_mask;
             SetPixelBlue(image,ScaleShortToQuantum(colors[index].blue),q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -418,7 +418,7 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
             color=(pixel >> blue_shift) & blue_mask;
             color=(color*65535L)/blue_mask;
             SetPixelBlue(image,ScaleShortToQuantum((unsigned short) color),q);
-            q+=GetPixelChannels(image);
+            q+=(ptrdiff_t) GetPixelChannels(image);
           }
           if (SyncAuthenticPixels(image,exception) == MagickFalse)
             break;
@@ -460,7 +460,7 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
         for (x=0; x < (ssize_t) image->columns; x++)
         {
           SetPixelIndex(image,(unsigned short) XGetPixel(dps_image,x,y),q);
-          q+=GetPixelChannels(image);
+          q+=(ptrdiff_t) GetPixelChannels(image);
         }
         if (SyncAuthenticPixels(image,exception) == MagickFalse)
           break;
@@ -509,7 +509,7 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
                   SetPixelAlpha(image,OpaqueAlpha,q);
                   if (XGetPixel(matte_image,x,y) == 0)
                     SetPixelAlpha(image,TransparentAlpha,q);
-                  q+=GetPixelChannels(image);
+                  q+=(ptrdiff_t) GetPixelChannels(image);
                 }
                 if (SyncAuthenticPixels(image,exception) == MagickFalse)
                   break;
@@ -523,7 +523,10 @@ static Image *ReadDPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   XFreeResources(display,visual_info,map_info,(XPixelInfo *) NULL,
     (XFontStruct *) NULL,&resource_info,(XWindowInfo *) NULL);
-  (void) CloseBlob(image);
+  if (CloseBlob(image) == MagickFalse)
+    status=MagickFalse;
+  if (status == MagickFalse)
+    return(DestroyImageList(image));
   return(GetFirstImageInList(image));
 }
 #endif

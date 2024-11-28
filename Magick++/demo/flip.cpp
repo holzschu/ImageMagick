@@ -2,6 +2,9 @@
 //
 // Copyright Bob Friesenhahn, 1999, 2003
 //
+// Copyright @ 2013 ImageMagick Studio LLC, a non-profit organization
+// dedicated to making software imaging solutions freely available.
+//
 // Demonstration of unary function-object based operations
 //
 // Reads the multi-frame file "smile_anim.miff" and writes a
@@ -9,6 +12,7 @@
 //
 
 #include <Magick++.h>
+#include <cstdlib>
 #include <string>
 #include <iostream>
 #include <list>
