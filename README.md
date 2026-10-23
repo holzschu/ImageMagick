@@ -86,3 +86,15 @@ Want more performance from ImageMagick? Try these options:
 * push large images to a solid-state drive, see [large image support](https://imagemagick.org/script/architecture.php#tera-pixel).
 
 If these options are prohibitive, you can reduce the quality of the image results. The default build is Q16 HDRI. If you disable [HDRI](https://imagemagick.org/script/high-dynamic-range.php), you use half the memory and instead of predominantly floating point operations, you use the typically more efficient integer operations. The tradeoff is reduced precision and you cannot process out of range pixel values (e.g. negative). If you build the Q8 non-HDRI version of ImageMagick, you again reduce the memory requirements in half-- and once again there is a tradeoff, even less precision and no out of range pixel values. For a Q8 non-HDRI build of ImageMagick, use these configure script options: **--with-quantum-depth=8 --disable-hdri**.
+
+## Releasing xcframeworks
+
+The build uses the PNG, FreeType, HarfBuzz, JPEG and TIFF source recipes pinned in `downloadFrameworks.sh` to produce arm64 iOS and universal arm64/x86_64 Simulator dependencies. Local builds require Xcode, autoconf, automake, libtool and pkgconf.
+
+CI builds the xcframeworks on pull requests (except Markdown-only changes) and manual runs. It uploads the ZIPs, `checksums.txt` and `release.md` in the `xcframeworks` artifact. The build summary lists each slice and its architectures.
+
+To release from this repository, push a `v*` tag, then wait for the "Publishing release" job. It creates a release with the generated notes, or adds the assets to an existing release while keeping its notes. Uploads fail if an asset already exists; published files are never overwritten. Only the release job has write permission.
+
+Before releasing ImageMagick for the arm64 Simulator, publish matching universal `libpng`, `freetype` and `harfbuzz` frameworks from the pinned Python-aux producer commit. Consumers must update these three runtime dependencies together with `magick`; the ImageMagick ZIP contains only `magick.xcframework`. JPEG and TIFF are linked statically.
+
+Update each consuming `binaryTarget` URL and checksum with the new releases and their `checksums.txt` values.
